@@ -44,14 +44,7 @@ function createServer() {
     next();
   });
   
-  // Routes
-  app.use('/api/owntracks', ownTracksRoutes);
-  app.use('/api/tracking', trackingRoutes);
-  app.use('/api/admin', adminRoutes);
-  app.use('/health', healthRoutes);
-  app.use('/', healthRoutes); // Root también responde health
-  
-  // Ruta por defecto
+  // Ruta por defecto PRIMERO
   app.get('/', (req, res) => {
     res.json({
       name: 'Pollo Loco Tracking GPS',
@@ -66,6 +59,12 @@ function createServer() {
       }
     });
   });
+  
+  // Routes
+  app.use('/api/owntracks', ownTracksRoutes);
+  app.use('/api/tracking', trackingRoutes);
+  app.use('/api/admin', adminRoutes);
+  app.use('/health', healthRoutes);
   
   // Middleware de manejo de errores
   app.use((error, req, res, next) => {
@@ -116,12 +115,21 @@ function startServer() {
     console.log(`🚀 API Server running on port ${port}`);
     console.log(`📱 Web App available at: /webapp`);
     console.log(`🔗 OwnTracks endpoint: /api/owntracks/location`);
+    console.log(`💚 Health endpoint: /health`);
     
     if (process.env.NODE_ENV === 'production') {
       console.log(`🌐 Public URL: ${process.env.WEB_APP_URL}`);
     } else {
       console.log(`🌐 Local URL: http://localhost:${port}`);
     }
+    
+    // Log todas las rutas registradas
+    console.log('\n📋 Rutas registradas:');
+    app._router.stack.forEach((middleware) => {
+      if (middleware.route) {
+        console.log(`   ${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${middleware.route.path}`);
+      }
+    });
   });
   
   // Graceful shutdown

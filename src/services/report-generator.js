@@ -1,5 +1,4 @@
 const db = require('../config/database');
-const { formatTime } = require('../utils/time');
 
 /**
  * Generador de reportes diarios

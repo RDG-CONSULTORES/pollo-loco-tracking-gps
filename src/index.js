@@ -16,11 +16,15 @@ async function main() {
     // 1. Verificar variables de entorno
     validateEnvironment();
     
-    // 2. Test conexiones de BD
+    // 2. Setup base de datos automáticamente
+    console.log('\n🔧 Configurando base de datos...');
+    await setupDatabase();
+    
+    // 3. Test conexiones de BD
     console.log('\n🔍 Verificando conexiones...');
     await testDatabaseConnections();
     
-    // 3. Inicializar Telegram Bot
+    // 4. Inicializar Telegram Bot
     console.log('\n🤖 Inicializando Telegram Bot...');
     const bot = createBot();
     if (bot) {
@@ -30,11 +34,11 @@ async function main() {
       }
     }
     
-    // 4. Iniciar servidor API
+    // 5. Iniciar servidor API
     console.log('\n🚀 Iniciando servidor API...');
     startServer();
     
-    // 5. Inicializar scheduler de trabajos
+    // 6. Inicializar scheduler de trabajos
     console.log('\n⏰ Inicializando trabajos programados...');
     scheduler.start();
     
@@ -52,21 +56,52 @@ async function main() {
  */
 function validateEnvironment() {
   const required = [
-    'DATABASE_URL',
+    'DATABASE_URL'
+  ];
+  
+  const optional = [
     'ZENPUT_DATABASE_URL',
-    'TELEGRAM_BOT_TOKEN',
+    'TELEGRAM_BOT_TOKEN', 
     'TELEGRAM_ADMIN_IDS'
   ];
   
   const missing = required.filter(env => !process.env[env]);
   
   if (missing.length > 0) {
-    console.error('❌ Variables de entorno faltantes:');
+    console.error('❌ Variables de entorno críticas faltantes:');
     missing.forEach(env => console.error(`   - ${env}`));
     throw new Error('Configuración incompleta');
   }
   
+  const missingOptional = optional.filter(env => !process.env[env]);
+  if (missingOptional.length > 0) {
+    console.warn('⚠️ Variables opcionales faltantes:');
+    missingOptional.forEach(env => console.warn(`   - ${env}`));
+  }
+  
   console.log('✅ Variables de entorno validadas');
+}
+
+/**
+ * Configurar base de datos automáticamente
+ */
+async function setupDatabase() {
+  try {
+    const { execSync } = require('child_process');
+    
+    // Ejecutar setup de base de datos
+    console.log('📄 Ejecutando schema SQL...');
+    execSync('node scripts/setup-database.js', { 
+      stdio: 'inherit',
+      cwd: process.cwd()
+    });
+    
+    console.log('✅ Base de datos configurada');
+    
+  } catch (error) {
+    console.log('⚠️ Error en setup DB (continuando):', error.message);
+    // No hacer throw - continuar aunque falle el setup
+  }
 }
 
 /**

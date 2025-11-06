@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pollo Loco Admin</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Cargando...</div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🐔 Admin Tracking</h1>
+    <div class="header-stats">
+      <span id="systemStatus" class="status-badge">...</span>
+      <span id="timeDisplay" class="time-display"></span>
+    </div>
+  </div>
+  
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showSection('dashboard')" data-section="dashboard">
+      📊 Dashboard
+    </button>
+    <button class="tab" onclick="showSection('usuarios')" data-section="usuarios">
+      👥 Usuarios
+    </button>
+    <button class="tab" onclick="showSection('config')" data-section="config">
+      ⚙️ Config
+    </button>
+    <button class="tab" onclick="showSection('reportes')" data-section="reportes">
+      📈 Reportes
+    </button>
+  </div>
+  
+  <!-- Dashboard Section -->
+  <div id="dashboard" class="section active">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <div class="stat-label">Usuarios Activos</div>
+          <div class="stat-value" id="statsActiveUsers">-</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">🏢</div>
+        <div class="stat-content">
+          <div class="stat-label">Sucursales</div>
+          <div class="stat-value" id="statsLocations">-</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">📍</div>
+        <div class="stat-content">
+          <div class="stat-label">Visitas Hoy</div>
+          <div class="stat-value" id="statsVisitsToday">-</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <div class="stat-label">Cobertura</div>
+          <div class="stat-value" id="statsCoverage">-%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-actions">
+      <button class="btn btn-primary" onclick="refreshDashboard()">
+        🔄 Actualizar
+      </button>
+      <button class="btn btn-secondary" onclick="toggleSystem()" id="toggleSystemBtn">
+        ⏸️ Pausar Sistema
+      </button>
+    </div>
+
+    <div class="recent-activity">
+      <h3>📋 Actividad Reciente</h3>
+      <div id="recentVisits" class="activity-list">
+        <div class="activity-item loading-placeholder">Cargando actividad...</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Usuarios Section -->
+  <div id="usuarios" class="section">
+    <div class="section-header">
+      <h3>👥 Gestión de Usuarios</h3>
+      <button class="btn btn-primary" onclick="showCreateUserModal()">
+        ➕ Nuevo Usuario
+      </button>
+    </div>
+    
+    <div id="usersList" class="users-list">
+      <div class="loading-placeholder">Cargando usuarios...</div>
+    </div>
+  </div>
+  
+  <!-- Config Section -->
+  <div id="config" class="section">
+    <div class="section-header">
+      <h3>⚙️ Configuración del Sistema</h3>
+    </div>
+    
+    <div id="configList" class="config-list">
+      <div class="loading-placeholder">Cargando configuración...</div>
+    </div>
+  </div>
+  
+  <!-- Reportes Section -->
+  <div id="reportes" class="section">
+    <div class="section-header">
+      <h3>📈 Reportes y Analytics</h3>
+      <select id="reportDate" onchange="loadReports()">
+        <option value="today">Hoy</option>
+        <option value="yesterday">Ayer</option>
+        <option value="week">Esta Semana</option>
+      </select>
+    </div>
+    
+    <div id="reportsList" class="reports-list">
+      <div class="loading-placeholder">Cargando reportes...</div>
+    </div>
+  </div>
+
+  <!-- Modal para crear usuario -->
+  <div id="createUserModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>👤 Crear Nuevo Usuario</h3>
+        <span class="close" onclick="closeCreateUserModal()">&times;</span>
+      </div>
+      <form id="createUserForm" onsubmit="createUser(event)">
+        <div class="form-group">
+          <label for="trackerId">Tracker ID:</label>
+          <input type="text" id="trackerId" required maxlength="10" placeholder="JP">
+          <small>2-3 letras únicas para identificar al supervisor</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="displayName">Nombre Completo:</label>
+          <input type="text" id="displayName" required placeholder="Juan Pérez">
+        </div>
+        
+        <div class="form-group">
+          <label for="zenputEmail">Email Zenput:</label>
+          <input type="email" id="zenputEmail" required placeholder="juan.perez@zenput.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">Teléfono (opcional):</label>
+          <input type="tel" id="phone" placeholder="+52 81 1234 5678">
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeCreateUserModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            ✅ Crear Usuario
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast" class="toast"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

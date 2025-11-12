@@ -45,28 +45,70 @@ class PolloLocoBot {
     // });
     
     // Comandos básicos
-    this.bot.onText(/^\/start$/, commands.ayuda.start.bind(this));
-    this.bot.onText(/^\/help$/, commands.ayuda.help.bind(this));
+    this.bot.onText(/^\/start$/, (msg) => {
+      commands.ayuda.bot = this.bot;
+      commands.ayuda.start(msg);
+    });
+    this.bot.onText(/^\/help$/, (msg) => {
+      commands.ayuda.bot = this.bot;
+      commands.ayuda.help(msg);
+    });
     
     // Comandos de usuarios
-    this.bot.onText(/^\/usuarios$/, commands.usuarios.list.bind(this));
-    this.bot.onText(/^\/nuevo_usuario/, commands.usuarios.create.bind(this));
-    this.bot.onText(/^\/pausar (.+)/, commands.control.pauseUser.bind(this));
-    this.bot.onText(/^\/activar (.+)/, commands.control.activateUser.bind(this));
+    this.bot.onText(/^\/usuarios$/, (msg) => {
+      commands.usuarios.bot = this.bot;
+      commands.usuarios.list(msg);
+    });
+    this.bot.onText(/^\/nuevo_usuario/, (msg) => {
+      commands.usuarios.bot = this.bot;
+      commands.usuarios.create(msg);
+    });
+    this.bot.onText(/^\/pausar (.+)/, (msg, match) => {
+      commands.control.bot = this.bot;
+      commands.control.pauseUser(msg, match);
+    });
+    this.bot.onText(/^\/activar (.+)/, (msg, match) => {
+      commands.control.bot = this.bot;
+      commands.control.activateUser(msg, match);
+    });
     
     // Comandos de configuración
-    this.bot.onText(/^\/config$/, commands.config.view.bind(this));
-    this.bot.onText(/^\/horarios (.+) (.+)/, commands.config.updateHours.bind(this));
+    this.bot.onText(/^\/config$/, (msg) => {
+      commands.config.bot = this.bot;
+      commands.config.view(msg);
+    });
+    this.bot.onText(/^\/horarios (.+) (.+)/, (msg, match) => {
+      commands.config.bot = this.bot;
+      commands.config.updateHours(msg, match);
+    });
     
     // Comandos de control del sistema
-    this.bot.onText(/^\/estado$/, commands.control.status.bind(this));
-    this.bot.onText(/^\/pausar_sistema$/, commands.control.pauseSystem.bind(this));
-    this.bot.onText(/^\/activar_sistema$/, commands.control.activateSystem.bind(this));
+    this.bot.onText(/^\/estado$/, (msg) => {
+      commands.control.bot = this.bot;
+      commands.control.status(msg);
+    });
+    this.bot.onText(/^\/pausar_sistema$/, (msg) => {
+      commands.control.bot = this.bot;
+      commands.control.pauseSystem(msg);
+    });
+    this.bot.onText(/^\/activar_sistema$/, (msg) => {
+      commands.control.bot = this.bot;
+      commands.control.activateSystem(msg);
+    });
     
     // Comandos de reportes
-    this.bot.onText(/^\/reporte/, commands.reportes.daily.bind(this));
-    this.bot.onText(/^\/ubicaciones$/, commands.reportes.locations.bind(this));
-    this.bot.onText(/^\/visitas_hoy$/, commands.reportes.visitsToday.bind(this));
+    this.bot.onText(/^\/reporte/, (msg) => {
+      commands.reportes.bot = this.bot;
+      commands.reportes.daily(msg);
+    });
+    this.bot.onText(/^\/ubicaciones$/, (msg) => {
+      commands.reportes.bot = this.bot;
+      commands.reportes.locations(msg);
+    });
+    this.bot.onText(/^\/visitas_hoy$/, (msg) => {
+      commands.reportes.bot = this.bot;
+      commands.reportes.visitsToday(msg);
+    });
     
     // Web App
     this.bot.onText(/^\/webapp$/, this.openWebApp.bind(this));

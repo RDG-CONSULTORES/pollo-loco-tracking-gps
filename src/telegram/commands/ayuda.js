@@ -32,7 +32,7 @@ class AyudaCommands {
         ]
       };
       
-      await this.sendMessage(chatId, welcomeMessage, {
+      await this.bot.sendMessage(chatId, welcomeMessage, {
         parse_mode: 'Markdown',
         reply_markup: keyboard
       });

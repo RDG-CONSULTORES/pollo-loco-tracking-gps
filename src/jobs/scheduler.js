@@ -188,11 +188,6 @@ class JobScheduler {
         SELECT COUNT(*) as inactive_users
         FROM tracking_users tu
         WHERE tu.active = true
-          AND NOT EXISTS (
-            SELECT 1 FROM tracking_locations tl
-            WHERE tl.tracker_id = tu.tracker_id
-              AND tl.gps_timestamp >= NOW() - INTERVAL '2 hours'
-          )
       `);
       
       const inactiveUsers = parseInt(result.rows[0].inactive_users);

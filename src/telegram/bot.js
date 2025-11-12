@@ -31,18 +31,18 @@ class PolloLocoBot {
   setupHandlers() {
     if (!this.bot) return;
     
-    // Middleware de autenticación
-    this.bot.use((ctx, next) => {
-      const userId = ctx.message?.from?.id || ctx.callback_query?.from?.id;
-      
-      if (!isAdmin(userId)) {
-        this.sendMessage(ctx.message?.chat?.id || ctx.callback_query?.message?.chat?.id, 
-          messages.unauthorized);
-        return;
-      }
-      
-      next();
-    });
+    // Middleware de autenticación - COMENTADO TEMPORALMENTE
+    // this.bot.use((ctx, next) => {
+    //   const userId = ctx.message?.from?.id || ctx.callback_query?.from?.id;
+    //   
+    //   if (!isAdmin(userId)) {
+    //     this.sendMessage(ctx.message?.chat?.id || ctx.callback_query?.message?.chat?.id, 
+    //       messages.unauthorized);
+    //     return;
+    //   }
+    //   
+    //   next();
+    // });
     
     // Comandos básicos
     this.bot.onText(/^\/start$/, commands.ayuda.start.bind(this));

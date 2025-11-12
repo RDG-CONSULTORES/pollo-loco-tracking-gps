@@ -10,7 +10,7 @@ const scheduler = require('./jobs/scheduler');
  * Aplicación principal - Pollo Loco Tracking GPS
  */
 async function main() {
-  console.log('🐔 Iniciando Pollo Loco Tracking GPS...');
+  console.log('🐔 Iniciando Pollo Loco Tracking GPS v2.1...');
   
   try {
     // 1. Verificar variables de entorno

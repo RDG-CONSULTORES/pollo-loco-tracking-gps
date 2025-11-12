@@ -98,10 +98,10 @@ ${workIcon} *Horario:* ${workHoursStart} - ${workHoursEnd}
     try {
       const chatId = msg.chat.id;
       
-      const success = await db.setConfig('system_active', 'false', this.getAdminUser(msg.from));
+      const success = await db.setConfig('system_active', 'false');
       
       if (success) {
-        await this.logAdminAction('pause_system', 'system', msg.from);
+        // await this.logAdminAction('pause_system', 'system', msg.from);
         
         await this.bot.sendMessage(chatId, 
           `⏸️ *SISTEMA PAUSADO*\n\n🚫 El tracking GPS ha sido pausado.\nNo se procesarán nuevas ubicaciones.\n\nPara reactivar: \`/activar_sistema\``, 
@@ -121,14 +121,92 @@ ${workIcon} *Horario:* ${workHoursStart} - ${workHoursEnd}
   /**
    * /activar_sistema - Activar el sistema de tracking
    */
+  /**
+   * /pausar [ID] - Pausar usuario específico
+   */
+  async pauseUser(msg, match) {
+    try {
+      const chatId = msg.chat.id;
+      
+      if (!match || !match[1]) {
+        await this.bot.sendMessage(chatId, 
+          '⚠️ *Uso correcto:* `/pausar [ID]`\n\nEjemplo: `/pausar JP`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+      
+      const trackerId = match[1].trim().toUpperCase();
+      
+      const result = await db.query(
+        'UPDATE tracking_users SET active = false WHERE tracker_id = $1 RETURNING *',
+        [trackerId]
+      );
+      
+      if (result.rows.length === 0) {
+        await this.bot.sendMessage(chatId, `❌ Usuario "${trackerId}" no encontrado.`);
+        return;
+      }
+      
+      const user = result.rows[0];
+      await this.bot.sendMessage(chatId, 
+        `⏸️ *Usuario pausado*\n\n👤 ${user.display_name} (${trackerId})\n\nNo se procesarán sus ubicaciones GPS.`,
+        { parse_mode: 'Markdown' }
+      );
+      
+    } catch (error) {
+      console.error('❌ Error pausando usuario:', error.message);
+      await this.bot.sendMessage(msg.chat.id, '❌ Error pausando usuario.');
+    }
+  }
+  
+  /**
+   * /activar [ID] - Activar usuario específico
+   */
+  async activateUser(msg, match) {
+    try {
+      const chatId = msg.chat.id;
+      
+      if (!match || !match[1]) {
+        await this.bot.sendMessage(chatId, 
+          '⚠️ *Uso correcto:* `/activar [ID]`\n\nEjemplo: `/activar JP`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+      
+      const trackerId = match[1].trim().toUpperCase();
+      
+      const result = await db.query(
+        'UPDATE tracking_users SET active = true WHERE tracker_id = $1 RETURNING *',
+        [trackerId]
+      );
+      
+      if (result.rows.length === 0) {
+        await this.bot.sendMessage(chatId, `❌ Usuario "${trackerId}" no encontrado.`);
+        return;
+      }
+      
+      const user = result.rows[0];
+      await this.bot.sendMessage(chatId, 
+        `✅ *Usuario activado*\n\n👤 ${user.display_name} (${trackerId})\n\nSus ubicaciones GPS se procesarán normalmente.`,
+        { parse_mode: 'Markdown' }
+      );
+      
+    } catch (error) {
+      console.error('❌ Error activando usuario:', error.message);
+      await this.bot.sendMessage(msg.chat.id, '❌ Error activando usuario.');
+    }
+  }
+
   async activateSystem(msg) {
     try {
       const chatId = msg.chat.id;
       
-      const success = await db.setConfig('system_active', 'true', this.getAdminUser(msg.from));
+      const success = await db.setConfig('system_active', 'true');
       
       if (success) {
-        await this.logAdminAction('activate_system', 'system', msg.from);
+        // await this.logAdminAction('activate_system', 'system', msg.from);
         
         await this.bot.sendMessage(chatId, 
           `✅ *SISTEMA ACTIVADO*\n\n📍 El tracking GPS está activo.\nSe procesarán ubicaciones en horario laboral.\n\nPara pausar: \`/pausar_sistema\``, 

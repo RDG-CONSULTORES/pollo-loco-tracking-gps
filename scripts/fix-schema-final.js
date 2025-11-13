@@ -126,6 +126,14 @@ async function fixSchemaFinal() {
           synced_at TIMESTAMP DEFAULT NOW()
         )
       `);
+      
+      // Agregar geofence_radius si falta
+      try {
+        await client.query('ALTER TABLE tracking_locations_cache ADD COLUMN IF NOT EXISTS geofence_radius INT DEFAULT 150');
+        console.log('  ✅ Columna geofence_radius verificada');
+      } catch (error) {
+        // Ignorar si ya existe
+      }
       console.log('  ✅ Tabla tracking_locations_cache OK');
     } catch (error) {
       console.log(`  ❌ Error con tracking_locations_cache: ${error.message}`);

@@ -27,6 +27,7 @@
     "import-dashboard-exact": "node scripts/import-from-supervision-clean.js",
     "verify-grupos": "node scripts/verify-grupos-estructura.js",
     "fix-schema-final": "node scripts/fix-schema-final.js",
+    "fix-geofence": "node scripts/fix-geofence-column.js",
     "test-connection": "node scripts/test-railway-connection.js",
     "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js"
   },

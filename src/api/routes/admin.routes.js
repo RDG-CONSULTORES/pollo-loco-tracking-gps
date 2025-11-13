@@ -14,6 +14,33 @@ router.use((req, res, next) => {
 });
 
 /**
+ * GET /api/admin/debug/schema/:table
+ * Emergency schema debugging endpoint
+ */
+router.get('/debug/schema/:table', async (req, res) => {
+  try {
+    const tableName = req.params.table;
+    
+    const columns = await db.query(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_name = $1
+      ORDER BY ordinal_position
+    `, [tableName]);
+    
+    res.json({
+      table: tableName,
+      columns: columns.rows,
+      count: columns.rows.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/admin/users
  * Obtener lista de usuarios de tracking
  */

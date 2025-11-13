@@ -46,6 +46,60 @@ router.get('/debug/schema/:table', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
   try {
+    // Debug: Test tracking_locations schema if ?debug=schema query param
+    if (req.query.debug === 'schema') {
+      try {
+        const columns = await db.query(`
+          SELECT column_name, data_type, is_nullable
+          FROM information_schema.columns
+          WHERE table_name = 'tracking_locations'
+          ORDER BY ordinal_position
+        `);
+        
+        return res.json({
+          debug: 'tracking_locations_schema',
+          columns: columns.rows,
+          timestamp: new Date().toISOString()
+        });
+      } catch (schemaError) {
+        return res.json({
+          debug: 'schema_error',
+          error: schemaError.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    // Debug: Test location insert if ?debug=insert query param
+    if (req.query.debug === 'insert') {
+      try {
+        const testResult = await db.query(`
+          INSERT INTO tracking_locations 
+          (user_id, zenput_email, latitude, longitude, accuracy, 
+           battery, velocity, heading, gps_timestamp, raw_payload)
+          VALUES (3, 'test@example.com', 25.6866, -100.3161, 5, 
+                  85, 0, 0, NOW(), '{"test": true}')
+          RETURNING id, user_id, latitude, longitude, gps_timestamp
+        `);
+        
+        return res.json({
+          debug: 'insert_test',
+          success: true,
+          inserted: testResult.rows[0],
+          timestamp: new Date().toISOString()
+        });
+      } catch (insertError) {
+        return res.json({
+          debug: 'insert_error',
+          error: insertError.message,
+          code: insertError.code,
+          detail: insertError.detail,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    // Normal users listing
     const result = await db.query(`
       SELECT 
         id,

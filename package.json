@@ -13,7 +13,8 @@
     "seed": "node scripts/seed-test-data.js",
     "fix-config": "node scripts/fix-config.js",
     "fix-schema": "node scripts/fix-database-schema.js",
-    "quick-fix": "node scripts/quick-fix-schema.js"
+    "quick-fix": "node scripts/quick-fix-schema.js",
+    "deploy-fix": "./scripts/deploy-schema-fix.sh"
   },
   "keywords": [
     "gps",

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../config/database');
+const { logAdminAction } = require('../../utils/admin-logger');
 
 /**
  * Middleware: Verificar autenticación (simplificado para demo)
@@ -84,8 +85,8 @@ router.post('/users', async (req, res) => {
     
     const newUser = result.rows[0];
     
-    // Log de auditoría (deshabilitado temporalmente)
-    // await logAdminAction('create_user', 'tracking_users', newUser.id, null, JSON.stringify(newUser));
+    // Log de auditoría
+    await logAdminAction('create_user', 'tracking_users', newUser.id, null, JSON.stringify(newUser));
     
     console.log(`✅ Usuario creado: ${tracker_id} (${display_name})`);
     
@@ -164,9 +165,9 @@ router.put('/users/:tracker_id', async (req, res) => {
     const result = await db.query(query, values);
     const updatedUser = result.rows[0];
     
-    // Log de auditoría (deshabilitado temporalmente)
-    // await logAdminAction('update_user', 'tracking_users', tracker_id, 
-    //   JSON.stringify(currentUser), JSON.stringify(updatedUser));
+    // Log de auditoría
+    await logAdminAction('update_user', 'tracking_users', tracker_id, 
+      JSON.stringify(currentUser), JSON.stringify(updatedUser));
     
     console.log(`✅ Usuario actualizado: ${tracker_id}`);
     

@@ -92,7 +92,7 @@ class DailyReportJob {
         MIN(v.entry_time) as primera_visita,
         MAX(v.entry_time) as ultima_visita
       FROM tracking_visits v
-      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+      LEFT JOIN tracking_users tu ON v.user_id = tu.id
       WHERE DATE(v.entry_time) = $1
         AND v.is_valid = true
         AND v.exit_time IS NOT NULL

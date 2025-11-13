@@ -273,7 +273,7 @@ router.get('/visits/today', async (req, res) => {
         v.visit_type,
         v.is_valid
       FROM tracking_visits v
-      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+      LEFT JOIN tracking_users tu ON v.user_id = tu.id
       LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
       WHERE DATE(v.entry_time) = CURRENT_DATE
       ORDER BY v.entry_time DESC

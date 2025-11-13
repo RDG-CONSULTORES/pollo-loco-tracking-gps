@@ -80,7 +80,7 @@ router.get('/visits/date/:date', async (req, res) => {
         tu.display_name as supervisor_name
       FROM tracking_visits v
       LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
-      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+      LEFT JOIN tracking_users tu ON v.user_id = tu.id
       WHERE DATE(v.entry_time) = $1
     `;
     
@@ -226,7 +226,7 @@ router.get('/locations/:location_code/visitors', async (req, res) => {
         v.visit_type,
         lc.name as location_name
       FROM tracking_visits v
-      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+      LEFT JOIN tracking_users tu ON v.user_id = tu.id
       LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
       WHERE v.location_code = $1
         AND DATE(v.entry_time) = $2

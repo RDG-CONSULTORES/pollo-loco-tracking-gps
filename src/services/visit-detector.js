@@ -186,7 +186,7 @@ class VisitDetector {
       const result = await db.query(`
         SELECT id, entry_time, location_code
         FROM tracking_visits
-        WHERE tracker_id = $1
+        WHERE user_id = $1
           AND location_code = $2
           AND exit_time IS NULL
         ORDER BY entry_time DESC
@@ -208,7 +208,7 @@ class VisitDetector {
       const result = await db.query(`
         SELECT id, entry_time, location_code
         FROM tracking_visits
-        WHERE tracker_id = $1
+        WHERE user_id = $1
           AND exit_time IS NULL
         ORDER BY entry_time DESC
       `, [trackerId]);
@@ -249,7 +249,7 @@ class VisitDetector {
           tu.display_name as supervisor_name
         FROM tracking_visits v
         LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
-        LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+        LEFT JOIN tracking_users tu ON v.user_id = tu.id
         WHERE DATE(v.entry_time) = CURRENT_DATE
       `;
       

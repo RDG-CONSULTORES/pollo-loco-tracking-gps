@@ -405,19 +405,5 @@ router.post('/actions/cleanup', async (req, res) => {
   }
 });
 
-/**
- * Helper: Log de auditoría
- */
-async function logAdminAction(action, entityType, entityId, oldValue, newValue, adminUser = 'api') {
-  try {
-    await db.query(`
-      INSERT INTO tracking_admin_log 
-      (admin_user, action, entity_type, entity_id, old_value, new_value)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [adminUser, action, entityType, entityId, oldValue, newValue]);
-  } catch (error) {
-    console.error('❌ Error logging admin action:', error.message);
-  }
-}
 
 module.exports = router;

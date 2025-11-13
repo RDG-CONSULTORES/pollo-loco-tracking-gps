@@ -24,6 +24,7 @@
     "verify-db": "node scripts/verify-database.js",
     "import-sucursales": "node scripts/import-sucursales-neon.js",
     "verify-grupos": "node scripts/verify-grupos-estructura.js",
+    "fix-schema-final": "node scripts/fix-schema-final.js",
     "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js"
   },
   "keywords": [

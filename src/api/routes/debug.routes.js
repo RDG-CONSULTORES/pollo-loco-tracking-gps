@@ -236,4 +236,80 @@ router.get('/request-log', (req, res) => {
   res.json(log);
 });
 
+/**
+ * POST /api/debug/test-save-location
+ * Test saving a location directly to database
+ */
+router.post('/test-save-location', async (req, res) => {
+  try {
+    const db = require('../../config/database');
+    
+    // Test data
+    const testData = {
+      tracker_id: 'RD01',
+      zenput_email: 'roberto@pollocas.com',
+      latitude: 25.6866,
+      longitude: -100.3161,
+      accuracy: 5,
+      altitude: null,
+      battery: 85,
+      velocity: 0,
+      heading: 0,
+      gps_timestamp: new Date(),
+      raw_payload: JSON.stringify({
+        _type: 'location',
+        tid: 'RD01',
+        lat: 25.6866,
+        lon: -100.3161,
+        acc: 5
+      })
+    };
+    
+    console.log('[DEBUG] Attempting to save location:', testData);
+    
+    const result = await db.query(`
+      INSERT INTO tracking_locations 
+      (tracker_id, zenput_email, latitude, longitude, accuracy, altitude, 
+       battery, velocity, heading, gps_timestamp, raw_payload)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING id, tracker_id, latitude, longitude, gps_timestamp
+    `, [
+      testData.tracker_id,
+      testData.zenput_email,
+      testData.latitude,
+      testData.longitude,
+      testData.accuracy,
+      testData.altitude,
+      testData.battery,
+      testData.velocity,
+      testData.heading,
+      testData.gps_timestamp,
+      testData.raw_payload
+    ]);
+    
+    console.log('[DEBUG] Location saved successfully:', result.rows[0]);
+    
+    res.json({
+      status: 'success',
+      message: 'Location saved successfully',
+      saved_location: result.rows[0],
+      test_data: testData,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] Error saving location:', error.message);
+    console.error('❌ [DEBUG] Full error:', error);
+    
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      code: error.code,
+      detail: error.detail,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;

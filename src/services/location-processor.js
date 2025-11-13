@@ -218,7 +218,7 @@ class LocationProcessor {
   async checkDuplicateLocation(userId, lat, lon, timestamp) {
     try {
       const result = await db.query(`
-        SELECT id FROM tracking_locations 
+        SELECT id FROM gps_locations 
         WHERE user_id = $1
           AND latitude = $2
           AND longitude = $3
@@ -239,7 +239,7 @@ class LocationProcessor {
   async saveLocation(data) {
     try {
       const result = await db.query(`
-        INSERT INTO tracking_locations 
+        INSERT INTO gps_locations 
         (user_id, zenput_email, latitude, longitude, accuracy, altitude, 
          battery, velocity, heading, gps_timestamp, raw_payload)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)

@@ -100,7 +100,7 @@ router.get('/users', async (req, res) => {
         console.log('[ADMIN] Creating tracking_locations table...');
         
         await db.query(`
-          CREATE TABLE IF NOT EXISTS tracking_locations (
+          CREATE TABLE IF NOT EXISTS gps_locations (
             id BIGSERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
             zenput_email VARCHAR(100),
@@ -125,16 +125,16 @@ router.get('/users', async (req, res) => {
         
         console.log('[ADMIN] Creating indexes...');
         await db.query(`
-          CREATE INDEX IF NOT EXISTS idx_locations_user_time ON tracking_locations(user_id, gps_timestamp DESC)
+          CREATE INDEX IF NOT EXISTS idx_gps_locations_user_time ON gps_locations(user_id, gps_timestamp DESC)
         `);
         await db.query(`
-          CREATE INDEX IF NOT EXISTS idx_locations_timestamp ON tracking_locations(gps_timestamp DESC)
+          CREATE INDEX IF NOT EXISTS idx_gps_locations_timestamp ON gps_locations(gps_timestamp DESC)
         `);
         
         return res.json({
           debug: 'create_table',
           success: true,
-          message: 'tracking_locations table created successfully',
+          message: 'gps_locations table created successfully',
           timestamp: new Date().toISOString()
         });
       } catch (createError) {
@@ -153,7 +153,7 @@ router.get('/users', async (req, res) => {
     if (req.query.debug === 'insert') {
       try {
         const testResult = await db.query(`
-          INSERT INTO tracking_locations 
+          INSERT INTO gps_locations 
           (user_id, zenput_email, latitude, longitude, accuracy, 
            battery, velocity, heading, gps_timestamp, raw_payload)
           VALUES (3, 'test@example.com', 25.6866, -100.3161, 5, 

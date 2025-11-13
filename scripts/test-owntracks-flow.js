@@ -138,7 +138,7 @@ async function testOwnTracksFlow() {
       tid: 'RD01',
       lat: 25.6866,
       lon: -100.3161,
-      tst: Math.floor(Date.now() / 1000),
+      tst: Math.floor(Date.now() / 1000) - 60, // 1 minute ago to avoid future timestamp
       acc: 5,
       batt: 85,
       vel: 0,

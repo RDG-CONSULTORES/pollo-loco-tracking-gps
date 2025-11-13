@@ -28,6 +28,7 @@
     "verify-grupos": "node scripts/verify-grupos-estructura.js",
     "fix-schema-final": "node scripts/fix-schema-final.js",
     "fix-geofence": "node scripts/fix-geofence-column.js",
+    "fix-all": "node scripts/fix-all-schema-issues.js",
     "test-connection": "node scripts/test-railway-connection.js",
     "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js"
   },

@@ -48,7 +48,8 @@ async function fixSchemaFinal() {
       { spanish: 'entrada_lat', english: 'entry_lat' },
       { spanish: 'entrada_lon', english: 'entry_lon' },
       { spanish: 'salida_lat', english: 'exit_lat' },
-      { spanish: 'salida_lon', english: 'exit_lon' }
+      { spanish: 'salida_lon', english: 'exit_lon' },
+      { spanish: 'tracker_id', english: 'user_id' }  // Agregar este mapeo
     ];
     
     console.log('\n1️⃣ Renombrando columnas español → inglés...');

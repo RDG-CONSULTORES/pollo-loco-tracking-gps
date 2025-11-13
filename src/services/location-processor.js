@@ -95,7 +95,7 @@ class LocationProcessor {
       }
       
       // 8. Evitar ubicaciones duplicadas recientes
-      const isDuplicate = await this.checkDuplicateLocation(tid, lat, lon, gpsTimestamp);
+      const isDuplicate = await this.checkDuplicateLocation(user.id, lat, lon, gpsTimestamp);
       if (isDuplicate) {
         console.log(`🔄 Ubicación duplicada ignorada: ${tid}`);
         return { 
@@ -108,6 +108,7 @@ class LocationProcessor {
       // 9. Guardar ubicación en BD
       const savedLocation = await this.saveLocation({
         tid,
+        user_id: user.id,  // Use database ID instead of tracker_id string
         email: user.zenput_email,
         lat,
         lon,
@@ -214,16 +215,16 @@ class LocationProcessor {
   /**
    * Verificar ubicaciones duplicadas recientes
    */
-  async checkDuplicateLocation(trackerId, lat, lon, timestamp) {
+  async checkDuplicateLocation(userId, lat, lon, timestamp) {
     try {
       const result = await db.query(`
         SELECT id FROM tracking_locations 
-        WHERE tracker_id = $1
+        WHERE user_id = $1
           AND latitude = $2
           AND longitude = $3
           AND gps_timestamp >= $4
         LIMIT 1
-      `, [trackerId, lat, lon, new Date(timestamp.getTime() - 5 * 60 * 1000)]); // 5 minutos
+      `, [userId, lat, lon, new Date(timestamp.getTime() - 5 * 60 * 1000)]); // 5 minutos
       
       return result.rows.length > 0;
     } catch (error) {
@@ -239,12 +240,12 @@ class LocationProcessor {
     try {
       const result = await db.query(`
         INSERT INTO tracking_locations 
-        (tracker_id, zenput_email, latitude, longitude, accuracy, altitude, 
+        (user_id, zenput_email, latitude, longitude, accuracy, altitude, 
          battery, velocity, heading, gps_timestamp, raw_payload)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING id
       `, [
-        data.tid,
+        data.user_id,  // Use user_id (database ID) instead of tracker_id
         data.email,
         data.lat,
         data.lon,
@@ -260,6 +261,7 @@ class LocationProcessor {
       return result.rows[0];
     } catch (error) {
       console.error('❌ Error guardando ubicación:', error.message);
+      console.error('❌ Full error details:', error);
       return null;
     }
   }

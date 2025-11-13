@@ -42,17 +42,17 @@ class ReportGenerator {
         COUNT(DISTINCT user_id) as active_users,
         COUNT(DISTINCT location_id) as visited_locations,
         COUNT(*) as total_visits,
-        AVG(EXTRACT(EPOCH FROM (exit_time - entry_time))/60)::int as avg_duration_minutes,
-        SUM(EXTRACT(EPOCH FROM (exit_time - entry_time))/3600)::int as total_hours
+        AVG(EXTRACT(EPOCH FROM (salida_at - entrada_at))/60)::int as avg_duration_minutes,
+        SUM(EXTRACT(EPOCH FROM (salida_at - entrada_at))/3600)::int as total_hours
       FROM tracking_visits
-      WHERE DATE(entry_time) = $1::date
-        AND exit_time IS NOT NULL
+      WHERE DATE(entrada_at) = $1::date
+        AND salida_at IS NOT NULL
     `, [dateStr]);
     
     const totalLocationsResult = await db.query(`
       SELECT COUNT(*) as total 
-      FROM tracking_locations 
-      WHERE is_active = true
+      FROM tracking_locations_cache 
+      WHERE active = true
     `);
     
     return {

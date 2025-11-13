@@ -140,14 +140,14 @@ class ReportesCommands {
           tv.tracker_id,
           tu.display_name,
           tlc.store_name,
-          tv.entry_time,
-          tv.exit_time,
-          EXTRACT(EPOCH FROM (tv.exit_time - tv.entry_time))/60 as duration_minutes
+          tv.entrada_at as entry_time,
+          tv.salida_at as exit_time,
+          EXTRACT(EPOCH FROM (tv.salida_at - tv.entrada_at))/60 as duration_minutes
         FROM tracking_visits tv
         JOIN tracking_users tu ON tv.tracker_id = tu.tracker_id
         LEFT JOIN tracking_locations_cache tlc ON tv.store_id = tlc.zenput_store_id
-        WHERE tv.entry_time::date = CURRENT_DATE
-        ORDER BY tv.entry_time DESC
+        WHERE tv.entrada_at::date = CURRENT_DATE
+        ORDER BY tv.entrada_at DESC
       `);
       
       if (result.rows.length === 0) {

@@ -46,6 +46,30 @@ router.get('/debug/schema/:table', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
   try {
+    // Debug: Check what columns tracking_locations actually has
+    if (req.query.debug === 'describe') {
+      try {
+        // Use PostgreSQL specific query to describe table
+        const result = await db.query(`
+          SELECT * FROM tracking_locations LIMIT 0
+        `);
+        
+        return res.json({
+          debug: 'tracking_locations_describe',
+          fields: result.fields.map(f => ({ name: f.name, dataTypeID: f.dataTypeID })),
+          message: 'Table exists - showing actual fields',
+          timestamp: new Date().toISOString()
+        });
+      } catch (describeError) {
+        return res.json({
+          debug: 'describe_error',
+          error: describeError.message,
+          code: describeError.code,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Debug: Test tracking_locations schema if ?debug=schema query param
     if (req.query.debug === 'schema') {
       try {

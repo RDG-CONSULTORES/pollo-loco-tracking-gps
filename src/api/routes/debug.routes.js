@@ -169,6 +169,51 @@ router.post('/test-location', async (req, res) => {
 });
 
 /**
+ * POST /api/debug/create-rd01
+ * Create RD01 user for testing
+ */
+router.post('/create-rd01', async (req, res) => {
+  try {
+    const db = require('../../config/database');
+    
+    // Check if RD01 exists
+    const existingUser = await db.query(`
+      SELECT * FROM tracking_users WHERE tracker_id = 'RD01'
+    `);
+    
+    if (existingUser.rows.length > 0) {
+      res.json({
+        message: 'User RD01 already exists',
+        user: existingUser.rows[0],
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Create RD01 user
+      const result = await db.query(`
+        INSERT INTO tracking_users 
+        (tracker_id, display_name, zenput_email, active)
+        VALUES ('RD01', 'Roberto Davila', 'roberto@pollocas.com', true)
+        RETURNING *
+      `);
+      
+      res.json({
+        message: 'User RD01 created successfully',
+        user: result.rows[0],
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Error creating RD01:', error.message);
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * GET /api/debug/request-log
  * Show recent requests (if logging is enabled)
  */
@@ -182,7 +227,8 @@ router.get('/request-log', (req, res) => {
       owntracks_ping: '/api/owntracks/ping (GET)',
       owntracks_status: '/api/owntracks/status (GET)',
       debug_status: '/api/debug/owntracks-status (GET)',
-      debug_test: '/api/debug/test-location (POST)'
+      debug_test: '/api/debug/test-location (POST)',
+      debug_create_rd01: '/api/debug/create-rd01 (POST)'
     },
     timestamp: new Date().toISOString()
   };

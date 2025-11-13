@@ -70,6 +70,63 @@ router.get('/users', async (req, res) => {
       }
     }
     
+    // Debug: Create tracking_locations table if ?debug=create_table query param
+    if (req.query.debug === 'create_table') {
+      try {
+        console.log('[ADMIN] Creating tracking_locations table...');
+        
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS tracking_locations (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            zenput_email VARCHAR(100),
+            
+            -- Datos GPS
+            latitude DECIMAL(10, 8) NOT NULL,
+            longitude DECIMAL(11, 8) NOT NULL,
+            accuracy INT,           -- Precisión en metros
+            altitude INT,
+            battery INT,            -- Porcentaje batería
+            velocity DECIMAL(5, 2), -- Velocidad km/h
+            heading INT,            -- Dirección 0-360°
+            
+            -- Timestamps
+            gps_timestamp TIMESTAMP NOT NULL,
+            received_at TIMESTAMP DEFAULT NOW(),
+            
+            -- Metadata
+            raw_payload JSONB,
+            
+            FOREIGN KEY (user_id) REFERENCES tracking_users(id) ON DELETE CASCADE
+          )
+        `);
+        
+        console.log('[ADMIN] Creating indexes...');
+        await db.query(`
+          CREATE INDEX IF NOT EXISTS idx_locations_user_time ON tracking_locations(user_id, gps_timestamp DESC)
+        `);
+        await db.query(`
+          CREATE INDEX IF NOT EXISTS idx_locations_timestamp ON tracking_locations(gps_timestamp DESC)
+        `);
+        
+        return res.json({
+          debug: 'create_table',
+          success: true,
+          message: 'tracking_locations table created successfully',
+          timestamp: new Date().toISOString()
+        });
+      } catch (createError) {
+        console.error('[ADMIN] Error creating table:', createError);
+        return res.json({
+          debug: 'create_table_error',
+          error: createError.message,
+          code: createError.code,
+          detail: createError.detail,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Debug: Test location insert if ?debug=insert query param
     if (req.query.debug === 'insert') {
       try {

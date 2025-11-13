@@ -398,7 +398,7 @@ ${statusIcon} *Sistema:* ${statusText}
       // Visitas hoy
       const visitsResult = await db.query(`
         SELECT COUNT(*) as count FROM tracking_visits 
-        WHERE DATE(entrada_at) = CURRENT_DATE
+        WHERE DATE(entry_time) = CURRENT_DATE
       `);
       
       // Usuarios reportando hoy
@@ -410,7 +410,7 @@ ${statusIcon} *Sistema:* ${statusText}
       // Cobertura
       const coverageResult = await db.query(`
         SELECT 
-          (SELECT COUNT(DISTINCT location_code) FROM tracking_visits WHERE DATE(entrada_at) = CURRENT_DATE) as visited,
+          (SELECT COUNT(DISTINCT location_code) FROM tracking_visits WHERE DATE(entry_time) = CURRENT_DATE) as visited,
           (SELECT COUNT(*) FROM tracking_locations_cache WHERE active = true) as total
       `);
       

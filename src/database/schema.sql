@@ -100,15 +100,15 @@ CREATE TABLE IF NOT EXISTS tracking_visits (
   location_code VARCHAR(20) NOT NULL,
   
   -- Timestamps
-  entrada_at TIMESTAMP NOT NULL,
-  salida_at TIMESTAMP,
-  duracion_minutos INT,
+  entry_time TIMESTAMP NOT NULL,
+  exit_time TIMESTAMP,
+  duration_minutes INT,
   
   -- Ubicaciones
-  entrada_lat DECIMAL(10, 8),
-  entrada_lon DECIMAL(11, 8),
-  salida_lat DECIMAL(10, 8),
-  salida_lon DECIMAL(11, 8),
+  entry_lat DECIMAL(10, 8),
+  entry_lon DECIMAL(11, 8),
+  exit_lat DECIMAL(10, 8),
+  exit_lon DECIMAL(11, 8),
   
   -- Metadata
   is_valid BOOLEAN DEFAULT true,
@@ -122,10 +122,10 @@ CREATE TABLE IF NOT EXISTS tracking_visits (
 );
 
 -- Índices para tracking_visits
-CREATE INDEX IF NOT EXISTS idx_visits_tracker_date ON tracking_visits(tracker_id, DATE(entrada_at) DESC);
-CREATE INDEX IF NOT EXISTS idx_visits_location_date ON tracking_visits(location_code, DATE(entrada_at) DESC);
-CREATE INDEX IF NOT EXISTS idx_visits_date ON tracking_visits(DATE(entrada_at) DESC);
-CREATE INDEX IF NOT EXISTS idx_visits_open ON tracking_visits(tracker_id) WHERE salida_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_visits_tracker_date ON tracking_visits(tracker_id, DATE(entry_time) DESC);
+CREATE INDEX IF NOT EXISTS idx_visits_location_date ON tracking_visits(location_code, DATE(entry_time) DESC);
+CREATE INDEX IF NOT EXISTS idx_visits_date ON tracking_visits(DATE(entry_time) DESC);
+CREATE INDEX IF NOT EXISTS idx_visits_open ON tracking_visits(tracker_id) WHERE exit_time IS NULL;
 
 -- 5. CONFIGURACIÓN DINÁMICA
 CREATE TABLE IF NOT EXISTS tracking_config (
@@ -215,27 +215,27 @@ CREATE TABLE IF NOT EXISTS tracking_users_zenput_cache (
 CREATE OR REPLACE VIEW v_tracking_visits_detail AS
 SELECT 
   v.id,
-  v.tracker_id,
+  v.user_id,
   tu.display_name as supervisor_name,
   v.zenput_email,
   v.location_code,
   lc.name as location_name,
   lc.group_name,
   lc.director_name,
-  v.entrada_at,
-  v.salida_at,
-  v.duracion_minutos,
+  v.entry_time,
+  v.exit_time,
+  v.duration_minutes,
   CASE 
-    WHEN v.duracion_minutos IS NULL THEN 'En progreso'
-    WHEN v.duracion_minutos < 30 THEN 'Muy corta'
-    WHEN v.duracion_minutos < 45 THEN 'Corta'
-    WHEN v.duracion_minutos <= 90 THEN 'Normal'
+    WHEN v.duration_minutes IS NULL THEN 'En progreso'
+    WHEN v.duration_minutes < 30 THEN 'Muy corta'
+    WHEN v.duration_minutes < 45 THEN 'Corta'
+    WHEN v.duration_minutes <= 90 THEN 'Normal'
     ELSE 'Larga'
   END as duracion_evaluation,
-  DATE(v.entrada_at) as fecha,
+  DATE(v.entry_time) as fecha,
   v.is_valid
 FROM tracking_visits v
-LEFT JOIN tracking_users tu ON v.tracker_id = tu.tracker_id
+LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
 LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code;
 
 -- Vista: Ubicaciones actuales
@@ -259,11 +259,11 @@ ORDER BY l.tracker_id, l.gps_timestamp DESC;
 -- Vista: Cobertura diaria
 CREATE OR REPLACE VIEW v_tracking_daily_coverage AS
 SELECT 
-  DATE(v.entrada_at) as fecha,
+  DATE(v.entry_time) as fecha,
   COUNT(DISTINCT v.location_code) as sucursales_visitadas,
-  COUNT(DISTINCT v.tracker_id) as supervisores_activos,
+  COUNT(DISTINCT v.user_id) as supervisores_activos,
   COUNT(*) as total_visitas,
-  SUM(v.duracion_minutos) as tiempo_total_min,
+  SUM(v.duration_minutes) as tiempo_total_min,
   ROUND(
     COUNT(DISTINCT v.location_code)::NUMERIC / 
     (SELECT COUNT(*) FROM tracking_locations_cache WHERE active = true) * 100, 
@@ -271,8 +271,8 @@ SELECT
   ) as porcentaje_cobertura
 FROM tracking_visits v
 WHERE v.is_valid = true
-  AND v.salida_at IS NOT NULL
-GROUP BY DATE(v.entrada_at)
+  AND v.exit_time IS NOT NULL
+GROUP BY DATE(v.entry_time)
 ORDER BY fecha DESC;
 
 -- ============================================
@@ -318,19 +318,19 @@ CREATE TRIGGER trg_tracking_users_updated_at
 CREATE OR REPLACE FUNCTION calculate_visit_duration()
 RETURNS TRIGGER AS $
 BEGIN
-  IF NEW.salida_at IS NOT NULL AND OLD.salida_at IS NULL THEN
-    NEW.duracion_minutos = EXTRACT(EPOCH FROM (NEW.salida_at - NEW.entrada_at)) / 60;
+  IF NEW.exit_time IS NOT NULL AND OLD.exit_time IS NULL THEN
+    NEW.duration_minutes = EXTRACT(EPOCH FROM (NEW.exit_time - NEW.entry_time)) / 60;
     
     -- Determinar tipo de visita
     NEW.visit_type = CASE 
-      WHEN NEW.duracion_minutos < 5 THEN 'invalid'
-      WHEN NEW.duracion_minutos < 30 THEN 'short'
-      WHEN NEW.duracion_minutos <= 90 THEN 'normal'
+      WHEN NEW.duration_minutes < 5 THEN 'invalid'
+      WHEN NEW.duration_minutes < 30 THEN 'short'
+      WHEN NEW.duration_minutes <= 90 THEN 'normal'
       ELSE 'long'
     END;
     
     -- Marcar como inválida si es muy corta
-    IF NEW.duracion_minutos < 5 THEN
+    IF NEW.duration_minutes < 5 THEN
       NEW.is_valid = false;
     END IF;
   END IF;

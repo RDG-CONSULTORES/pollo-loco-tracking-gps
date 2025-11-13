@@ -80,18 +80,18 @@ router.get('/visits/date/:date', async (req, res) => {
         tu.display_name as supervisor_name
       FROM tracking_visits v
       LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
-      LEFT JOIN tracking_users tu ON v.tracker_id = tu.tracker_id
-      WHERE DATE(v.entrada_at) = $1
+      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+      WHERE DATE(v.entry_time) = $1
     `;
     
     const params = [date];
     
     if (tracker_id) {
-      query += ' AND v.tracker_id = $2';
+      query += ' AND v.user_id = $2';
       params.push(tracker_id);
     }
     
-    query += ' ORDER BY v.entrada_at DESC';
+    query += ' ORDER BY v.entry_time DESC';
     
     const result = await db.query(query, params);
     
@@ -218,20 +218,20 @@ router.get('/locations/:location_code/visitors', async (req, res) => {
     
     const result = await db.query(`
       SELECT 
-        v.tracker_id,
+        v.user_id,
         tu.display_name as supervisor_name,
-        v.entrada_at,
-        v.salida_at,
-        v.duracion_minutos,
+        v.entry_time,
+        v.exit_time,
+        v.duration_minutes,
         v.visit_type,
         lc.name as location_name
       FROM tracking_visits v
-      LEFT JOIN tracking_users tu ON v.tracker_id = tu.tracker_id
+      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
       LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
       WHERE v.location_code = $1
-        AND DATE(v.entrada_at) = $2
+        AND DATE(v.entry_time) = $2
         AND v.is_valid = true
-      ORDER BY v.entrada_at DESC
+      ORDER BY v.entry_time DESC
     `, [location_code, date]);
     
     res.json({
@@ -258,18 +258,18 @@ router.get('/locations/:location_code/visitors', async (req, res) => {
 async function getDailyStats(date) {
   const result = await db.query(`
     SELECT 
-      COUNT(DISTINCT v.tracker_id) as supervisores_activos,
+      COUNT(DISTINCT v.user_id) as supervisores_activos,
       COUNT(DISTINCT v.location_code) as sucursales_visitadas,
       COUNT(*) as total_visitas,
-      COUNT(*) FILTER (WHERE v.salida_at IS NOT NULL) as visitas_completadas,
-      COUNT(*) FILTER (WHERE v.salida_at IS NULL) as visitas_abiertas,
-      ROUND(AVG(v.duracion_minutos)::numeric, 0) as duracion_promedio,
-      SUM(v.duracion_minutos) as tiempo_total_min,
-      COUNT(*) FILTER (WHERE v.duracion_minutos < 30) as visitas_cortas,
-      COUNT(*) FILTER (WHERE v.duracion_minutos BETWEEN 30 AND 90) as visitas_normales,
-      COUNT(*) FILTER (WHERE v.duracion_minutos > 90) as visitas_largas
+      COUNT(*) FILTER (WHERE v.exit_time IS NOT NULL) as visitas_completadas,
+      COUNT(*) FILTER (WHERE v.exit_time IS NULL) as visitas_abiertas,
+      ROUND(AVG(v.duration_minutes)::numeric, 0) as duracion_promedio,
+      SUM(v.duration_minutes) as tiempo_total_min,
+      COUNT(*) FILTER (WHERE v.duration_minutes < 30) as visitas_cortas,
+      COUNT(*) FILTER (WHERE v.duration_minutes BETWEEN 30 AND 90) as visitas_normales,
+      COUNT(*) FILTER (WHERE v.duration_minutes > 90) as visitas_largas
     FROM tracking_visits v
-    WHERE DATE(v.entrada_at) = $1
+    WHERE DATE(v.entry_time) = $1
       AND v.is_valid = true
   `, [date]);
   
@@ -307,10 +307,10 @@ async function getCoverage(date) {
       lc.name,
       lc.group_name,
       COUNT(v.id) as visitas,
-      COUNT(DISTINCT v.tracker_id) as supervisores
+      COUNT(DISTINCT v.user_id) as supervisores
     FROM tracking_locations_cache lc
     INNER JOIN tracking_visits v ON lc.location_code = v.location_code
-    WHERE DATE(v.entrada_at) = $1
+    WHERE DATE(v.entry_time) = $1
       AND v.is_valid = true
     GROUP BY lc.location_code, lc.name, lc.group_name
     ORDER BY visitas DESC
@@ -327,7 +327,7 @@ async function getCoverage(date) {
       AND location_code NOT IN (
         SELECT DISTINCT location_code 
         FROM tracking_visits 
-        WHERE DATE(entrada_at) = $1
+        WHERE DATE(entry_time) = $1
       )
     ORDER BY name
   `, [date]);

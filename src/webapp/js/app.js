@@ -125,13 +125,13 @@ async function loadRecentVisits() {
     }
     
     container.innerHTML = visits.slice(0, 5).map(visit => {
-      const time = new Date(visit.entrada_at).toLocaleTimeString('es-MX', {
+      const time = new Date(visit.entry_time).toLocaleTimeString('es-MX', {
         hour: '2-digit',
         minute: '2-digit'
       });
       
-      const status = visit.salida_at ? '✅ Completada' : '🔄 En progreso';
-      const duration = visit.duracion_minutos ? ` (${visit.duracion_minutos}m)` : '';
+      const status = visit.exit_time ? '✅ Completada' : '🔄 En progreso';
+      const duration = visit.duration_minutes ? ` (${visit.duration_minutes}m)` : '';
       
       return `
         <div class="activity-item">

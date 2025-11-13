@@ -203,7 +203,7 @@ async function getSystemStats() {
     const visitsToday = await db.query(`
       SELECT COUNT(*) as count 
       FROM tracking_visits 
-      WHERE DATE(entrada_at) = CURRENT_DATE
+      WHERE DATE(entry_time) = CURRENT_DATE
     `);
     
     return {

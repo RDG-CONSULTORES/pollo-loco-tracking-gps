@@ -262,21 +262,21 @@ router.get('/visits/today', async (req, res) => {
     const result = await db.query(`
       SELECT 
         v.id,
-        v.tracker_id,
+        v.user_id,
         tu.display_name as supervisor_name,
         v.location_code,
         lc.name as location_name,
         lc.group_name,
-        v.entrada_at,
-        v.salida_at,
-        v.duracion_minutos,
+        v.entry_time,
+        v.exit_time,
+        v.duration_minutes,
         v.visit_type,
         v.is_valid
       FROM tracking_visits v
-      LEFT JOIN tracking_users tu ON v.tracker_id = tu.tracker_id
+      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
       LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
-      WHERE DATE(v.entrada_at) = CURRENT_DATE
-      ORDER BY v.entrada_at DESC
+      WHERE DATE(v.entry_time) = CURRENT_DATE
+      ORDER BY v.entry_time DESC
       LIMIT 50
     `);
     
@@ -318,10 +318,10 @@ router.get('/stats/dashboard', async (req, res) => {
     const visitsResult = await db.query(`
       SELECT 
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE salida_at IS NOT NULL) as completed,
-        COUNT(*) FILTER (WHERE salida_at IS NULL) as open
+        COUNT(*) FILTER (WHERE exit_time IS NOT NULL) as completed,
+        COUNT(*) FILTER (WHERE exit_time IS NULL) as open
       FROM tracking_visits
-      WHERE DATE(entrada_at) = CURRENT_DATE
+      WHERE DATE(entry_time) = CURRENT_DATE
     `);
     stats.visits_today = visitsResult.rows[0];
     

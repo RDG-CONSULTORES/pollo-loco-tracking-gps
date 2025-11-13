@@ -53,24 +53,24 @@ class DailyReportJob {
   async getGeneralMetrics(date) {
     const result = await db.query(`
       SELECT 
-        COUNT(DISTINCT v.tracker_id) as supervisores_activos,
+        COUNT(DISTINCT v.user_id) as supervisores_activos,
         COUNT(DISTINCT v.location_code) as sucursales_visitadas,
         COUNT(*) as total_visitas,
-        COUNT(*) FILTER (WHERE v.salida_at IS NOT NULL) as visitas_completadas,
-        COUNT(*) FILTER (WHERE v.salida_at IS NULL) as visitas_abiertas,
-        ROUND(AVG(v.duracion_minutos)::numeric, 0) as duracion_promedio,
-        SUM(v.duracion_minutos) as tiempo_total_min,
+        COUNT(*) FILTER (WHERE v.exit_time IS NOT NULL) as visitas_completadas,
+        COUNT(*) FILTER (WHERE v.exit_time IS NULL) as visitas_abiertas,
+        ROUND(AVG(v.duration_minutes)::numeric, 0) as duracion_promedio,
+        SUM(v.duration_minutes) as tiempo_total_min,
         
         -- Calidad de visitas
-        COUNT(*) FILTER (WHERE v.duracion_minutos < 30) as visitas_cortas,
-        COUNT(*) FILTER (WHERE v.duracion_minutos BETWEEN 30 AND 90) as visitas_normales,
-        COUNT(*) FILTER (WHERE v.duracion_minutos > 90) as visitas_largas,
+        COUNT(*) FILTER (WHERE v.duration_minutes < 30) as visitas_cortas,
+        COUNT(*) FILTER (WHERE v.duration_minutes BETWEEN 30 AND 90) as visitas_normales,
+        COUNT(*) FILTER (WHERE v.duration_minutes > 90) as visitas_largas,
         
         -- Horarios
-        MIN(v.entrada_at) as primera_visita,
-        MAX(v.entrada_at) as ultima_visita
+        MIN(v.entry_time) as primera_visita,
+        MAX(v.entry_time) as ultima_visita
       FROM tracking_visits v
-      WHERE DATE(v.entrada_at) = $1
+      WHERE DATE(v.entry_time) = $1
         AND v.is_valid = true
     `, [date]);
     
@@ -83,20 +83,20 @@ class DailyReportJob {
   async getTopSupervisors(date, limit = 5) {
     const result = await db.query(`
       SELECT 
-        v.tracker_id,
+        v.user_id,
         tu.display_name,
         COUNT(*) as total_visitas,
         COUNT(DISTINCT v.location_code) as sucursales_unicas,
-        ROUND(AVG(v.duracion_minutos)::numeric, 0) as duracion_promedio,
-        SUM(v.duracion_minutos) as tiempo_total_min,
-        MIN(v.entrada_at) as primera_visita,
-        MAX(v.entrada_at) as ultima_visita
+        ROUND(AVG(v.duration_minutes)::numeric, 0) as duracion_promedio,
+        SUM(v.duration_minutes) as tiempo_total_min,
+        MIN(v.entry_time) as primera_visita,
+        MAX(v.entry_time) as ultima_visita
       FROM tracking_visits v
-      LEFT JOIN tracking_users tu ON v.tracker_id = tu.tracker_id
-      WHERE DATE(v.entrada_at) = $1
+      LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+      WHERE DATE(v.entry_time) = $1
         AND v.is_valid = true
-        AND v.salida_at IS NOT NULL
-      GROUP BY v.tracker_id, tu.display_name
+        AND v.exit_time IS NOT NULL
+      GROUP BY v.user_id, tu.display_name
       ORDER BY total_visitas DESC, sucursales_unicas DESC
       LIMIT $2
     `, [date, limit]);
@@ -119,7 +119,7 @@ class DailyReportJob {
         AND lc.location_code NOT IN (
           SELECT DISTINCT location_code 
           FROM tracking_visits 
-          WHERE DATE(entrada_at) = $1
+          WHERE DATE(entry_time) = $1
             AND is_valid = true
         )
       ORDER BY lc.group_name, lc.name
@@ -151,7 +151,7 @@ class DailyReportJob {
         ) as coverage_by_group
       FROM tracking_locations_cache lc
       LEFT JOIN tracking_visits v ON lc.location_code = v.location_code 
-        AND DATE(v.entrada_at) = $1
+        AND DATE(v.entry_time) = $1
         AND v.is_valid = true
       WHERE lc.active = true
       GROUP BY lc.group_name

@@ -217,11 +217,11 @@ class GeofenceManager {
         SELECT 
           COUNT(DISTINCT location_code) as sucursales_visitadas,
           COUNT(*) as total_entradas,
-          COUNT(*) FILTER (WHERE salida_at IS NOT NULL) as visitas_completadas,
-          COUNT(*) FILTER (WHERE salida_at IS NULL) as visitas_abiertas,
-          ROUND(AVG(duracion_minutos)::numeric, 0) as duracion_promedio
+          COUNT(*) FILTER (WHERE exit_time IS NOT NULL) as visitas_completadas,
+          COUNT(*) FILTER (WHERE exit_time IS NULL) as visitas_abiertas,
+          ROUND(AVG(duration_minutes)::numeric, 0) as duracion_promedio
         FROM tracking_visits
-        WHERE DATE(entrada_at) = $1
+        WHERE DATE(entry_time) = $1
       `, [dateStr]);
       
       const stats = result.rows[0];

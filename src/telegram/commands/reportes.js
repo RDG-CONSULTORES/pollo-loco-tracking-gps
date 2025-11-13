@@ -137,14 +137,14 @@ class ReportesCommands {
       
       const result = await db.query(`
         SELECT 
-          tv.tracker_id,
+          tv.user_id,
           tu.display_name,
           tlc.store_name,
           tv.entry_time,
           tv.exit_time,
           EXTRACT(EPOCH FROM (tv.exit_time - tv.entry_time))/60 as duration_minutes
         FROM tracking_visits tv
-        JOIN tracking_users tu ON tv.tracker_id = tu.tracker_id
+        JOIN tracking_users tu ON tv.user_id = tu.tracker_id
         LEFT JOIN tracking_locations_cache tlc ON tv.store_id = tlc.zenput_store_id
         WHERE tv.entry_time::date = CURRENT_DATE
         ORDER BY tv.entry_time DESC

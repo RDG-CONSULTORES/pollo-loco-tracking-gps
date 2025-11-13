@@ -24,7 +24,7 @@ class VisitDetector {
         
         return {
           action: 'update',
-          message: `Visita en progreso (${this.getElapsedTime(openVisit.entrada_at)})`
+          message: `Visita en progreso (${this.getElapsedTime(openVisit.entry_time)})`
         };
       }
       
@@ -91,7 +91,7 @@ class VisitDetector {
         const success = await this.closeVisit(visit.id, timestamp);
         
         if (success) {
-          const duration = this.calculateDuration(visit.entrada_at, timestamp);
+          const duration = this.calculateDuration(visit.entry_time, timestamp);
           console.log(`✅ SALIDA registrada: ${trackerId} ← ${visit.location_code} (${formatDuration(duration)})`);
           closedVisits++;
         }
@@ -126,7 +126,7 @@ class VisitDetector {
     try {
       const result = await db.query(`
         INSERT INTO tracking_visits 
-        (tracker_id, zenput_email, location_code, entrada_at, entrada_lat, entrada_lon)
+        (tracker_id, zenput_email, location_code, entry_time, entry_lat, entry_lon)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
       `, [trackerId, email, location.location_code, timestamp, lat, lon]);
@@ -146,11 +146,11 @@ class VisitDetector {
       const result = await db.query(`
         UPDATE tracking_visits
         SET 
-          salida_at = $1,
-          salida_lat = $2,
-          salida_lon = $3
+          exit_time = $1,
+          exit_lat = $2,
+          exit_lon = $3
         WHERE id = $4
-          AND salida_at IS NULL
+          AND exit_time IS NULL
       `, [timestamp, exitLat, exitLon, visitId]);
       
       return result.rowCount > 0;
@@ -167,7 +167,7 @@ class VisitDetector {
     try {
       await db.query(`
         UPDATE tracking_visits
-        SET entrada_lat = $1, entrada_lon = $2
+        SET entry_lat = $1, entry_lon = $2
         WHERE id = $3
       `, [lat, lon, visitId]);
       
@@ -184,12 +184,12 @@ class VisitDetector {
   async getOpenVisit(trackerId, locationCode) {
     try {
       const result = await db.query(`
-        SELECT id, entrada_at, location_code
+        SELECT id, entry_time, location_code
         FROM tracking_visits
         WHERE tracker_id = $1
           AND location_code = $2
-          AND salida_at IS NULL
-        ORDER BY entrada_at DESC
+          AND exit_time IS NULL
+        ORDER BY entry_time DESC
         LIMIT 1
       `, [trackerId, locationCode]);
       
@@ -206,11 +206,11 @@ class VisitDetector {
   async getOpenVisits(trackerId) {
     try {
       const result = await db.query(`
-        SELECT id, entrada_at, location_code
+        SELECT id, entry_time, location_code
         FROM tracking_visits
         WHERE tracker_id = $1
-          AND salida_at IS NULL
-        ORDER BY entrada_at DESC
+          AND exit_time IS NULL
+        ORDER BY entry_time DESC
       `, [trackerId]);
       
       return result.rows;
@@ -249,18 +249,18 @@ class VisitDetector {
           tu.display_name as supervisor_name
         FROM tracking_visits v
         LEFT JOIN tracking_locations_cache lc ON v.location_code = lc.location_code
-        LEFT JOIN tracking_users tu ON v.tracker_id = tu.tracker_id
-        WHERE DATE(v.entrada_at) = CURRENT_DATE
+        LEFT JOIN tracking_users tu ON v.user_id = tu.tracker_id
+        WHERE DATE(v.entry_time) = CURRENT_DATE
       `;
       
       const params = [];
       
       if (trackerId) {
-        query += ' AND v.tracker_id = $1';
+        query += ' AND v.user_id = $1';
         params.push(trackerId);
       }
       
-      query += ' ORDER BY v.entrada_at DESC';
+      query += ' ORDER BY v.entry_time DESC';
       
       const result = await db.query(query, params);
       
@@ -280,8 +280,8 @@ class VisitDetector {
       const shortVisits = await db.query(`
         UPDATE tracking_visits
         SET is_valid = false, visit_type = 'invalid'
-        WHERE salida_at IS NOT NULL
-          AND duracion_minutos < 5
+        WHERE exit_time IS NOT NULL
+          AND duration_minutes < 5
           AND is_valid = true
       `);
       
@@ -289,8 +289,8 @@ class VisitDetector {
       const oldOpenVisits = await db.query(`
         UPDATE tracking_visits
         SET is_valid = false, visit_type = 'invalid'
-        WHERE salida_at IS NULL
-          AND entrada_at < NOW() - INTERVAL '24 hours'
+        WHERE exit_time IS NULL
+          AND entry_time < NOW() - INTERVAL '24 hours'
           AND is_valid = true
       `);
       
@@ -314,9 +314,9 @@ class VisitDetector {
       let query = `
         UPDATE tracking_visits
         SET 
-          salida_at = entrada_at + INTERVAL '1 hour',
+          exit_time = entry_time + INTERVAL '1 hour',
           notes = COALESCE(notes, '') || ' [Cerrada automáticamente]'
-        WHERE salida_at IS NULL
+        WHERE exit_time IS NULL
       `;
       
       const params = [];

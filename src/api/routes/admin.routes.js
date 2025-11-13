@@ -84,8 +84,8 @@ router.post('/users', async (req, res) => {
     
     const newUser = result.rows[0];
     
-    // Log de auditoría
-    await logAdminAction('create_user', 'tracking_users', newUser.id, null, JSON.stringify(newUser));
+    // Log de auditoría (deshabilitado temporalmente)
+    // await logAdminAction('create_user', 'tracking_users', newUser.id, null, JSON.stringify(newUser));
     
     console.log(`✅ Usuario creado: ${tracker_id} (${display_name})`);
     
@@ -164,9 +164,9 @@ router.put('/users/:tracker_id', async (req, res) => {
     const result = await db.query(query, values);
     const updatedUser = result.rows[0];
     
-    // Log de auditoría
-    await logAdminAction('update_user', 'tracking_users', tracker_id, 
-      JSON.stringify(currentUser), JSON.stringify(updatedUser));
+    // Log de auditoría (deshabilitado temporalmente)
+    // await logAdminAction('update_user', 'tracking_users', tracker_id, 
+    //   JSON.stringify(currentUser), JSON.stringify(updatedUser));
     
     console.log(`✅ Usuario actualizado: ${tracker_id}`);
     
@@ -233,8 +233,8 @@ router.put('/config/:key', async (req, res) => {
     const success = await db.setConfig(key, value, 'admin_api');
     
     if (success) {
-      // Log de auditoría
-      await logAdminAction('update_config', 'tracking_config', key, oldValue, value);
+      // Log de auditoría (deshabilitado temporalmente)
+      // await logAdminAction('update_config', 'tracking_config', key, oldValue, value);
       
       res.json({ 
         key, 
@@ -390,8 +390,8 @@ router.post('/actions/cleanup', async (req, res) => {
       invalid_visits: await visitDetector.cleanupInvalidVisits()
     };
     
-    // Log de auditoría
-    await logAdminAction('cleanup', 'system', 'maintenance', null, JSON.stringify(results));
+    // Log de auditoría (deshabilitado temporalmente)
+    // await logAdminAction('cleanup', 'system', 'maintenance', null, JSON.stringify(results));
     
     res.json({
       status: 'completed',

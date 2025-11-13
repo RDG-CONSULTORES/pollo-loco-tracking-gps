@@ -4,7 +4,7 @@
   "description": "Sistema de tracking GPS para supervisores El Pollo Loco",
   "main": "src/index.js",
   "scripts": {
-    "start": "npm run quick-fix; node src/index.js",
+    "start": "npm run quick-fix && node src/index.js",
     "start-normal": "node src/index.js",
     "dev": "nodemon src/index.js",
     "build": "echo 'No build step needed'",

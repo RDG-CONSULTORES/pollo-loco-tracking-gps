@@ -312,4 +312,37 @@ router.post('/test-save-location', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/debug/table-structure
+ * Show actual database table structure
+ */
+router.get('/table-structure/:table', async (req, res) => {
+  try {
+    const db = require('../../config/database');
+    const tableName = req.params.table;
+    
+    // Get table structure
+    const columns = await db.query(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_name = $1
+      ORDER BY ordinal_position
+    `, [tableName]);
+    
+    res.json({
+      table: tableName,
+      columns: columns.rows,
+      count: columns.rows.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting table structure:', error.message);
+    res.status(500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;

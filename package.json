@@ -20,6 +20,7 @@
     "setup-fixed": "node scripts/setup-database-fixed.js",
     "fix-users": "node scripts/fix-users-table.js",
     "create-test-user": "node scripts/create-test-user.js",
+    "create-admin": "node scripts/create-admin-user.js",
     "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js"
   },
   "keywords": [

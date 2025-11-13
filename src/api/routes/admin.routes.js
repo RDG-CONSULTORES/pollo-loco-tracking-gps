@@ -46,30 +46,6 @@ router.get('/debug/schema/:table', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
   try {
-    // Debug: List all tables if ?debug=tables query param
-    if (req.query.debug === 'tables') {
-      try {
-        const tables = await db.query(`
-          SELECT table_name
-          FROM information_schema.tables
-          WHERE table_schema = 'public'
-          ORDER BY table_name
-        `);
-        
-        return res.json({
-          debug: 'all_tables',
-          tables: tables.rows.map(r => r.table_name),
-          timestamp: new Date().toISOString()
-        });
-      } catch (tablesError) {
-        return res.json({
-          debug: 'tables_error',
-          error: tablesError.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-    
     // Debug: Test tracking_locations schema if ?debug=schema query param
     if (req.query.debug === 'schema') {
       try {

@@ -95,9 +95,7 @@ router.get('/users', async (req, res) => {
             received_at TIMESTAMP DEFAULT NOW(),
             
             -- Metadata
-            raw_payload JSONB,
-            
-            FOREIGN KEY (user_id) REFERENCES tracking_users(id) ON DELETE CASCADE
+            raw_payload JSONB
           )
         `);
         

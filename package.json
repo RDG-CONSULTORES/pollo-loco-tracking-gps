@@ -23,6 +23,8 @@
     "create-admin": "node scripts/create-admin-user.js",
     "verify-db": "node scripts/verify-database.js",
     "import-sucursales": "node scripts/import-sucursales-neon.js",
+    "import-sucursales-real": "node scripts/import-sucursales-real.js",
+    "import-dashboard-exact": "node scripts/import-from-supervision-clean.js",
     "verify-grupos": "node scripts/verify-grupos-estructura.js",
     "fix-schema-final": "node scripts/fix-schema-final.js",
     "test-connection": "node scripts/test-railway-connection.js",

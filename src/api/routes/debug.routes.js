@@ -345,4 +345,103 @@ router.get('/table-structure/:table', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/debug/fix-schema
+ * Fix tracking_locations schema remotely
+ */
+router.post('/fix-schema', async (req, res) => {
+  try {
+    const db = require('../../config/database');
+    
+    console.log('[DEBUG] Starting schema fix...');
+    
+    // Check current structure
+    const currentColumns = await db.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'tracking_locations'
+      ORDER BY ordinal_position
+    `);
+    
+    const trackerIdExists = currentColumns.rows.some(col => col.column_name === 'tracker_id');
+    const userIdExists = currentColumns.rows.some(col => col.column_name === 'user_id');
+    
+    console.log('[DEBUG] Current structure analysis:', {
+      trackerIdExists,
+      userIdExists,
+      columns: currentColumns.rows.map(c => c.column_name)
+    });
+    
+    const steps = [];
+    
+    if (!trackerIdExists && userIdExists) {
+      console.log('[DEBUG] Need to rename user_id to tracker_id');
+      steps.push('rename_column');
+      
+      // Drop foreign key constraint
+      try {
+        await db.query(`
+          ALTER TABLE tracking_locations 
+          DROP CONSTRAINT IF EXISTS tracking_locations_user_id_fkey
+        `);
+        steps.push('dropped_fk');
+        console.log('[DEBUG] Foreign key dropped');
+      } catch (error) {
+        console.log('[DEBUG] No FK to drop:', error.message);
+      }
+      
+      // Rename column
+      await db.query(`
+        ALTER TABLE tracking_locations 
+        RENAME COLUMN user_id TO tracker_id
+      `);
+      steps.push('column_renamed');
+      console.log('[DEBUG] Column renamed');
+      
+      // Add foreign key constraint
+      await db.query(`
+        ALTER TABLE tracking_locations 
+        ADD CONSTRAINT tracking_locations_tracker_id_fkey 
+        FOREIGN KEY (tracker_id) REFERENCES tracking_users(tracker_id) ON DELETE CASCADE
+      `);
+      steps.push('fk_added');
+      console.log('[DEBUG] Foreign key added');
+      
+    } else if (trackerIdExists) {
+      steps.push('already_fixed');
+      console.log('[DEBUG] Schema already correct');
+    } else {
+      steps.push('unknown_state');
+      console.log('[DEBUG] Unknown state - neither column found');
+    }
+    
+    // Get final structure
+    const finalColumns = await db.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'tracking_locations'
+      ORDER BY ordinal_position
+    `);
+    
+    res.json({
+      status: 'success',
+      message: 'Schema fix completed',
+      steps_performed: steps,
+      initial_structure: currentColumns.rows,
+      final_structure: finalColumns.rows,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] Schema fix error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      code: error.code,
+      detail: error.detail,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;

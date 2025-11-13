@@ -37,24 +37,32 @@ async function createTestUser() {
     const existingUsers = await client.query('SELECT tracker_id FROM tracking_users');
     console.log(`📊 Usuarios existentes: ${existingUsers.rows.length}`);
     
-    // Crear usuario de prueba si no existe
+    // Verificar estructura de tracking_users
+    const columns = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'tracking_users'
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('📊 Columnas en tracking_users:', columns.rows.map(r => r.column_name));
+    
+    // Crear usuario de prueba con columnas básicas
     const testUser = {
       tracker_id: 'TEST01',
       zenput_email: 'test@pollo-loco.com',
-      zenput_user_id: 'test_user_001',
-      display_name: 'Usuario de Prueba',
-      phone: '+52 555 1234567'
+      display_name: 'Usuario de Prueba'
     };
     
     try {
       const result = await client.query(`
-        INSERT INTO tracking_users (tracker_id, zenput_email, zenput_user_id, display_name, phone)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO tracking_users (tracker_id, zenput_email, display_name)
+        VALUES ($1, $2, $3)
         ON CONFLICT (tracker_id) DO UPDATE SET
           display_name = EXCLUDED.display_name,
-          phone = EXCLUDED.phone
+          zenput_email = EXCLUDED.zenput_email
         RETURNING *
-      `, [testUser.tracker_id, testUser.zenput_email, testUser.zenput_user_id, testUser.display_name, testUser.phone]);
+      `, [testUser.tracker_id, testUser.zenput_email, testUser.display_name]);
       
       console.log('✅ Usuario de prueba creado/actualizado:', result.rows[0]);
       

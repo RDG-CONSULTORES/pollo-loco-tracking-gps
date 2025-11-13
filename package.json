@@ -18,7 +18,9 @@
     "deploy-fix": "./scripts/deploy-schema-fix.sh",
     "migrate": "node scripts/migrate-schema-to-english.js",
     "setup-fixed": "node scripts/setup-database-fixed.js",
-    "create-test-user": "node scripts/create-test-user.js"
+    "fix-users": "node scripts/fix-users-table.js",
+    "create-test-user": "node scripts/create-test-user.js",
+    "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js"
   },
   "keywords": [
     "gps",

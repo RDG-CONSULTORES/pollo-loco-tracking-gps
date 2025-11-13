@@ -17,7 +17,8 @@
     "quick-fix": "node scripts/quick-fix-schema.js",
     "deploy-fix": "./scripts/deploy-schema-fix.sh",
     "migrate": "node scripts/migrate-schema-to-english.js",
-    "setup-fixed": "node scripts/setup-database-fixed.js"
+    "setup-fixed": "node scripts/setup-database-fixed.js",
+    "create-test-user": "node scripts/create-test-user.js"
   },
   "keywords": [
     "gps",

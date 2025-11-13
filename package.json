@@ -31,6 +31,8 @@
     "fix-all": "node scripts/fix-all-schema-issues.js",
     "health-check": "node scripts/health-check.js",
     "test-connection": "node scripts/test-railway-connection.js",
+    "diagnose-owntracks": "node scripts/diagnose-owntracks.js",
+    "test-owntracks": "node scripts/test-owntracks-flow.js",
     "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js"
   },
   "keywords": [

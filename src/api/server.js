@@ -8,6 +8,7 @@ const ownTracksRoutes = require('./routes/owntracks.routes');
 const trackingRoutes = require('./routes/tracking.routes');
 const adminRoutes = require('./routes/admin.routes');
 const healthRoutes = require('./routes/health.routes');
+const debugRoutes = require('./routes/debug.routes');
 
 /**
  * Configurar servidor Express
@@ -55,6 +56,7 @@ function createServer() {
         health: '/health',
         owntracks: '/api/owntracks/location',
         admin: '/api/admin/*',
+        debug: '/api/debug/*',
         webapp: '/webapp'
       }
     });
@@ -64,6 +66,7 @@ function createServer() {
   app.use('/api/owntracks', ownTracksRoutes);
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/debug', debugRoutes);
   app.use('/health', healthRoutes);
   
   // Middleware de manejo de errores

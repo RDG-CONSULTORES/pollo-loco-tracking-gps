@@ -9,20 +9,32 @@ const locationProcessor = require('../../services/location-processor');
 router.post('/location', async (req, res) => {
   try {
     const payload = req.body;
+    const timestamp = new Date().toISOString();
+    
+    // Enhanced logging
+    console.log(`\n📱 [${timestamp}] OwnTracks request received`);
+    console.log(`📡 Headers:`, JSON.stringify(req.headers, null, 2));
+    console.log(`📍 Payload:`, JSON.stringify(payload, null, 2));
+    console.log(`🔍 Content-Type:`, req.get('Content-Type'));
+    console.log(`📏 Content-Length:`, req.get('Content-Length'));
     
     // Validación básica del payload
     if (!payload || typeof payload !== 'object') {
+      console.log(`❌ Invalid payload type: ${typeof payload}`);
       return res.status(400).json({
         error: 'Payload inválido',
-        received: typeof payload
+        received: typeof payload,
+        timestamp
       });
     }
     
-    // Log de ubicación recibida
-    console.log(`📍 OwnTracks location received from ${payload.tid || 'unknown'}`);
+    // Log de ubicación recibida con detalles
+    console.log(`📍 Processing location from ${payload.tid || 'unknown'} at ${payload.lat}, ${payload.lon}`);
     
     // Procesar ubicación
+    console.log(`🔄 Sending to location processor...`);
     const result = await locationProcessor.processLocation(payload);
+    console.log(`✅ Location processor result:`, JSON.stringify(result, null, 2));
     
     // Respuesta basada en resultado
     if (result.processed) {
@@ -100,6 +112,20 @@ router.get('/status', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+/**
+ * GET /api/owntracks/ping
+ * Simple ping endpoint to test connectivity
+ */
+router.get('/ping', (req, res) => {
+  console.log(`🏓 Ping received from ${req.ip} at ${new Date().toISOString()}`);
+  res.json({
+    status: 'pong',
+    message: 'OwnTracks endpoint is reachable',
+    timestamp: new Date().toISOString(),
+    ip: req.ip
+  });
 });
 
 /**

@@ -794,6 +794,199 @@ router.get('/users', async (req, res) => {
       }
     }
     
+    // Debug: Setup route system tables if ?debug=setup_routes query param
+    if (req.query.debug === 'setup_routes') {
+      try {
+        console.log('[ADMIN] Setting up route system tables...');
+        
+        // Tabla para rutas calculadas
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS calculated_routes (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES tracking_users(id),
+            
+            -- Datos de la ruta
+            waypoints JSONB NOT NULL,
+            metrics JSONB NOT NULL,
+            directions JSONB,
+            
+            -- Configuración de cálculo
+            algorithm VARCHAR(50) NOT NULL,
+            constraints JSONB DEFAULT '{}',
+            preferences JSONB DEFAULT '{}',
+            
+            -- Estado y metadata
+            status VARCHAR(20) DEFAULT 'calculated',
+            start_location JSONB,
+            total_sucursales INTEGER,
+            
+            -- Timestamps
+            created_at TIMESTAMP DEFAULT NOW(),
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP
+          )
+        `);
+        
+        // Tabla para optimizaciones de rutas
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS route_optimizations (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES tracking_users(id),
+            
+            -- Rutas comparadas
+            base_route JSONB NOT NULL,
+            optimized_route JSONB NOT NULL,
+            
+            -- Estrategia y análisis
+            strategy VARCHAR(50) NOT NULL,
+            recommendations JSONB DEFAULT '[]',
+            metrics JSONB NOT NULL,
+            improvements JSONB,
+            
+            -- APIs utilizadas
+            external_apis_used JSONB DEFAULT '[]',
+            api_response_times JSONB DEFAULT '{}',
+            
+            -- Calidad y feedback
+            quality_score INTEGER,
+            user_feedback INTEGER,
+            user_notes TEXT,
+            
+            created_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+        
+        // Tabla para ejecución de rutas en tiempo real
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS route_executions (
+            id BIGSERIAL PRIMARY KEY,
+            route_id BIGINT REFERENCES calculated_routes(id),
+            user_id INTEGER REFERENCES tracking_users(id),
+            
+            -- Progreso de ejecución
+            current_waypoint_index INTEGER DEFAULT 0,
+            completed_waypoints INTEGER DEFAULT 0,
+            status VARCHAR(20) DEFAULT 'pending',
+            
+            -- Métricas de ejecución real
+            actual_start_time TIMESTAMP,
+            actual_end_time TIMESTAMP,
+            actual_distance_km DECIMAL(8,2),
+            actual_duration_minutes INTEGER,
+            
+            -- Desviaciones vs. plan
+            route_deviations JSONB DEFAULT '[]',
+            unplanned_stops JSONB DEFAULT '[]',
+            delays JSONB DEFAULT '[]',
+            
+            -- Eficiencia
+            efficiency_score INTEGER,
+            fuel_consumption_actual DECIMAL(6,2),
+            
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+        
+        // Tabla para análisis de visitas a sucursales en rutas
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS route_sucursal_visits (
+            id BIGSERIAL PRIMARY KEY,
+            route_execution_id BIGINT REFERENCES route_executions(id),
+            geofence_id INTEGER REFERENCES geofences(id),
+            user_id INTEGER REFERENCES tracking_users(id),
+            
+            -- Timing de la visita
+            planned_arrival TIMESTAMP,
+            actual_arrival TIMESTAMP,
+            planned_departure TIMESTAMP,
+            actual_departure TIMESTAMP,
+            duration_minutes INTEGER,
+            
+            -- Orden en la ruta
+            planned_order INTEGER,
+            actual_order INTEGER,
+            was_skipped BOOLEAN DEFAULT FALSE,
+            skip_reason TEXT,
+            
+            -- Métricas de la visita
+            distance_from_previous_km DECIMAL(6,2),
+            travel_time_minutes INTEGER,
+            visit_efficiency_score INTEGER,
+            
+            created_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+        
+        // Tabla para configuración del sistema de rutas
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS route_system_config (
+            id SERIAL PRIMARY KEY,
+            config_key VARCHAR(100) UNIQUE NOT NULL,
+            config_value TEXT NOT NULL,
+            data_type VARCHAR(20) DEFAULT 'string',
+            description TEXT,
+            category VARCHAR(50) DEFAULT 'general',
+            
+            updated_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+        
+        // Insertar configuraciones por defecto
+        await db.query(`
+          INSERT INTO route_system_config (config_key, config_value, data_type, description, category) VALUES
+          ('max_sucursales_per_route', '10', 'integer', 'Número máximo de sucursales por ruta', 'limits'),
+          ('max_route_duration_hours', '8', 'integer', 'Duración máxima de ruta en horas', 'limits'),
+          ('max_route_distance_km', '150', 'integer', 'Distancia máxima de ruta en kilómetros', 'limits'),
+          ('default_visit_time_minutes', '30', 'integer', 'Tiempo promedio por visita en minutos', 'timing'),
+          ('average_speed_kmh', '40', 'integer', 'Velocidad promedio en ciudad km/h', 'timing'),
+          ('fuel_cost_per_km', '2.50', 'decimal', 'Costo estimado de combustible por km (MXN)', 'costs'),
+          ('route_optimization_enabled', 'true', 'boolean', 'Habilitar optimización inteligente de rutas', 'features')
+          ON CONFLICT (config_key) DO NOTHING
+        `);
+        
+        // Crear índices
+        await db.query(`
+          CREATE INDEX IF NOT EXISTS idx_calculated_routes_user ON calculated_routes(user_id, created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_route_executions_user ON route_executions(user_id, created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_route_visits_execution ON route_sucursal_visits(route_execution_id);
+        `);
+        
+        // Verificar tablas creadas
+        const tablesResult = await db.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+            AND table_name LIKE '%route%' 
+          ORDER BY table_name
+        `);
+        
+        // Verificar configuraciones
+        const configResult = await db.query('SELECT * FROM route_system_config ORDER BY config_key');
+        
+        return res.json({
+          debug: 'setup_routes',
+          success: true,
+          message: 'Route system setup completed successfully',
+          tables_created: tablesResult.rows.length,
+          tables: tablesResult.rows.map(r => r.table_name),
+          config_entries: configResult.rows.length,
+          configurations: configResult.rows,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (routeError) {
+        console.error('[ADMIN] Error setting up route system:', routeError);
+        return res.json({
+          debug: 'setup_routes_error',
+          error: routeError.message,
+          code: routeError.code,
+          detail: routeError.detail,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Normal users listing
     const result = await db.query(`
       SELECT 

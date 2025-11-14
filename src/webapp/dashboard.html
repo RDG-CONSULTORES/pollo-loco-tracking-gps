@@ -365,6 +365,343 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Route Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.75rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .route-results-modal {
+            max-width: 800px;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            gap: 1rem;
+        }
+
+        .modal-header h3 {
+            flex: 1;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1f2937;
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        /* Route Form */
+        .route-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-select, .search-input {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-select:focus, .search-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #dc2626;
+        }
+
+        /* Sucursales Selector */
+        .sucursales-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .sucursales-search {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sucursales-search .search-input {
+            flex: 1;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: #dc2626;
+            font-size: 0.875rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-link:hover {
+            background: #fef2f2;
+        }
+
+        .sucursales-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+        }
+
+        .sucursal-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .sucursal-item:hover {
+            background: #f8fafc;
+        }
+
+        .sucursal-item.selected {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .sucursal-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: #dc2626;
+        }
+
+        .sucursal-info {
+            flex: 1;
+        }
+
+        .sucursal-name {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+
+        .sucursal-details {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .selected-count {
+            font-size: 0.875rem;
+            color: #6b7280;
+            text-align: center;
+            padding: 0.5rem;
+            background: #f8fafc;
+            border-radius: 0.375rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        /* Route Results */
+        .route-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .route-waypoints {
+            margin-top: 1rem;
+        }
+
+        .waypoint-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .waypoint-number {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #dc2626;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .waypoint-info {
+            flex: 1;
+        }
+
+        .waypoint-name {
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .waypoint-distance {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -394,6 +731,19 @@
             
             .header-info {
                 gap: 1rem;
+            }
+
+            .modal-content {
+                margin: 0.5rem;
+                max-height: 95vh;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .route-summary {
+                grid-template-columns: 1fr 1fr;
             }
         }
     </style>
@@ -495,6 +845,12 @@
                 <button class="control-btn" id="showTrails" title="Mostrar/Ocultar Rutas">
                     <span class="material-icons">timeline</span>
                 </button>
+                <button class="control-btn" id="showRoutes" title="Mostrar/Ocultar Rutas Calculadas">
+                    <span class="material-icons">route</span>
+                </button>
+                <button class="control-btn" id="calculateRoute" title="Calcular Ruta">
+                    <span class="material-icons">directions</span>
+                </button>
                 <button class="control-btn" id="toggleFullscreen" title="Pantalla Completa">
                     <span class="material-icons">fullscreen</span>
                 </button>
@@ -511,6 +867,116 @@
     <div class="loading" id="loadingOverlay">
         <div class="spinner"></div>
         <div>Cargando dashboard...</div>
+    </div>
+
+    <!-- Route Calculator Modal -->
+    <div id="routeCalculatorModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content route-modal">
+            <div class="modal-header">
+                <h3><span class="material-icons">route</span> Calcular Ruta Optimizada</h3>
+                <button class="modal-close" id="closeRouteModal">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="route-form">
+                    <!-- Sucursales Selection -->
+                    <div class="form-section">
+                        <label class="form-label">
+                            <span class="material-icons">store</span>
+                            Sucursales a Visitar
+                        </label>
+                        <div class="sucursales-selector">
+                            <div class="sucursales-search">
+                                <input type="text" id="sucursalSearch" placeholder="Buscar sucursales..." class="search-input">
+                                <button id="selectAllSucursales" class="btn-link">Seleccionar Todas</button>
+                                <button id="clearAllSucursales" class="btn-link">Limpiar</button>
+                            </div>
+                            <div class="sucursales-list" id="sucursalesList">
+                                <!-- Sucursales will be populated here -->
+                            </div>
+                            <div class="selected-count">
+                                <span id="selectedCount">0</span> sucursales seleccionadas (máximo 8)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Route Options -->
+                    <div class="form-section">
+                        <label class="form-label">
+                            <span class="material-icons">tune</span>
+                            Opciones de Ruta
+                        </label>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Estrategia de Optimización</label>
+                                <select id="routeStrategy" class="form-select">
+                                    <option value="balanced">Balanceada (Recomendada)</option>
+                                    <option value="distance">Menor Distancia</option>
+                                    <option value="time">Menor Tiempo</option>
+                                    <option value="fuel">Menor Consumo</option>
+                                    <option value="priority">Por Prioridad</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Algoritmo</label>
+                                <select id="routeAlgorithm" class="form-select">
+                                    <option value="nearestNeighbor">Vecino Más Cercano</option>
+                                    <option value="genetic">Algoritmo Genético</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="form-section">
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="useRealRoads" checked>
+                            <label for="useRealRoads">Usar rutas reales (API de mapas)</label>
+                        </div>
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="includeTraffic">
+                            <label for="includeTraffic">Incluir datos de tráfico</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="cancelRoute" class="btn btn-secondary">Cancelar</button>
+                <button id="calculateRouteBtn" class="btn btn-primary" disabled>
+                    <span class="material-icons">calculate</span>
+                    Calcular Ruta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Route Results Modal -->
+    <div id="routeResultsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content route-results-modal">
+            <div class="modal-header">
+                <h3><span class="material-icons">check_circle</span> Ruta Calculada</h3>
+                <button class="modal-close" id="closeResultsModal">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div id="routeResultsContent">
+                    <!-- Route results will be populated here -->
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="saveRoute" class="btn btn-secondary">Guardar Ruta</button>
+                <button id="executeRoute" class="btn btn-primary">
+                    <span class="material-icons">play_arrow</span>
+                    Iniciar Navegación
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Leaflet JS -->

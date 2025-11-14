@@ -1166,6 +1166,96 @@ router.get('/users', async (req, res) => {
       }
     }
 
+/**
+ * GET /api/admin/setup-user-management
+ * Setup user management system via API endpoint
+ */
+router.get('/setup-user-management', async (req, res) => {
+  try {
+    console.log('🚀 Setup de Sistema de Gestión de Usuarios via API');
+    
+    const bcrypt = require('bcrypt');
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Leer schema de user management
+    const schemaPath = path.join(__dirname, '../../database/user-management-schema.sql');
+    
+    let schemaSql;
+    try {
+      schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    } catch (err) {
+      return res.json({
+        success: false,
+        error: 'Schema file not found: ' + schemaPath,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Ejecutar schema
+    await db.query(schemaSql);
+    
+    // Crear usuario administrador
+    const defaultPassword = 'admin123';
+    const passwordHash = await bcrypt.hash(defaultPassword, 12);
+    
+    const adminResult = await db.query(`
+      INSERT INTO system_users (email, password_hash, full_name, user_type)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (email) DO UPDATE SET
+        password_hash = EXCLUDED.password_hash,
+        updated_at = NOW()
+      RETURNING id, email, full_name
+    `, [
+      'admin@polloloco.com',
+      passwordHash,
+      'Administrador Sistema',
+      'admin'
+    ]);
+    
+    // Verificar tablas creadas
+    const newTablesCheck = await db.query(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public' 
+        AND tablename IN (
+          'system_users', 'directors', 'supervisors', 
+          'director_groups', 'supervisor_assignments'
+        )
+      ORDER BY tablename
+    `);
+    
+    return res.json({
+      success: true,
+      message: '🚀 Sistema de Gestión de Usuarios instalado',
+      stats: {
+        tables_created: newTablesCheck.rows.length,
+        tables_list: newTablesCheck.rows.map(r => r.tablename),
+        admin_user: {
+          email: adminResult.rows[0].email,
+          password: 'admin123 (¡CAMBIAR!)',
+          id: adminResult.rows[0].id
+        }
+      },
+      endpoints_available: [
+        'POST /api/auth/login',
+        'GET /api/auth/me',
+        'POST /api/auth/logout'
+      ],
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error en setup user management:', error);
+    return res.json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
     // Debug: Setup user management system if ?debug=setup_users query param
     if (req.query.debug === 'setup_users') {
       try {
@@ -1449,7 +1539,7 @@ router.get('/users', async (req, res) => {
       }
     }
     
-    // Normal users listing
+    // Normal users listing with roles and groups
     const result = await db.query(`
       SELECT 
         id,
@@ -1459,6 +1549,8 @@ router.get('/users', async (req, res) => {
         display_name,
         phone,
         active,
+        rol,
+        grupo,
         created_at,
         updated_at
       FROM tracking_users
@@ -1484,7 +1576,9 @@ router.post('/users', async (req, res) => {
       zenput_email,
       zenput_user_id,
       display_name,
-      phone
+      phone,
+      rol,
+      grupo
     } = req.body;
     
     // Validaciones
@@ -1509,10 +1603,10 @@ router.post('/users', async (req, res) => {
     // Crear usuario
     const result = await db.query(`
       INSERT INTO tracking_users 
-      (tracker_id, zenput_email, zenput_user_id, display_name, phone)
-      VALUES ($1, $2, $3, $4, $5)
+      (tracker_id, zenput_email, zenput_user_id, display_name, phone, rol, grupo)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
-    `, [tracker_id, zenput_email, zenput_user_id, display_name, phone]);
+    `, [tracker_id, zenput_email, zenput_user_id, display_name, phone, rol, grupo]);
     
     const newUser = result.rows[0];
     
@@ -1921,6 +2015,107 @@ router.get('/gps/latest', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error obteniendo últimas ubicaciones:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/directors
+ * Crear nuevo director
+ */
+router.post('/directors', async (req, res) => {
+  try {
+    const {
+      director_code,
+      full_name,
+      email,
+      telegram_chat_id
+    } = req.body;
+    
+    // Validaciones
+    if (!director_code || !full_name || !email) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos: director_code, full_name, email'
+      });
+    }
+    
+    // Verificar que director_code no exista
+    const existingDirector = await db.query(
+      'SELECT id FROM directors WHERE director_code = $1',
+      [director_code]
+    );
+    
+    if (existingDirector.rows.length > 0) {
+      return res.status(409).json({
+        error: `Código de director '${director_code}' ya existe`
+      });
+    }
+    
+    // Primero crear usuario del sistema
+    const bcrypt = require('bcrypt');
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(tempPassword, 12);
+    
+    const systemUserResult = await db.query(`
+      INSERT INTO system_users (email, password_hash, full_name, user_type)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [email, passwordHash, full_name, 'director']);
+    
+    const systemUserId = systemUserResult.rows[0].id;
+    
+    // Luego crear director
+    const result = await db.query(`
+      INSERT INTO directors 
+      (user_id, director_code, full_name, telegram_chat_id)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [systemUserId, director_code, full_name, telegram_chat_id]);
+    
+    const newDirector = result.rows[0];
+    
+    console.log(`✅ Director creado: ${director_code} (${full_name})`);
+    console.log(`🔑 Password temporal: ${tempPassword}`);
+    
+    res.status(201).json({
+      ...newDirector,
+      temp_password: tempPassword,
+      login_email: email
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creando director:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/directors
+ * Obtener lista de directores
+ */
+router.get('/directors', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        d.id,
+        d.director_code,
+        d.full_name,
+        d.telegram_chat_id,
+        d.active,
+        d.created_at,
+        su.email,
+        array_agg(dg.group_name) FILTER (WHERE dg.group_name IS NOT NULL) as groups
+      FROM directors d
+      LEFT JOIN system_users su ON d.user_id = su.id
+      LEFT JOIN director_groups dg ON d.id = dg.director_id
+      GROUP BY d.id, d.director_code, d.full_name, d.telegram_chat_id, d.active, d.created_at, su.email
+      ORDER BY d.full_name
+    `);
+    
+    res.json(result.rows);
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo directores:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

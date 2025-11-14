@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Pollo Loco GPS</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #dc2626;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-header {
+            display: flex;
+            items-center: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.users { background: #dbeafe; color: #1d4ed8; }
+        .stat-icon.locations { background: #dcfce7; color: #059669; }
+        .stat-icon.visits { background: #fef3c7; color: #d97706; }
+        .stat-icon.system { background: #f3e8ff; color: #7c3aed; }
+
+        .stat-title {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-description {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .tabs-header {
+            display: flex;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #dc2626;
+            border-bottom: 2px solid #dc2626;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #f1f5f9;
+            color: #374151;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 1.5rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .table th {
+            background: #f8fafc;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge.success { background: #dcfce7; color: #166534; }
+        .badge.warning { background: #fef3c7; color: #92400e; }
+        .badge.info { background: #dbeafe; color: #1e40af; }
+        .badge.danger { background: #fee2e2; color: #991b1b; }
+
+        /* Action Buttons */
+        .action-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            margin: 0 0.125rem;
+        }
+
+        .action-btn.primary {
+            background: #dc2626;
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: #b91c1c;
+        }
+
+        .action-btn.secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .action-btn.secondary:hover {
+            background: #e2e8f0;
+        }
+
+        /* Forms */
+        .form-section {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input, .form-select {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            background: white;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .help-text {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Role Explanation Cards */
+        .role-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .role-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .role-card:hover {
+            border-color: #dc2626;
+        }
+
+        .role-card.selected {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+
+        .role-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .role-description {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+        }
+
+        .role-permissions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .permission-tag {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-size: 0.625rem;
+            font-weight: 500;
+        }
+
+        .permission-tag.allowed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .permission-tag.denied {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #dc2626;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.75rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .tabs-header {
+                flex-direction: column;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>
+            <span class="material-icons">admin_panel_settings</span>
+            Panel de Administración
+        </h1>
+        <div class="header-actions">
+            <div class="user-info" id="userInfo">
+                <span class="material-icons">person</span>
+                <span id="userName">Cargando...</span>
+            </div>
+            <a href="/webapp/dashboard.html" class="btn btn-secondary">
+                <span class="material-icons">dashboard</span>
+                Ver Dashboard
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Estadísticas Rápidas -->
+        <div class="stats-grid" id="statsGrid">
+            <!-- Las estadísticas se cargan dinámicamente -->
+        </div>
+
+        <!-- Panel Principal con Tabs -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab('users')">
+                    <span class="material-icons">people</span>
+                    Usuarios GPS
+                </button>
+                <button class="tab-btn" onclick="switchTab('directors')">
+                    <span class="material-icons">supervisor_account</span>
+                    Directores
+                </button>
+                <button class="tab-btn" onclick="switchTab('roles')">
+                    <span class="material-icons">security</span>
+                    Roles y Permisos
+                </button>
+                <button class="tab-btn" onclick="switchTab('system')">
+                    <span class="material-icons">settings</span>
+                    Sistema
+                </button>
+            </div>
+
+            <!-- Tab: Usuarios GPS -->
+            <div id="users-tab" class="tab-content active">
+                <div class="form-section">
+                    <h3>
+                        <span class="material-icons">person_add</span>
+                        Crear Nuevo Usuario GPS
+                    </h3>
+                    <form id="createUserForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="trackerId">Tracker ID *</label>
+                                <input type="text" id="trackerId" class="form-input" 
+                                       placeholder="Ej: SUP01, DIR02" required>
+                                <div class="help-text">Identificador único del dispositivo GPS</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="displayName">Nombre Completo *</label>
+                                <input type="text" id="displayName" class="form-input" 
+                                       placeholder="Ej: Roberto Dávila" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="zenputEmail">Email Zenput *</label>
+                                <input type="email" id="zenputEmail" class="form-input" 
+                                       placeholder="usuario@polloloco.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="phone">Teléfono</label>
+                                <input type="tel" id="phone" class="form-input" 
+                                       placeholder="+52 1234567890">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="userGroup">Grupo Operativo *</label>
+                                <select id="userGroup" class="form-select" required>
+                                    <option value="">Seleccionar grupo...</option>
+                                    <option value="TEPEYAC">TEPEYAC</option>
+                                    <option value="GUADALUPE">GUADALUPE</option>
+                                    <option value="CENTRO">CENTRO</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="userRole">Rol del Usuario *</label>
+                                <select id="userRole" class="form-select" required onchange="showRoleInfo()">
+                                    <option value="">Seleccionar rol...</option>
+                                    <option value="auditor">Auditor</option>
+                                    <option value="director">Director</option>
+                                    <option value="gerente">Gerente</option>
+                                    <option value="supervisor">Supervisor</option>
+                                    <option value="usuario">Usuario</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="role-cards" id="roleCards" style="display: none;"></div>
+                        <div style="margin-top: 1.5rem;">
+                            <button type="submit" class="btn action-btn primary">
+                                <span class="material-icons">add</span>
+                                Crear Usuario
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tracker ID</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Rol</th>
+                                <th>Grupo</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                            <tr>
+                                <td colspan="7" class="loading">
+                                    <div class="spinner"></div>
+                                    Cargando usuarios...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Directores -->
+            <div id="directors-tab" class="tab-content">
+                <div class="form-section">
+                    <h3>
+                        <span class="material-icons">admin_panel_settings</span>
+                        Crear Nuevo Director
+                    </h3>
+                    <form id="createDirectorForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="directorCode">Código Director *</label>
+                                <input type="text" id="directorCode" class="form-input" 
+                                       placeholder="Ej: DIR01" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="directorName">Nombre Completo *</label>
+                                <input type="text" id="directorName" class="form-input" 
+                                       placeholder="Ej: Juan Pérez" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="directorEmail">Email *</label>
+                                <input type="email" id="directorEmail" class="form-input" 
+                                       placeholder="director@polloloco.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="telegramChat">Chat ID Telegram</label>
+                                <input type="text" id="telegramChat" class="form-input" 
+                                       placeholder="@usuario o ID numérico">
+                                <div class="help-text">Para notificaciones automáticas</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1.5rem;">
+                            <button type="submit" class="btn action-btn primary">
+                                <span class="material-icons">add</span>
+                                Crear Director
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Grupos Asignados</th>
+                                <th>Telegram</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="directorsTable">
+                            <tr>
+                                <td colspan="7" class="loading">
+                                    <div class="spinner"></div>
+                                    Cargando directores...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Roles -->
+            <div id="roles-tab" class="tab-content">
+                <div id="rolesContent" class="loading">
+                    <div class="spinner"></div>
+                    Cargando información de roles...
+                </div>
+            </div>
+
+            <!-- Tab: Sistema -->
+            <div id="system-tab" class="tab-content">
+                <div id="systemContent" class="loading">
+                    <div class="spinner"></div>
+                    Cargando configuración del sistema...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin-panel.js"></script>
+</body>
+</html>

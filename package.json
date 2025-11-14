@@ -36,7 +36,8 @@
     "create-user-rd01": "node scripts/create-user-rd01.js",
     "fix-tracking-locations": "node scripts/fix-tracking-locations-schema.js",
     "create-tracking-locations": "node scripts/create-tracking-locations-table.js",
-    "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js"
+    "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js",
+    "setup-user-mgmt": "node scripts/setup-user-management.js"
   },
   "keywords": [
     "gps",

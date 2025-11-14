@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pollo Loco - Acceso al Dashboard</title>
+    <title>Pollo Loco - Login</title>
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     
@@ -105,23 +105,6 @@
             box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
         }
 
-        .form-select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            background: #f9fafb;
-            cursor: pointer;
-        }
-
-        .form-select:focus {
-            outline: none;
-            border-color: #dc2626;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-        }
-
         .login-btn {
             width: 100%;
             background: #dc2626;
@@ -170,6 +153,17 @@
             background: #fef2f2;
             border: 1px solid #fecaca;
             color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #059669;
             padding: 0.75rem;
             border-radius: 0.5rem;
             font-size: 0.875rem;
@@ -232,68 +226,71 @@
         <div class="logo-section">
             <div class="logo">🐔</div>
             <div class="app-name">Pollo Loco GPS</div>
-            <div class="app-subtitle">Dashboard de Seguimiento</div>
+            <div class="app-subtitle">Sistema de Gestión y Seguimiento</div>
         </div>
 
         <div class="error-message" id="errorMessage">
-            Credenciales incorrectas. Intenta nuevamente.
+            Error de autenticación
+        </div>
+
+        <div class="success-message" id="successMessage">
+            Login exitoso. Redirigiendo...
         </div>
 
         <form id="loginForm">
             <div class="form-group">
-                <label class="form-label" for="trackerId">ID de Rastreador</label>
+                <label class="form-label" for="email">Email</label>
                 <input 
-                    type="text" 
-                    id="trackerId" 
+                    type="email" 
+                    id="email" 
                     class="form-input" 
-                    placeholder="Ej: RD01, 01, TEST01"
+                    placeholder="admin@polloloco.com"
                     required
                     autocomplete="username"
+                    value="admin@polloloco.com"
                 >
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="userRole">Rol de Usuario</label>
-                <select id="userRole" class="form-select" required>
-                    <option value="">Seleccionar rol...</option>
-                    <option value="auditor">Auditor (Acceso completo)</option>
-                    <option value="director">Director (Acceso por grupo)</option>
-                    <option value="gerente">Gerente (Acceso por grupo)</option>
-                    <option value="supervisor">Supervisor (Solo lectura)</option>
-                    <option value="usuario">Usuario (Básico)</option>
-                </select>
+                <label class="form-label" for="password">Contraseña</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    class="form-input" 
+                    placeholder="Ingresa tu contraseña"
+                    required
+                    autocomplete="current-password"
+                >
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">
-                <span id="loginBtnText">Acceder al Dashboard</span>
+                <span id="loginBtnText">Iniciar Sesión</span>
                 <div class="loading-spinner" id="loginSpinner" style="display: none;"></div>
             </button>
         </form>
 
         <div class="quick-access">
-            <div class="quick-access-title">Acceso Rápido</div>
-            <button class="quick-access-btn" onclick="quickLogin('RD01', 'auditor')">
-                Roberto Dávila - Auditor
+            <div class="quick-access-title">Acceso de Prueba</div>
+            <button class="quick-access-btn" onclick="quickLogin('admin@polloloco.com', 'admin123')">
+                🔐 Admin - admin123
             </button>
-            <button class="quick-access-btn" onclick="quickLogin('01', 'auditor')">
-                Roberto Dávila - iPhone
-            </button>
-            <button class="quick-access-btn" onclick="quickLogin('TEST01', 'supervisor')">
-                Usuario de Prueba
-            </button>
+            <div style="font-size: 0.7rem; color: #6b7280; margin-top: 0.5rem; text-align: center;">
+                ⚠️ Cambiar contraseña después del primer acceso
+            </div>
         </div>
 
         <div class="footer">
-            Sistema de seguimiento GPS en tiempo real<br>
+            Sistema de gestión de usuarios y seguimiento GPS<br>
             © 2024 Pollo Loco
         </div>
     </div>
 
     <script>
-        class LoginManager {
+        class AuthLogin {
             constructor() {
                 this.form = document.getElementById('loginForm');
                 this.errorMessage = document.getElementById('errorMessage');
+                this.successMessage = document.getElementById('successMessage');
                 this.loginBtn = document.getElementById('loginBtn');
                 this.loginBtnText = document.getElementById('loginBtnText');
                 this.loginSpinner = document.getElementById('loginSpinner');
@@ -304,115 +301,106 @@
             init() {
                 this.form.addEventListener('submit', (e) => this.handleLogin(e));
                 
-                // Auto-focus en el primer campo
-                document.getElementById('trackerId').focus();
+                // Auto-focus en el campo password si email ya está lleno
+                const emailField = document.getElementById('email');
+                const passwordField = document.getElementById('password');
                 
-                // Check si ya está logueado
-                if (this.isLoggedIn()) {
-                    this.redirectToDashboard();
+                if (emailField.value) {
+                    passwordField.focus();
+                } else {
+                    emailField.focus();
+                }
+                
+                // Verificar si ya está logueado
+                this.checkExistingSession();
+            }
+
+            async checkExistingSession() {
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                    try {
+                        const response = await fetch('/api/auth/me', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            // Ya está logueado, redirigir
+                            this.redirectToDashboard();
+                        } else {
+                            // Token inválido, limpiar
+                            localStorage.removeItem('auth_token');
+                        }
+                    } catch (error) {
+                        console.log('No hay sesión válida');
+                        localStorage.removeItem('auth_token');
+                    }
                 }
             }
 
             async handleLogin(e) {
                 e.preventDefault();
                 
-                const trackerId = document.getElementById('trackerId').value.trim();
-                const userRole = document.getElementById('userRole').value;
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
                 
-                if (!trackerId || !userRole) {
-                    this.showError('Por favor completa todos los campos');
+                if (!email || !password) {
+                    this.showError('Por favor ingresa email y contraseña');
                     return;
                 }
                 
                 this.setLoading(true);
-                this.hideError();
+                this.hideMessages();
                 
                 try {
-                    // Simular validación (en producción esto sería contra una API real)
-                    const isValid = await this.validateCredentials(trackerId, userRole);
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
                     
-                    if (isValid) {
-                        // Guardar sesión
-                        this.saveSession(trackerId, userRole);
+                    const result = await response.json();
+                    
+                    if (response.ok && result.success) {
+                        // Guardar token
+                        localStorage.setItem('auth_token', result.data.token);
+                        localStorage.setItem('user_data', JSON.stringify(result.data.user));
                         
-                        // Mostrar éxito temporalmente
-                        this.loginBtnText.textContent = '¡Acceso autorizado!';
+                        this.showSuccess('Login exitoso. Redirigiendo...');
                         
-                        // Redirigir al dashboard
+                        // Redirigir después de mostrar mensaje de éxito
                         setTimeout(() => {
                             this.redirectToDashboard();
-                        }, 1000);
+                        }, 1500);
                         
                     } else {
-                        this.showError('Credenciales incorrectas o acceso no autorizado');
+                        this.showError(result.error || 'Error de autenticación');
                         this.setLoading(false);
                     }
                     
                 } catch (error) {
                     console.error('Error en login:', error);
-                    this.showError('Error de conexión. Intenta nuevamente.');
+                    this.showError('Error de conexión. Verifica tu internet.');
                     this.setLoading(false);
                 }
             }
 
-            async validateCredentials(trackerId, userRole) {
-                // Simular llamada al servidor
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Lista de credenciales válidas (en producción esto vendría de la base de datos)
-                const validCredentials = [
-                    { trackerId: 'RD01', roles: ['auditor', 'director', 'gerente'] },
-                    { trackerId: '01', roles: ['auditor', 'director', 'gerente'] },
-                    { trackerId: 'TEST01', roles: ['supervisor', 'usuario'] }
-                ];
-                
-                const user = validCredentials.find(cred => 
-                    cred.trackerId.toLowerCase() === trackerId.toLowerCase()
-                );
-                
-                return user && user.roles.includes(userRole);
-            }
-
-            saveSession(trackerId, userRole) {
-                const sessionData = {
-                    trackerId: trackerId,
-                    userRole: userRole,
-                    loginTime: new Date().toISOString()
-                };
-                
-                localStorage.setItem('gps-dashboard-session', JSON.stringify(sessionData));
-            }
-
-            isLoggedIn() {
-                const session = localStorage.getItem('gps-dashboard-session');
-                if (!session) return false;
-                
-                try {
-                    const sessionData = JSON.parse(session);
-                    const loginTime = new Date(sessionData.loginTime);
-                    const now = new Date();
-                    
-                    // Sesión válida por 24 horas
-                    const sessionDuration = 24 * 60 * 60 * 1000;
-                    
-                    return (now - loginTime) < sessionDuration;
-                } catch {
-                    return false;
-                }
-            }
-
             redirectToDashboard() {
-                window.location.href = '/webapp/dashboard.html';
+                // Redirigir al dashboard con parámetro para mostrar admin
+                window.location.href = '/webapp/dashboard.html?admin=true';
             }
 
             setLoading(loading) {
                 if (loading) {
                     this.loginBtn.disabled = true;
-                    this.loginBtnText.textContent = 'Verificando acceso...';
+                    this.loginBtnText.textContent = 'Verificando...';
                     this.loginSpinner.style.display = 'block';
                 } else {
                     this.loginBtn.disabled = false;
-                    this.loginBtnText.textContent = 'Acceder al Dashboard';
+                    this.loginBtnText.textContent = 'Iniciar Sesión';
                     this.loginSpinner.style.display = 'none';
                 }
             }
@@ -420,22 +408,31 @@
             showError(message) {
                 this.errorMessage.textContent = message;
                 this.errorMessage.style.display = 'block';
+                this.successMessage.style.display = 'none';
             }
 
-            hideError() {
+            showSuccess(message) {
+                this.successMessage.textContent = message;
+                this.successMessage.style.display = 'block';
                 this.errorMessage.style.display = 'none';
+            }
+
+            hideMessages() {
+                this.errorMessage.style.display = 'none';
+                this.successMessage.style.display = 'none';
             }
         }
 
         // Función para botones de acceso rápido
-        function quickLogin(trackerId, role) {
-            document.getElementById('trackerId').value = trackerId;
-            document.getElementById('userRole').value = role;
+        function quickLogin(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            document.getElementById('password').focus();
         }
 
         // Inicializar cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', () => {
-            window.loginManager = new LoginManager();
+            window.authLogin = new AuthLogin();
         });
     </script>
 </body>

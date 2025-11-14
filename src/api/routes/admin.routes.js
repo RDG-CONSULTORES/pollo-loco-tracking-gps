@@ -41,6 +41,116 @@ router.get('/debug/schema/:table', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/import-real-data
+ * Importar estructura real desde Neon
+ */
+router.post('/import-real-data', async (req, res) => {
+  try {
+    console.log('🏢 Iniciando importación de estructura real...');
+    
+    const { Client } = require('pg');
+    
+    // Conectar a Neon
+    const neonClient = new Client({
+      connectionString: 'postgresql://neondb_owner:npg_DlSRAHuyaY83@ep-orange-grass-a402u4o5-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require',
+      ssl: { rejectUnauthorized: false }
+    });
+    
+    await neonClient.connect();
+    
+    // Obtener estructura real
+    const estructuraResult = await neonClient.query(`
+      SELECT DISTINCT
+        location_name,
+        sucursal_clean,
+        latitud,
+        longitud,
+        estado_normalizado,
+        municipio,
+        grupo_operativo_limpio,
+        director_operativo
+      FROM supervision_operativa_clean
+      WHERE latitud IS NOT NULL 
+        AND longitud IS NOT NULL
+        AND location_name IS NOT NULL
+        AND grupo_operativo_limpio IS NOT NULL
+      ORDER BY grupo_operativo_limpio, location_name
+    `);
+    
+    // Agrupar por grupo operativo
+    const gruposPorOperativo = new Map();
+    estructuraResult.rows.forEach(row => {
+      const grupo = row.grupo_operativo_limpio;
+      if (!gruposPorOperativo.has(grupo)) {
+        gruposPorOperativo.set(grupo, []);
+      }
+      gruposPorOperativo.get(grupo).push(row);
+    });
+    
+    // Limpiar tabla actual
+    await db.query('DELETE FROM tracking_locations_cache');
+    
+    // Importar estructura real
+    let totalImportadas = 0;
+    for (const [grupoNombre, sucursalesGrupo] of gruposPorOperativo.entries()) {
+      for (const sucursal of sucursalesGrupo) {
+        const codigoMatch = sucursal.location_name.match(/^(\\d+)/);
+        const locationCode = codigoMatch ? codigoMatch[1] : `AUTO_${totalImportadas + 1}`;
+        
+        await db.query(`
+          INSERT INTO tracking_locations_cache (
+            location_code, name, address, latitude, longitude,
+            group_name, director_name, active, geofence_radius, synced_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+          ON CONFLICT (location_code) DO UPDATE SET
+            name = EXCLUDED.name, group_name = EXCLUDED.group_name,
+            latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude,
+            director_name = EXCLUDED.director_name, synced_at = NOW()
+        `, [
+          locationCode, sucursal.location_name,
+          `${sucursal.municipio}, ${sucursal.estado_normalizado}`,
+          parseFloat(sucursal.latitud), parseFloat(sucursal.longitud),
+          grupoNombre, sucursal.director_operativo || 'Director TBD',
+          true, 150
+        ]);
+        
+        totalImportadas++;
+      }
+    }
+    
+    await neonClient.end();
+    
+    // Verificación final
+    const verificacion = await db.query(`
+      SELECT group_name, COUNT(*) as total
+      FROM tracking_locations_cache 
+      WHERE active = true
+      GROUP BY group_name
+      ORDER BY group_name
+    `);
+    
+    res.json({
+      success: true,
+      message: 'Estructura real importada exitosamente',
+      stats: {
+        grupos_importados: gruposPorOperativo.size,
+        sucursales_importadas: totalImportadas,
+        grupos_detalle: verificacion.rows
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error en importación:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * GET /api/admin/users
  * Obtener lista de usuarios de tracking
  */

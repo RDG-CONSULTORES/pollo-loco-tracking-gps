@@ -13,6 +13,9 @@ const debugRoutes = require('./routes/debug.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const routesRoutes = require('./routes/routes.routes');
 
+// NEW: User Management Routes
+const authRoutes = require('./routes/auth.routes');
+
 /**
  * Configurar servidor Express
  */
@@ -93,6 +96,9 @@ function createServer() {
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);
   app.use('/health', healthRoutes);
+  
+  // NEW: User Management Routes
+  app.use('/api/auth', authRoutes);
   
   // Middleware de manejo de errores
   app.use((error, req, res, next) => {

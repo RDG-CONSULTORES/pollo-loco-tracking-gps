@@ -1166,6 +1166,96 @@ router.get('/users', async (req, res) => {
       }
     }
 
+    // Debug: Setup user management system if ?debug=setup_users query param
+    if (req.query.debug === 'setup_users') {
+      try {
+        console.log('🚀 Setup de Sistema de Gestión de Usuarios');
+        
+        const bcrypt = require('bcrypt');
+        const fs = require('fs');
+        const path = require('path');
+        
+        // Leer schema de user management
+        const schemaPath = path.join(__dirname, '../../database/user-management-schema.sql');
+        
+        let schemaSql;
+        try {
+          schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        } catch (err) {
+          return res.json({
+            debug: 'setup_users_error',
+            success: false,
+            error: 'Schema file not found: ' + schemaPath,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
+        // Ejecutar schema
+        await db.query(schemaSql);
+        
+        // Crear usuario administrador
+        const defaultPassword = 'admin123';
+        const passwordHash = await bcrypt.hash(defaultPassword, 12);
+        
+        const adminResult = await db.query(\`
+          INSERT INTO system_users (email, password_hash, full_name, user_type)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (email) DO UPDATE SET
+            password_hash = EXCLUDED.password_hash,
+            updated_at = NOW()
+          RETURNING id, email, full_name
+        \`, [
+          'admin@polloloco.com',
+          passwordHash,
+          'Administrador Sistema',
+          'admin'
+        ]);
+        
+        // Verificar tablas creadas
+        const newTablesCheck = await db.query(\`
+          SELECT tablename 
+          FROM pg_tables 
+          WHERE schemaname = 'public' 
+            AND tablename IN (
+              'system_users', 'directors', 'supervisors', 
+              'director_groups', 'supervisor_assignments'
+            )
+          ORDER BY tablename
+        \`);
+        
+        return res.json({
+          debug: 'setup_users',
+          success: true,
+          message: '🚀 Sistema de Gestión de Usuarios instalado',
+          stats: {
+            tables_created: newTablesCheck.rows.length,
+            tables_list: newTablesCheck.rows.map(r => r.tablename),
+            admin_user: {
+              email: adminResult.rows[0].email,
+              password: 'admin123 (¡CAMBIAR!)',
+              id: adminResult.rows[0].id
+            }
+          },
+          endpoints_available: [
+            'POST /api/auth/login',
+            'GET /api/auth/me',
+            'POST /api/auth/logout'
+          ],
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (error) {
+        console.error('Error en setup users:', error);
+        return res.json({
+          debug: 'setup_users_error',
+          success: false,
+          error: error.message,
+          stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
     // Debug: Setup route system tables if ?debug=setup_routes query param  
     if (req.query.debug === 'setup_routes') {
       try {

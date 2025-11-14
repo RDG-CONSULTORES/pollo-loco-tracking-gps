@@ -921,7 +921,7 @@ router.get('/users', async (req, res) => {
         await neonClient.connect();
         
         // Obtener estructura limpia (excluir duplicados)
-        const estructuraResult = await neonClient.query(\`
+        const estructuraResult = await neonClient.query(`
           SELECT DISTINCT
             location_name,
             sucursal_clean,
@@ -939,7 +939,7 @@ router.get('/users', async (req, res) => {
             AND grupo_operativo_limpio != 'NO_ENCONTRADO'
             AND grupo_operativo_limpio != 'SIN_MAPEO'
           ORDER BY grupo_operativo_limpio, location_name
-        \`);
+        `);
         
         // Normalizar TEPEYAC (eliminar duplicados formato "Sucursal XX")
         const sucursalesLimpias = estructuraResult.rows.filter(row => {
@@ -947,7 +947,7 @@ router.get('/users', async (req, res) => {
           
           if (row.grupo_operativo_limpio === 'TEPEYAC') {
             if (nombre.startsWith('Sucursal ')) {
-              console.log(\`  🚫 Eliminando duplicado TEPEYAC: \${nombre}\`);
+              console.log(`  🚫 Eliminando duplicado TEPEYAC: ${nombre}`);
               return false;
             }
           }
@@ -955,7 +955,7 @@ router.get('/users', async (req, res) => {
           return true;
         });
         
-        console.log(\`✅ Después de limpieza: \${sucursalesLimpias.length} sucursales\`);
+        console.log(`✅ Después de limpieza: ${sucursalesLimpias.length} sucursales`);
         
         // Agrupar por grupo operativo
         const gruposPorOperativo = new Map();
@@ -979,9 +979,9 @@ router.get('/users', async (req, res) => {
           
           for (const sucursal of sucursalesGrupo) {
             const codigoMatch = sucursal.location_name.match(/^(\\\\d+)/);
-            const locationCode = codigoMatch ? codigoMatch[1] : \`AUTO_\${totalImportadas + 1}\`;
+            const locationCode = codigoMatch ? codigoMatch[1] : `AUTO_${totalImportadas + 1}`;
             
-            await db.query(\`
+            await db.query(`
               INSERT INTO tracking_locations_cache (
                 location_code, name, address, latitude, longitude,
                 group_name, director_name, active, geofence_radius, synced_at
@@ -990,9 +990,9 @@ router.get('/users', async (req, res) => {
                 name = EXCLUDED.name, group_name = EXCLUDED.group_name,
                 latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude,
                 director_name = EXCLUDED.director_name, synced_at = NOW()
-            \`, [
+            `, [
               locationCode, sucursal.location_name,
-              \`\${sucursal.municipio}, \${sucursal.estado_normalizado}\`,
+              `${sucursal.municipio}, ${sucursal.estado_normalizado}`,
               parseFloat(sucursal.latitud), parseFloat(sucursal.longitud),
               grupoNombre, sucursal.director_operativo || 'Director TBD',
               true, 150
@@ -1011,13 +1011,13 @@ router.get('/users', async (req, res) => {
         await neonClient.end();
         
         // Verificación final
-        const verificacion = await db.query(\`
+        const verificacion = await db.query(`
           SELECT group_name, COUNT(*) as total
           FROM tracking_locations_cache 
           WHERE active = true
           GROUP BY group_name
           ORDER BY group_name
-        \`);
+        `);
         
         return res.json({
           debug: 'clean_import',
@@ -1061,7 +1061,7 @@ router.get('/users', async (req, res) => {
         await neonClient.connect();
         
         // Obtener estructura real
-        const estructuraResult = await neonClient.query(\`
+        const estructuraResult = await neonClient.query(`
           SELECT DISTINCT
             location_name,
             sucursal_clean,
@@ -1077,7 +1077,7 @@ router.get('/users', async (req, res) => {
             AND location_name IS NOT NULL
             AND grupo_operativo_limpio IS NOT NULL
           ORDER BY grupo_operativo_limpio, location_name
-        \`);
+        `);
         
         // Agrupar por grupo operativo
         const gruposPorOperativo = new Map();
@@ -1101,9 +1101,9 @@ router.get('/users', async (req, res) => {
           
           for (const sucursal of sucursalesGrupo) {
             const codigoMatch = sucursal.location_name.match(/^(\\\\d+)/);
-            const locationCode = codigoMatch ? codigoMatch[1] : \`AUTO_\${totalImportadas + 1}\`;
+            const locationCode = codigoMatch ? codigoMatch[1] : `AUTO_${totalImportadas + 1}`;
             
-            await db.query(\`
+            await db.query(`
               INSERT INTO tracking_locations_cache (
                 location_code, name, address, latitude, longitude,
                 group_name, director_name, active, geofence_radius, synced_at
@@ -1112,9 +1112,9 @@ router.get('/users', async (req, res) => {
                 name = EXCLUDED.name, group_name = EXCLUDED.group_name,
                 latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude,
                 director_name = EXCLUDED.director_name, synced_at = NOW()
-            \`, [
+            `, [
               locationCode, sucursal.location_name,
-              \`\${sucursal.municipio}, \${sucursal.estado_normalizado}\`,
+              `${sucursal.municipio}, ${sucursal.estado_normalizado}`,
               parseFloat(sucursal.latitud), parseFloat(sucursal.longitud),
               grupoNombre, sucursal.director_operativo || 'Director TBD',
               true, 150
@@ -1133,13 +1133,13 @@ router.get('/users', async (req, res) => {
         await neonClient.end();
         
         // Verificación final
-        const verificacion = await db.query(\`
+        const verificacion = await db.query(`
           SELECT group_name, COUNT(*) as total
           FROM tracking_locations_cache 
           WHERE active = true
           GROUP BY group_name
           ORDER BY group_name
-        \`);
+        `);
         
         return res.json({
           debug: 'import_real',
@@ -1197,14 +1197,14 @@ router.get('/users', async (req, res) => {
         const defaultPassword = 'admin123';
         const passwordHash = await bcrypt.hash(defaultPassword, 12);
         
-        const adminResult = await db.query(\`
+        const adminResult = await db.query(`
           INSERT INTO system_users (email, password_hash, full_name, user_type)
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (email) DO UPDATE SET
             password_hash = EXCLUDED.password_hash,
             updated_at = NOW()
           RETURNING id, email, full_name
-        \`, [
+        `, [
           'admin@polloloco.com',
           passwordHash,
           'Administrador Sistema',
@@ -1212,7 +1212,7 @@ router.get('/users', async (req, res) => {
         ]);
         
         // Verificar tablas creadas
-        const newTablesCheck = await db.query(\`
+        const newTablesCheck = await db.query(`
           SELECT tablename 
           FROM pg_tables 
           WHERE schemaname = 'public' 
@@ -1221,7 +1221,7 @@ router.get('/users', async (req, res) => {
               'director_groups', 'supervisor_assignments'
             )
           ORDER BY tablename
-        \`);
+        `);
         
         return res.json({
           debug: 'setup_users',

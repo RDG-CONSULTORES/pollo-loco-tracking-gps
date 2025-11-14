@@ -67,54 +67,64 @@ class ReportesCommands {
       
       await this.bot.sendMessage(chatId, '📍 Obteniendo ubicaciones...');
       
-      const result = await db.query(`
-        SELECT 
-          tu.tracker_id,
-          tu.display_name,
-          gl.latitude,
-          gl.longitude,
-          gl.accuracy,
-          gl.battery,
-          gl.gps_timestamp,
-          EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 as minutes_ago
-        FROM tracking_users tu
-        LEFT JOIN (
-          SELECT DISTINCT ON (user_id) 
-            user_id, latitude, longitude, accuracy, battery, gps_timestamp 
-          FROM gps_locations 
-          ORDER BY user_id, gps_timestamp DESC 
-        ) gl ON tu.id = gl.user_id
-        WHERE tu.active = true
-        ORDER BY gl.gps_timestamp DESC NULLS LAST
+      // Primero, obtener todos los usuarios activos
+      const usersResult = await db.query(`
+        SELECT id, tracker_id, display_name, active
+        FROM tracking_users 
+        WHERE active = true
+        ORDER BY display_name
       `);
       
-      if (result.rows.length === 0) {
+      if (usersResult.rows.length === 0) {
         await this.bot.sendMessage(chatId, '📍 No hay usuarios registrados aún.\n\nUsa `/nuevo_usuario` para crear uno.');
         return;
       }
       
       let message = '📍 *UBICACIONES ACTUALES*\n\n';
+      let hasAnyLocation = false;
       
-      result.rows.forEach((user, index) => {
-        if (user.latitude && user.longitude) {
-          const minutesAgo = Math.round(user.minutes_ago);
-          const timeText = minutesAgo < 60 ? `${minutesAgo} min` : `${Math.round(minutesAgo/60)}h`;
+      for (const user of usersResult.rows) {
+        try {
+          // Obtener la última ubicación de cada usuario
+          const locationResult = await db.query(`
+            SELECT 
+              latitude, longitude, accuracy, battery, gps_timestamp,
+              EXTRACT(EPOCH FROM (NOW() - gps_timestamp))/60 as minutes_ago
+            FROM gps_locations 
+            WHERE user_id = $1 
+            ORDER BY gps_timestamp DESC 
+            LIMIT 1
+          `, [user.id]);
           
-          message += `👤 *${user.display_name}* (${user.tracker_id})\n`;
-          message += `📍 Lat: ${user.latitude.toFixed(6)}, Lon: ${user.longitude.toFixed(6)}\n`;
-          if (user.accuracy) {
-            message += `🎯 Precisión: ${user.accuracy}m`;
+          if (locationResult.rows.length > 0) {
+            const loc = locationResult.rows[0];
+            const minutesAgo = Math.round(loc.minutes_ago);
+            const timeText = minutesAgo < 60 ? `${minutesAgo} min` : `${Math.round(minutesAgo/60)}h`;
+            
+            message += `👤 *${user.display_name}* (${user.tracker_id})\n`;
+            message += `📍 ${parseFloat(loc.latitude).toFixed(6)}, ${parseFloat(loc.longitude).toFixed(6)}\n`;
+            if (loc.accuracy) {
+              message += `🎯 Precisión: ${loc.accuracy}m`;
+            }
+            if (loc.battery) {
+              message += ` | 🔋 ${loc.battery}%`;
+            }
+            message += `\n🕒 Hace ${timeText}\n\n`;
+            hasAnyLocation = true;
+          } else {
+            message += `👤 *${user.display_name}* (${user.tracker_id})\n`;
+            message += `❌ Sin ubicación GPS\n\n`;
           }
-          if (user.battery) {
-            message += ` | 🔋 Batería: ${user.battery}%`;
-          }
-          message += '\n';
-          message += `🕒 Hace ${timeText}\n\n`;
-        } else {
+        } catch (locError) {
+          console.error(`Error obteniendo ubicación de ${user.tracker_id}:`, locError.message);
           message += `👤 *${user.display_name}* (${user.tracker_id})\n`;
-          message += `❌ Sin ubicación reciente\n\n`;
+          message += `⚠️ Error consultando ubicación\n\n`;
         }
-      });
+      }
+      
+      if (!hasAnyLocation) {
+        message += '\n💡 *Tip:* Configura OwnTracks en tu teléfono para enviar ubicaciones automáticamente.';
+      }
       
       await this.bot.sendMessage(chatId, message, { 
         parse_mode: 'Markdown',
@@ -130,7 +140,8 @@ class ReportesCommands {
       
     } catch (error) {
       console.error('❌ Error obteniendo ubicaciones:', error.message);
-      await this.bot.sendMessage(msg.chat.id, '❌ Error obteniendo ubicaciones.');
+      console.error('❌ Stack trace:', error.stack);
+      await this.bot.sendMessage(msg.chat.id, `❌ Error obteniendo ubicaciones: ${error.message}`);
     }
   }
   

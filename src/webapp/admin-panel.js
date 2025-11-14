@@ -37,6 +37,7 @@ class AdminPanel {
         // Cargar datos iniciales
         await this.loadStats();
         await this.loadUsers();
+        await this.loadGroups();
         
         // Configurar event listeners
         this.setupEventListeners();
@@ -539,6 +540,228 @@ class AdminPanel {
     async exportData() {
         alert('Funcionalidad de exportación próximamente');
     }
+
+    async loadGroups() {
+        try {
+            const groups = await this.apiRequest('/api/admin/groups');
+            this.populateGroupSelector(groups);
+        } catch (error) {
+            console.error('Error cargando grupos:', error);
+        }
+    }
+
+    populateGroupSelector(groups) {
+        const groupSelect = document.getElementById('groupSelect');
+        if (!groupSelect) return;
+
+        // Mantener la opción "Todos los grupos"
+        groupSelect.innerHTML = '<option value="ALL">Todos los grupos</option>';
+        
+        // Agregar grupos dinámicamente
+        groups.forEach(group => {
+            const option = document.createElement('option');
+            option.value = group.group_name;
+            option.textContent = `${group.group_name} (${group.sucursales_activas}/${group.total_sucursales})`;
+            groupSelect.appendChild(option);
+        });
+    }
+
+    async loadGeofences() {
+        try {
+            const geofences = await this.apiRequest('/api/admin/geofences');
+            this.renderGeofences(geofences);
+        } catch (error) {
+            console.error('Error cargando geofences:', error);
+            document.getElementById('geofencesTable').innerHTML = `
+                <div style="text-align: center; color: #ef4444; padding: 2rem;">
+                    Error cargando geofences: ${error.message}
+                </div>
+            `;
+        }
+    }
+
+    renderGeofences(geofencesData) {
+        const geofencesTable = document.getElementById('geofencesTable');
+        
+        if (typeof geofencesData === 'object' && !Array.isArray(geofencesData)) {
+            // Los geofences están agrupados por grupo operativo
+            let html = '';
+            
+            Object.keys(geofencesData).forEach(groupName => {
+                const geofences = geofencesData[groupName];
+                
+                html += `
+                    <div class="form-section" style="margin-bottom: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="color: #1e293b; margin: 0;">
+                                <span class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">business</span>
+                                ${groupName} (${geofences.length} sucursales)
+                            </h4>
+                            <div>
+                                <button class="action-btn secondary" onclick="adminPanel.toggleGroupGeofences('${groupName}', true)">
+                                    <span class="material-icons">location_on</span>
+                                    Activar Todas
+                                </button>
+                                <button class="action-btn secondary" onclick="adminPanel.toggleGroupGeofences('${groupName}', false)">
+                                    <span class="material-icons">location_off</span>
+                                    Desactivar Todas
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Coordenadas</th>
+                                        <th>Radio (m)</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${geofences.map(geo => `
+                                        <tr>
+                                            <td><strong>${geo.location_code}</strong></td>
+                                            <td>${geo.name}</td>
+                                            <td>${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}</td>
+                                            <td>
+                                                <input type="number" 
+                                                       value="${geo.geofence_radius}" 
+                                                       min="10" max="1000" 
+                                                       style="width: 60px; padding: 0.25rem;"
+                                                       onchange="adminPanel.updateGeofenceRadius('${geo.location_code}', this.value)">
+                                            </td>
+                                            <td>
+                                                <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                                                    <input type="checkbox" 
+                                                           ${geo.geofence_enabled ? 'checked' : ''} 
+                                                           onchange="adminPanel.toggleGeofence('${geo.location_code}', this.checked)"
+                                                           style="opacity: 0; width: 0; height: 0;">
+                                                    <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${geo.geofence_enabled ? '#10b981' : '#ccc'}; transition: .4s; border-radius: 24px;">
+                                                        <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${geo.geofence_enabled ? '26px' : '3px'}; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                                                    </span>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <button class="action-btn secondary" onclick="adminPanel.viewGeofenceOnMap('${geo.location_code}')">
+                                                    <span class="material-icons">map</span>
+                                                    Ver en Mapa
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            geofencesTable.innerHTML = html;
+        } else {
+            geofencesTable.innerHTML = `
+                <div style="text-align: center; color: #64748b; padding: 2rem;">
+                    No hay geofences configurados
+                </div>
+            `;
+        }
+    }
+
+    async toggleGeofence(locationCode, enabled) {
+        try {
+            await this.apiRequest(`/api/admin/geofences/${locationCode}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    geofence_enabled: enabled
+                })
+            });
+            
+            // No recargar todo, solo actualizar el estado visual
+            console.log(`Geofence ${locationCode} ${enabled ? 'activado' : 'desactivado'}`);
+            
+        } catch (error) {
+            console.error('Error actualizando geofence:', error);
+            alert(`Error actualizando geofence: ${error.message}`);
+            // Revertir el switch
+            event.target.checked = !enabled;
+        }
+    }
+
+    async updateGeofenceRadius(locationCode, radius) {
+        try {
+            const radiusValue = parseInt(radius);
+            if (radiusValue < 10 || radiusValue > 1000) {
+                alert('El radio debe estar entre 10 y 1000 metros');
+                return;
+            }
+
+            await this.apiRequest(`/api/admin/geofences/${locationCode}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    geofence_radius: radiusValue,
+                    geofence_enabled: true // Se activa automáticamente al cambiar el radio
+                })
+            });
+            
+            console.log(`Radio de geofence ${locationCode} actualizado a ${radiusValue}m`);
+            
+        } catch (error) {
+            console.error('Error actualizando radio:', error);
+            alert(`Error actualizando radio: ${error.message}`);
+        }
+    }
+
+    async toggleGroupGeofences(groupName, enabled) {
+        if (!confirm(`¿Estás seguro de ${enabled ? 'activar' : 'desactivar'} todos los geofences del grupo ${groupName}?`)) {
+            return;
+        }
+
+        try {
+            const response = await this.apiRequest(`/api/admin/groups/${groupName}/geofences`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    geofence_enabled: enabled
+                })
+            });
+            
+            alert(`${response.updated_count} geofences ${enabled ? 'activados' : 'desactivados'} en ${groupName}`);
+            
+            // Recargar geofences para mostrar los cambios
+            await this.loadGeofencesByGroup();
+            
+        } catch (error) {
+            console.error('Error actualizando geofences del grupo:', error);
+            alert(`Error actualizando geofences: ${error.message}`);
+        }
+    }
+
+    async viewGeofenceOnMap(locationCode) {
+        // Abrir el dashboard con el geofence específico
+        window.open(`/webapp/dashboard.html?location=${locationCode}`, '_blank');
+    }
+
+    async loadGeofencesByGroup() {
+        const groupSelect = document.getElementById('groupSelect');
+        const selectedGroup = groupSelect ? groupSelect.value : 'ALL';
+        
+        try {
+            const url = selectedGroup === 'ALL' 
+                ? '/api/admin/geofences'
+                : `/api/admin/geofences?group=${selectedGroup}`;
+                
+            const geofences = await this.apiRequest(url);
+            this.renderGeofences(geofences);
+        } catch (error) {
+            console.error('Error cargando geofences por grupo:', error);
+            document.getElementById('geofencesTable').innerHTML = `
+                <div style="text-align: center; color: #ef4444; padding: 2rem;">
+                    Error cargando geofences: ${error.message}
+                </div>
+            `;
+        }
+    }
 }
 
 // Función global para cambiar tabs
@@ -559,6 +782,9 @@ function switchTab(tabName) {
             break;
         case 'roles':
             adminPanel.loadRoles();
+            break;
+        case 'geofences':
+            adminPanel.loadGeofences();
             break;
         case 'system':
             adminPanel.loadSystemConfig();
@@ -628,6 +854,13 @@ function showRoleInfo() {
     `;
     
     roleCards.style.display = 'grid';
+}
+
+// Función global para cargar geofences por grupo
+function loadGeofencesByGroup() {
+    if (window.adminPanel) {
+        window.adminPanel.loadGeofencesByGroup();
+    }
 }
 
 // Inicializar el panel cuando el DOM esté listo

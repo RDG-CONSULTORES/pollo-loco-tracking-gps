@@ -488,6 +488,10 @@
                     <span class="material-icons">security</span>
                     Roles y Permisos
                 </button>
+                <button class="tab-btn" onclick="switchTab('geofences')">
+                    <span class="material-icons">location_on</span>
+                    Geofences
+                </button>
                 <button class="tab-btn" onclick="switchTab('system')">
                     <span class="material-icons">settings</span>
                     Sistema
@@ -650,6 +654,26 @@
                 <div id="rolesContent" class="loading">
                     <div class="spinner"></div>
                     Cargando información de roles...
+                </div>
+            </div>
+
+            <!-- Tab: Geofences -->
+            <div id="geofences-tab" class="tab-content">
+                <div class="form-section">
+                    <h3>
+                        <span class="material-icons">location_on</span>
+                        Gestión de Geofences
+                    </h3>
+                    <div id="geofencesGroupSelector" style="margin-bottom: 1.5rem;">
+                        <label class="form-label" for="groupSelect">Grupo Operativo:</label>
+                        <select id="groupSelect" class="form-select" onchange="loadGeofencesByGroup()">
+                            <option value="ALL">Todos los grupos</option>
+                        </select>
+                    </div>
+                    <div id="geofencesTable" class="loading">
+                        <div class="spinner"></div>
+                        Cargando geofences...
+                    </div>
                 </div>
             </div>
 

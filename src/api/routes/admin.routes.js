@@ -154,42 +154,186 @@ router.get('/import-real-data', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
   try {
-    // Debug: Check GPS locations if ?debug=gps query param
-    if (req.query.debug === 'gps') {
+    const users = await db.query(`
+      SELECT 
+        tu.id,
+        tu.tracker_id,
+        tu.display_name,
+        tu.zenput_email,
+        tu.phone,
+        tu.active,
+        tu.created_at,
+        -- Información adicional si existe
+        COALESCE(s.primary_group, 'SIN_GRUPO') as grupo,
+        COALESCE(su.user_type, 'usuario') as rol
+      FROM tracking_users tu
+      LEFT JOIN supervisors s ON tu.tracker_id = s.tracker_id
+      LEFT JOIN system_users su ON tu.zenput_email = su.email
+      ORDER BY tu.created_at DESC
+    `);
+
+    // Mapear resultados con formato esperado por el frontend
+    const usersFormatted = users.rows.map(user => ({
+      tracker_id: user.tracker_id,
+      display_name: user.display_name,
+      zenput_email: user.zenput_email,
+      phone: user.phone,
+      active: user.active,
+      grupo: user.grupo,
+      rol: user.rol,
+      created_at: user.created_at
+    }));
+
+    res.json(usersFormatted);
+    
+  } catch (error) {
+    console.error('Error getting users:', error);
+    res.status(500).json({ 
+      error: error.message,
+      code: error.code 
+    });
+  }
+});
+
+/**
+ * POST /api/admin/users
+ * Crear nuevo usuario de tracking
+ */
+router.post('/users', async (req, res) => {
+  try {
+    const { tracker_id, display_name, zenput_email, phone, grupo, rol } = req.body;
+
+    // Validaciones
+    if (!tracker_id || !display_name || !zenput_email) {
+      return res.status(400).json({ error: 'Campos requeridos: tracker_id, display_name, zenput_email' });
+    }
+
+    // Verificar que el tracker_id no exista
+    const existingUser = await db.query(
+      'SELECT id FROM tracking_users WHERE tracker_id = $1',
+      [tracker_id]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'Tracker ID ya existe' });
+    }
+
+    // 1. Crear en tracking_users
+    const userResult = await db.query(`
+      INSERT INTO tracking_users (tracker_id, display_name, zenput_email, phone, active)
+      VALUES ($1, $2, $3, $4, true)
+      RETURNING id, tracker_id, display_name, zenput_email, active, created_at
+    `, [tracker_id, display_name, zenput_email, phone]);
+
+    const newUser = userResult.rows[0];
+
+    // 2. Si hay grupo, crear en supervisors
+    if (grupo && grupo !== 'SIN_GRUPO') {
       try {
-        const gpsResult = await db.query(`
-          SELECT 
-            gl.id,
-            gl.user_id,
-            tu.tracker_id,
-            tu.display_name,
-            gl.latitude,
-            gl.longitude,
-            gl.accuracy,
-            gl.battery,
-            gl.gps_timestamp,
-            EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 as minutes_ago
-          FROM gps_locations gl
-          LEFT JOIN tracking_users tu ON gl.user_id = tu.id
-          ORDER BY gl.gps_timestamp DESC
-          LIMIT 10
-        `);
-        
-        return res.json({
-          debug: 'gps_locations',
-          count: gpsResult.rows.length,
-          locations: gpsResult.rows,
-          timestamp: new Date().toISOString()
-        });
-      } catch (gpsError) {
-        return res.json({
-          debug: 'gps_error',
-          error: gpsError.message,
-          code: gpsError.code,
-          timestamp: new Date().toISOString()
-        });
+        await db.query(`
+          INSERT INTO supervisors (tracker_id, full_name, primary_group, active_tracking)
+          VALUES ($1, $2, $3, true)
+          ON CONFLICT (tracker_id) DO UPDATE SET
+            full_name = EXCLUDED.full_name,
+            primary_group = EXCLUDED.primary_group
+        `, [tracker_id, display_name, grupo]);
+      } catch (supervisorError) {
+        console.warn('Error creating supervisor record:', supervisorError.message);
       }
     }
+
+    // 3. Log de auditoría
+    await logAdminAction(req.user.id, 'USER_CREATED', 'tracking_user', newUser.id, {
+      tracker_id: newUser.tracker_id,
+      display_name: newUser.display_name,
+      grupo: grupo
+    });
+
+    res.json({
+      success: true,
+      user: {
+        ...newUser,
+        grupo: grupo || 'SIN_GRUPO',
+        rol: rol || 'usuario'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ 
+      error: error.message,
+      code: error.code 
+    });
+  }
+});
+
+/**
+ * GET /api/admin/stats/dashboard
+ * Estadísticas para el dashboard del admin
+ */
+router.get('/stats/dashboard', async (req, res) => {
+  try {
+    // Estadísticas de usuarios
+    const userStats = await db.query(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN active = true THEN 1 END) as active
+      FROM tracking_users
+    `);
+
+    // Estadísticas de ubicaciones/sucursales
+    const locationStats = await db.query(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN active = true THEN 1 END) as active
+      FROM tracking_locations_cache
+    `);
+
+    // Estadísticas de visitas del día (usando geofence_events)
+    const visitsStats = await db.query(`
+      SELECT 
+        COUNT(CASE WHEN event_type = 'enter' AND DATE(event_timestamp) = CURRENT_DATE THEN 1 END) as entries_today,
+        COUNT(CASE WHEN event_type = 'exit' AND DATE(event_timestamp) = CURRENT_DATE THEN 1 END) as exits_today
+      FROM geofence_events
+    `);
+
+    // Estados de usuarios actualmente en sucursales
+    const activeVisits = await db.query(`
+      SELECT COUNT(*) as active_visits
+      FROM user_sucursal_state
+      WHERE is_inside = true
+    `);
+
+    const stats = {
+      users: {
+        total: parseInt(userStats.rows[0]?.total || 0),
+        active: parseInt(userStats.rows[0]?.active || 0)
+      },
+      locations: {
+        total: parseInt(locationStats.rows[0]?.total || 0),
+        active: parseInt(locationStats.rows[0]?.active || 0)
+      },
+      visits_today: {
+        completed: parseInt(visitsStats.rows[0]?.exits_today || 0),
+        open: parseInt(activeVisits.rows[0]?.active_visits || 0)
+      },
+      system_status: 'active'
+    };
+
+    res.json(stats);
+
+  } catch (error) {
+    console.error('Error getting dashboard stats:', error);
+    res.status(500).json({ 
+      error: error.message,
+      code: error.code 
+    });
+  }
+});
+
+// Debug endpoints remain the same
+router.get('/users/debug/gps', async (req, res) => {
+  try {
     
     // Debug: Check what columns tracking_locations actually has
     if (req.query.debug === 'describe') {
@@ -2144,6 +2288,283 @@ router.post('/actions/cleanup', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error en cleanup:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GESTIÓN DE GRUPOS OPERATIVOS Y GEOFENCES
+ * Nuevos endpoints para el panel de administración completo
+ */
+
+/**
+ * GET /api/admin/groups
+ * Obtener todos los grupos operativos con sucursales
+ */
+router.get('/groups', logAction('VIEW_GROUPS', 'groups'), async (req, res) => {
+  try {
+    // Obtener grupos con sucursales y estadísticas
+    const result = await db.query(`
+      SELECT 
+        group_name,
+        director_name,
+        COUNT(*) as total_sucursales,
+        COUNT(CASE WHEN active THEN 1 END) as sucursales_activas,
+        COUNT(CASE WHEN geofence_enabled THEN 1 END) as geofences_activos,
+        AVG(geofence_radius) as radio_promedio,
+        MIN(created_at) as fecha_creacion
+      FROM tracking_locations_cache
+      GROUP BY group_name, director_name
+      ORDER BY group_name
+    `);
+    
+    res.json(result.rows);
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo grupos:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/groups/:groupName/locations
+ * Obtener sucursales de un grupo específico
+ */
+router.get('/groups/:groupName/locations', logAction('VIEW_GROUP_LOCATIONS', 'locations'), async (req, res) => {
+  try {
+    const { groupName } = req.params;
+    
+    const result = await db.query(`
+      SELECT 
+        id,
+        location_code,
+        location_name,
+        address,
+        latitude,
+        longitude,
+        group_name,
+        director_name,
+        active,
+        geofence_radius,
+        geofence_enabled,
+        created_at,
+        updated_at
+      FROM tracking_locations_cache
+      WHERE group_name = $1
+      ORDER BY location_code
+    `, [groupName]);
+    
+    res.json(result.rows);
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo ubicaciones del grupo:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/locations/:id/geofence
+ * Activar/desactivar geofence de una sucursal
+ */
+router.put('/locations/:id/geofence', logAction('UPDATE_GEOFENCE', 'location'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { geofence_enabled, geofence_radius } = req.body;
+    
+    // Validaciones
+    if (typeof geofence_enabled !== 'boolean') {
+      return res.status(400).json({
+        error: 'geofence_enabled debe ser true o false'
+      });
+    }
+    
+    if (geofence_radius && (geofence_radius < 10 || geofence_radius > 1000)) {
+      return res.status(400).json({
+        error: 'geofence_radius debe estar entre 10 y 1000 metros'
+      });
+    }
+    
+    // Actualizar geofence
+    const updateFields = ['geofence_enabled = $2', 'updated_at = NOW()'];
+    const values = [id, geofence_enabled];
+    
+    if (geofence_radius) {
+      updateFields.push('geofence_radius = $3');
+      values.push(geofence_radius);
+    }
+    
+    const result = await db.query(`
+      UPDATE tracking_locations_cache 
+      SET ${updateFields.join(', ')}
+      WHERE id = $1
+      RETURNING 
+        id, location_code, location_name, group_name,
+        geofence_enabled, geofence_radius, updated_at
+    `, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
+    }
+    
+    res.json({
+      success: true,
+      message: `Geofence ${geofence_enabled ? 'activado' : 'desactivado'} exitosamente`,
+      data: result.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Error actualizando geofence:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/locations
+ * Crear nueva sucursal
+ */
+router.post('/locations', logAction('CREATE_LOCATION', 'location'), async (req, res) => {
+  try {
+    const {
+      location_code,
+      location_name,
+      address,
+      latitude,
+      longitude,
+      group_name,
+      director_name,
+      geofence_radius = 100
+    } = req.body;
+    
+    // Validaciones
+    if (!location_code || !location_name || !latitude || !longitude || !group_name) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos: location_code, location_name, latitude, longitude, group_name'
+      });
+    }
+    
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        error: 'Coordenadas inválidas'
+      });
+    }
+    
+    // Verificar que el código no exista
+    const existingLocation = await db.query(
+      'SELECT id FROM tracking_locations_cache WHERE location_code = $1',
+      [location_code]
+    );
+    
+    if (existingLocation.rows.length > 0) {
+      return res.status(409).json({
+        error: `Código de sucursal '${location_code}' ya existe`
+      });
+    }
+    
+    // Crear sucursal
+    const result = await db.query(`
+      INSERT INTO tracking_locations_cache 
+      (location_code, location_name, address, latitude, longitude, group_name, director_name, geofence_radius, geofence_enabled, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true)
+      RETURNING 
+        id, location_code, location_name, group_name, latitude, longitude,
+        geofence_enabled, geofence_radius, created_at
+    `, [
+      location_code,
+      location_name,
+      address || null,
+      latitude,
+      longitude,
+      group_name,
+      director_name || null,
+      geofence_radius
+    ]);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Sucursal creada exitosamente',
+      data: result.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creando sucursal:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/geofences/summary
+ * Resumen de geofences por grupo operativo
+ */
+router.get('/geofences/summary', logAction('VIEW_GEOFENCES_SUMMARY', 'geofences'), async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        group_name,
+        COUNT(*) as total_sucursales,
+        COUNT(CASE WHEN geofence_enabled THEN 1 END) as geofences_activos,
+        COUNT(CASE WHEN NOT geofence_enabled THEN 1 END) as geofences_inactivos,
+        ROUND(AVG(geofence_radius)) as radio_promedio,
+        MIN(geofence_radius) as radio_minimo,
+        MAX(geofence_radius) as radio_maximo
+      FROM tracking_locations_cache
+      WHERE active = true
+      GROUP BY group_name
+      ORDER BY group_name
+    `);
+    
+    res.json(result.rows);
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo resumen de geofences:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/groups/:groupName/geofences
+ * Activar/desactivar todos los geofences de un grupo
+ */
+router.put('/groups/:groupName/geofences', logAction('BULK_UPDATE_GEOFENCES', 'geofences'), async (req, res) => {
+  try {
+    const { groupName } = req.params;
+    const { geofence_enabled, geofence_radius } = req.body;
+    
+    if (typeof geofence_enabled !== 'boolean') {
+      return res.status(400).json({
+        error: 'geofence_enabled debe ser true o false'
+      });
+    }
+    
+    const updateFields = ['geofence_enabled = $2', 'updated_at = NOW()'];
+    const values = [groupName, geofence_enabled];
+    
+    if (geofence_radius && geofence_radius >= 10 && geofence_radius <= 1000) {
+      updateFields.push('geofence_radius = $3');
+      values.push(geofence_radius);
+    }
+    
+    const result = await db.query(`
+      UPDATE tracking_locations_cache 
+      SET ${updateFields.join(', ')}
+      WHERE group_name = $1 AND active = true
+      RETURNING COUNT(*) as updated_count
+    `, values);
+    
+    const countResult = await db.query(
+      'SELECT COUNT(*) as updated_count FROM tracking_locations_cache WHERE group_name = $1 AND active = true',
+      [groupName]
+    );
+    
+    res.json({
+      success: true,
+      message: `${geofence_enabled ? 'Activados' : 'Desactivados'} todos los geofences del grupo ${groupName}`,
+      updated_count: parseInt(countResult.rows[0].updated_count),
+      group_name: groupName,
+      geofence_enabled
+    });
+    
+  } catch (error) {
+    console.error('❌ Error actualizando geofences del grupo:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

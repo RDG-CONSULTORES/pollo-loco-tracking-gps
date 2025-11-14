@@ -43,6 +43,10 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/dashboard.html'));
   });
   
+  app.get('/webapp/admin.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/admin.html'));
+  });
+  
   app.get('/webapp/login.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../webapp/login.html'));
   });

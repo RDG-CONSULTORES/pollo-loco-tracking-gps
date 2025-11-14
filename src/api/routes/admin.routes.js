@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../config/database');
 const { logAdminAction } = require('../../utils/admin-logger');
-const { requireAdmin, extractClientInfo, logAction } = require('../../middleware/auth-middleware');
+const { requireAdmin, extractClientInfo, logAction, authenticate } = require('../../middleware/auth-middleware');
 
 /**
  * SETUP INICIAL - Sin autenticación requerida
@@ -295,6 +295,7 @@ router.get('/import-production-data', async (req, res) => {
  * Solo administradores pueden acceder a estas rutas (excepto bootstrap e import)
  */
 router.use(extractClientInfo);
+router.use(authenticate);
 router.use(requireAdmin);
 
 /**

@@ -5,8 +5,268 @@ const { logAdminAction } = require('../../utils/admin-logger');
 const { requireAdmin, extractClientInfo, logAction } = require('../../middleware/auth-middleware');
 
 /**
+ * SETUP INICIAL - Sin autenticación requerida
+ */
+
+/**
+ * GET /api/admin/bootstrap
+ * Bootstrap inicial del sistema - crear admin sin autenticación
+ */
+router.get('/bootstrap', async (req, res) => {
+  try {
+    console.log('🚀 Bootstrap inicial del sistema admin...');
+    
+    const bcrypt = require('bcrypt');
+    
+    // 1. Crear tabla system_users si no existe
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS system_users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        full_name VARCHAR(100) NOT NULL,
+        phone VARCHAR(20),
+        user_type VARCHAR(20) CHECK (user_type IN ('admin', 'director', 'manager', 'supervisor')) NOT NULL,
+        active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    
+    // 2. Crear tabla user_sessions
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES system_users(id) ON DELETE CASCADE,
+        session_token VARCHAR(255) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        last_activity TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    
+    // 3. Crear tabla user_audit_log
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_audit_log (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INT REFERENCES system_users(id),
+        action VARCHAR(100) NOT NULL,
+        resource_type VARCHAR(50),
+        resource_id VARCHAR(50),
+        details JSONB DEFAULT '{}',
+        ip_address INET,
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    
+    // 4. Crear usuario administrador
+    const adminPassword = 'admin123';
+    const passwordHash = await bcrypt.hash(adminPassword, 12);
+    
+    const adminResult = await db.query(`
+      INSERT INTO system_users (email, password_hash, full_name, user_type)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (email) DO UPDATE SET
+        password_hash = EXCLUDED.password_hash,
+        updated_at = NOW()
+      RETURNING id, email, full_name, user_type, active, created_at
+    `, [
+      'admin@polloloco.com',
+      passwordHash,
+      'Administrador Sistema',
+      'admin'
+    ]);
+    
+    const admin = adminResult.rows[0];
+    
+    // 5. Verificar tablas creadas
+    const tablesCheck = await db.query(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public' 
+        AND tablename IN ('system_users', 'user_sessions', 'user_audit_log')
+      ORDER BY tablename
+    `);
+    
+    res.json({
+      success: true,
+      message: '🎉 Sistema de administración inicializado exitosamente',
+      admin_user: {
+        id: admin.id,
+        email: admin.email,
+        password: adminPassword,
+        full_name: admin.full_name,
+        user_type: admin.user_type,
+        active: admin.active
+      },
+      tables_created: tablesCheck.rows.map(t => t.tablename),
+      login_url: '/webapp/login.html',
+      admin_url: '/webapp/admin.html',
+      timestamp: new Date().toISOString(),
+      instructions: [
+        '1. Ve a /webapp/login.html',
+        '2. Usa email: admin@polloloco.com',
+        '3. Usa password: admin123',
+        '4. Accede al panel de admin'
+      ]
+    });
+    
+  } catch (error) {
+    console.error('Error en bootstrap:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
+  }
+});
+
+/**
+ * GET /api/admin/import-production-data
+ * Importar todos los datos de producción - sin autenticación para setup inicial
+ */
+router.get('/import-production-data', async (req, res) => {
+  try {
+    console.log('📥 Importando datos de producción...');
+    
+    const { Client } = require('pg');
+    
+    // Conectar a Neon (base de datos fuente)
+    const neonClient = new Client({
+      connectionString: 'postgresql://neondb_owner:npg_DlSRAHuyaY83@ep-orange-grass-a402u4o5-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require',
+      ssl: { rejectUnauthorized: false }
+    });
+    
+    await neonClient.connect();
+    
+    // Obtener estructura real desde supervision_operativa_clean
+    const estructuraResult = await neonClient.query(`
+      SELECT DISTINCT
+        location_name,
+        sucursal_clean,
+        latitud,
+        longitud,
+        estado_normalizado,
+        municipio,
+        grupo_operativo_limpio,
+        director_operativo
+      FROM supervision_operativa_clean
+      WHERE latitud IS NOT NULL 
+        AND longitud IS NOT NULL
+        AND location_name IS NOT NULL
+        AND grupo_operativo_limpio IS NOT NULL
+        AND grupo_operativo_limpio != 'NO_ENCONTRADO'
+        AND grupo_operativo_limpio != 'SIN_MAPEO'
+      ORDER BY grupo_operativo_limpio, location_name
+    `);
+    
+    await neonClient.end();
+    
+    // Crear tabla tracking_locations_cache si no existe
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS tracking_locations_cache (
+        id SERIAL PRIMARY KEY,
+        location_code VARCHAR(10) UNIQUE NOT NULL,
+        location_name VARCHAR(255) NOT NULL,
+        address TEXT,
+        latitude DECIMAL(10,8) NOT NULL,
+        longitude DECIMAL(11,8) NOT NULL,
+        group_name VARCHAR(100) NOT NULL,
+        director_name VARCHAR(100),
+        active BOOLEAN DEFAULT true,
+        geofence_radius INTEGER DEFAULT 150,
+        geofence_enabled BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        synced_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    
+    // Limpiar datos existentes
+    await db.query('DELETE FROM tracking_locations_cache');
+    
+    // Importar estructura real
+    let totalImportadas = 0;
+    const gruposPorOperativo = new Map();
+    
+    // Agrupar por grupo operativo
+    estructuraResult.rows.forEach(row => {
+      const grupo = row.grupo_operativo_limpio;
+      if (!gruposPorOperativo.has(grupo)) {
+        gruposPorOperativo.set(grupo, []);
+      }
+      gruposPorOperativo.get(grupo).push(row);
+    });
+    
+    // Importar cada sucursal
+    for (const [grupoNombre, sucursalesGrupo] of gruposPorOperativo.entries()) {
+      for (const sucursal of sucursalesGrupo) {
+        const codigoMatch = sucursal.location_name.match(/^(\d+)/);
+        const locationCode = codigoMatch ? codigoMatch[1] : `AUTO_${totalImportadas + 1}`;
+        
+        await db.query(`
+          INSERT INTO tracking_locations_cache (
+            location_code, location_name, address, latitude, longitude,
+            group_name, director_name, active, geofence_radius, geofence_enabled, synced_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+          ON CONFLICT (location_code) DO UPDATE SET
+            location_name = EXCLUDED.location_name, 
+            group_name = EXCLUDED.group_name,
+            latitude = EXCLUDED.latitude, 
+            longitude = EXCLUDED.longitude,
+            director_name = EXCLUDED.director_name, 
+            synced_at = NOW()
+        `, [
+          locationCode, 
+          sucursal.location_name,
+          `${sucursal.municipio}, ${sucursal.estado_normalizado}`,
+          parseFloat(sucursal.latitud), 
+          parseFloat(sucursal.longitud),
+          grupoNombre, 
+          sucursal.director_operativo || 'Director TBD',
+          true, 
+          150, 
+          true
+        ]);
+        
+        totalImportadas++;
+      }
+    }
+    
+    // Verificación final
+    const verificacion = await db.query(`
+      SELECT group_name, COUNT(*) as total
+      FROM tracking_locations_cache 
+      WHERE active = true
+      GROUP BY group_name
+      ORDER BY group_name
+    `);
+    
+    res.json({
+      success: true,
+      message: '📥 Datos de producción importados exitosamente',
+      stats: {
+        grupos_importados: gruposPorOperativo.size,
+        sucursales_importadas: totalImportadas,
+        grupos_detalle: verificacion.rows
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error importando datos:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
+  }
+});
+
+/**
  * Middleware: Verificar autenticación
- * Solo administradores pueden acceder a estas rutas
+ * Solo administradores pueden acceder a estas rutas (excepto bootstrap e import)
  */
 router.use(extractClientInfo);
 router.use(requireAdmin);

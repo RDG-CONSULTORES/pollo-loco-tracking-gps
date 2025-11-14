@@ -1,12 +1,16 @@
 /**
- * PANEL DE ADMINISTRACIÓN - POLLO LOCO GPS
- * Sistema de gestión de usuarios, directores y roles
+ * PANEL DE ADMINISTRACIÓN COMPLETO - POLLO LOCO GPS
+ * Sistema integral de gestión con todas las funcionalidades
  */
 
 class AdminPanel {
     constructor() {
         this.authToken = localStorage.getItem('auth_token');
         this.userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        this.currentTab = 'users';
+        this.currentPage = 1;
+        this.currentFilters = {};
+        this.operationalGroups = [];
         
         this.init();
     }
@@ -18,7 +22,6 @@ class AdminPanel {
             return;
         }
 
-        // Verificar que el usuario tenga permisos de admin
         try {
             const userCheck = await this.apiRequest('/api/auth/me');
             if (!userCheck.success || userCheck.user.userType !== 'admin') {
@@ -36,26 +39,75 @@ class AdminPanel {
 
         // Cargar datos iniciales
         await this.loadStats();
+        await this.loadOperationalGroups();
         await this.loadUsers();
-        await this.loadGroups();
         
         // Configurar event listeners
         this.setupEventListeners();
+        
+        console.log('✅ Panel de administración inicializado');
     }
 
-    setupEventListeners() {
-        // Formulario de crear usuario
-        const createUserForm = document.getElementById('createUserForm');
-        createUserForm.addEventListener('submit', (e) => this.handleCreateUser(e));
+    // ===============================
+    // GESTIÓN DE AUTENTICACIÓN
+    // ===============================
 
-        // Formulario de crear director
-        const createDirectorForm = document.getElementById('createDirectorForm');
-        createDirectorForm.addEventListener('submit', (e) => this.handleCreateDirector(e));
+    setupEventListeners() {
+        // Formularios
+        this.setupForm('createUserForm', (e) => this.handleCreateUser(e));
+        this.setupForm('createDirectorForm', (e) => this.handleCreateDirector(e));
+        
+        // Búsqueda en tiempo real
+        this.setupSearch('userSearch', () => this.loadUsers());
+        
+        // Filtros
+        this.setupFilterListener('userGroupFilter', 'grupo');
+        this.setupFilterListener('userRoleFilter', 'rol');
+        this.setupFilterListener('userStatusFilter', 'active');
+        
+        // Tab switching
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('.tab-btn')) {
+                const tab = e.target.getAttribute('onclick')?.match(/switchTab\('([^']+)'\)/)?.[1];
+                if (tab) this.switchTab(tab);
+            }
+        });
+    }
+
+    setupForm(formId, handler) {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.addEventListener('submit', handler);
+        }
+    }
+
+    setupSearch(inputId, handler) {
+        const input = document.getElementById(inputId);
+        if (input) {
+            let debounceTimer;
+            input.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(handler, 300);
+            });
+        }
+    }
+
+    setupFilterListener(selectId, filterKey) {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.addEventListener('change', () => {
+                this.currentFilters[filterKey] = select.value;
+                this.currentPage = 1;
+                this.loadUsers();
+            });
+        }
     }
 
     updateUserInfo(user) {
         const userName = document.getElementById('userName');
-        userName.textContent = `${user.fullName} (${user.userType})`;
+        if (userName) {
+            userName.textContent = `${user.fullName} (${user.userType})`;
+        }
     }
 
     redirectToLogin() {
@@ -64,21 +116,19 @@ class AdminPanel {
 
     async logout() {
         try {
-            // Llamar al endpoint de logout
-            await this.apiRequest('/api/auth/logout', {
-                method: 'POST'
-            });
+            await this.apiRequest('/api/auth/logout', { method: 'POST' });
         } catch (error) {
             console.log('Error en logout:', error);
         } finally {
-            // Limpiar datos locales independientemente del resultado
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
-            
-            // Redirigir al login
             this.redirectToLogin();
         }
     }
+
+    // ===============================
+    // UTILIDADES DE API
+    // ===============================
 
     async apiRequest(endpoint, options = {}) {
         const config = {
@@ -100,770 +150,1088 @@ class AdminPanel {
         return data;
     }
 
+    // ===============================
+    // GESTIÓN DE STATS GENERALES
+    // ===============================
+
     async loadStats() {
         try {
-            const stats = await this.apiRequest('/api/admin/stats/dashboard');
-            this.renderStats(stats);
+            const stats = await this.apiRequest('/api/admin/system/status');
+            this.updateStatsCards(stats);
         } catch (error) {
             console.error('Error cargando estadísticas:', error);
+            this.showError('Error cargando estadísticas del sistema');
         }
     }
 
-    renderStats(stats) {
-        const statsGrid = document.getElementById('statsGrid');
-        
-        const statsData = [
-            {
-                icon: 'people',
-                title: 'Usuarios GPS',
-                number: `${stats.users?.active || 0}/${stats.users?.total || 0}`,
-                description: 'Usuarios activos/total',
-                iconClass: 'users'
-            },
-            {
-                icon: 'location_on',
-                title: 'Sucursales',
-                number: `${stats.locations?.active || 0}`,
-                description: 'Ubicaciones monitoreadas',
-                iconClass: 'locations'
-            },
-            {
-                icon: 'today',
-                title: 'Visitas Hoy',
-                number: `${stats.visits_today?.completed || 0}`,
-                description: `${stats.visits_today?.open || 0} en progreso`,
-                iconClass: 'visits'
-            },
-            {
-                icon: 'settings',
-                title: 'Sistema',
-                number: stats.system_status === 'active' ? 'Activo' : 'Pausado',
-                description: 'Estado del seguimiento',
-                iconClass: 'system'
-            }
+    updateStatsCards(stats) {
+        const cards = [
+            { id: 'totalUsers', value: stats.database?.total_gps_users || 0, label: 'Usuarios GPS' },
+            { id: 'totalBranches', value: stats.database?.total_branches || 0, label: 'Sucursales' },
+            { id: 'totalGroups', value: stats.database?.total_groups || 0, label: 'Grupos Operativos' },
+            { id: 'activeSessions', value: stats.database?.active_sessions || 0, label: 'Sesiones Activas' }
         ];
 
-        statsGrid.innerHTML = statsData.map(stat => `
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon ${stat.iconClass}">
-                        <span class="material-icons">${stat.icon}</span>
-                    </div>
-                    <div class="stat-title">${stat.title}</div>
-                </div>
-                <div class="stat-number">${stat.number}</div>
-                <div class="stat-description">${stat.description}</div>
-            </div>
-        `).join('');
+        cards.forEach(card => {
+            const element = document.getElementById(card.id);
+            if (element) {
+                element.textContent = card.value;
+            }
+        });
     }
+
+    // ===============================
+    // GESTIÓN DE GRUPOS OPERATIVOS
+    // ===============================
+
+    async loadOperationalGroups() {
+        try {
+            const response = await this.apiRequest('/api/admin/groups');
+            this.operationalGroups = response.data || [];
+            this.populateGroupSelects();
+        } catch (error) {
+            console.error('Error cargando grupos operativos:', error);
+            this.showError('Error cargando grupos operativos');
+        }
+    }
+
+    populateGroupSelects() {
+        const selects = ['userGroup', 'userGroupFilter', 'groupSelect', 'directorGroups'];
+        
+        selects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                // Limpiar opciones existentes (excepto la primera)
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+
+                // Agregar grupos
+                this.operationalGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.group_name;
+                    option.textContent = `${group.group_name} (${group.total_sucursales} sucursales)`;
+                    select.appendChild(option);
+                });
+            }
+        });
+    }
+
+    // ===============================
+    // TAB 1: GESTIÓN DE USUARIOS GPS
+    // ===============================
 
     async loadUsers() {
         try {
-            const users = await this.apiRequest('/api/admin/users');
-            this.renderUsers(users);
+            this.showLoading('usersTable');
+
+            const params = new URLSearchParams({
+                page: this.currentPage,
+                limit: 25,
+                search: document.getElementById('userSearch')?.value || '',
+                ...this.currentFilters
+            });
+
+            const response = await this.apiRequest(`/api/admin/users?${params}`);
+            this.displayUsers(response.data);
+            this.updatePagination(response.pagination, 'users');
+            
         } catch (error) {
             console.error('Error cargando usuarios:', error);
+            this.showError('Error cargando usuarios GPS');
             document.getElementById('usersTable').innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #ef4444;">
-                        Error cargando usuarios: ${error.message}
-                    </td>
-                </tr>
+                <tr><td colspan="7" class="error">Error cargando usuarios: ${error.message}</td></tr>
             `;
         }
     }
 
-    renderUsers(users) {
-        const usersTable = document.getElementById('usersTable');
+    displayUsers(users) {
+        const tbody = document.getElementById('usersTable');
         
-        if (!users || users.length === 0) {
-            usersTable.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #64748b;">
-                        No hay usuarios registrados
-                    </td>
-                </tr>
+        if (users.length === 0) {
+            tbody.innerHTML = `
+                <tr><td colspan="7" class="no-data">No se encontraron usuarios</td></tr>
             `;
             return;
         }
 
-        usersTable.innerHTML = users.map(user => `
+        tbody.innerHTML = users.map(user => `
             <tr>
                 <td><strong>${user.tracker_id}</strong></td>
                 <td>${user.display_name}</td>
-                <td>${user.zenput_email}</td>
+                <td><a href="mailto:${user.zenput_email}">${user.zenput_email}</a></td>
+                <td><span class="role-badge ${user.rol}">${user.rol}</span></td>
+                <td>${user.grupo}</td>
                 <td>
-                    <span class="badge ${this.getRoleBadgeClass(user.rol || 'usuario')}">
-                        ${this.getRoleDisplayName(user.rol || 'usuario')}
-                    </span>
-                </td>
-                <td>${user.grupo || '<span style="color: #64748b;">Sin grupo</span>'}</td>
-                <td>
-                    <span class="badge ${user.active ? 'success' : 'warning'}">
+                    <span class="status-badge ${user.active ? 'active' : 'inactive'}">
                         ${user.active ? 'Activo' : 'Inactivo'}
                     </span>
                 </td>
-                <td>
-                    <button class="action-btn secondary" onclick="adminPanel.editUser('${user.tracker_id}')">
+                <td class="actions">
+                    <button onclick="adminPanel.editUser(${user.id})" class="btn-icon edit" title="Editar">
                         <span class="material-icons">edit</span>
-                        Editar
                     </button>
-                    <button class="action-btn secondary" onclick="adminPanel.viewUserRoutes('${user.tracker_id}')">
-                        <span class="material-icons">map</span>
-                        Rutas
+                    <button onclick="adminPanel.toggleUserStatus(${user.id}, ${!user.active})" 
+                            class="btn-icon ${user.active ? 'deactivate' : 'activate'}" 
+                            title="${user.active ? 'Desactivar' : 'Activar'}">
+                        <span class="material-icons">${user.active ? 'pause' : 'play_arrow'}</span>
+                    </button>
+                    <button onclick="adminPanel.deleteUser(${user.id})" class="btn-icon delete" title="Eliminar">
+                        <span class="material-icons">delete</span>
                     </button>
                 </td>
             </tr>
         `).join('');
-    }
-
-    getRoleBadgeClass(role) {
-        const classes = {
-            'auditor': 'danger',
-            'director': 'warning',
-            'gerente': 'info',
-            'supervisor': 'success',
-            'usuario': 'info'
-        };
-        return classes[role] || 'info';
-    }
-
-    getRoleDisplayName(role) {
-        const names = {
-            'auditor': 'Auditor',
-            'director': 'Director',
-            'gerente': 'Gerente',
-            'supervisor': 'Supervisor',
-            'usuario': 'Usuario'
-        };
-        return names[role] || 'Usuario';
     }
 
     async handleCreateUser(e) {
         e.preventDefault();
         
-        const formData = {
-            tracker_id: document.getElementById('trackerId').value,
-            display_name: document.getElementById('displayName').value,
-            zenput_email: document.getElementById('zenputEmail').value,
-            phone: document.getElementById('phone').value || null,
-            // Estos campos los agregamos a tracking_users también
-            grupo: document.getElementById('userGroup').value,
-            rol: document.getElementById('userRole').value
+        const formData = new FormData(e.target);
+        const userData = {
+            tracker_id: formData.get('trackerId'),
+            display_name: formData.get('displayName'),
+            zenput_email: formData.get('zenputEmail'),
+            phone: formData.get('phone'),
+            rol: formData.get('userRole'),
+            grupo: formData.get('userGroup')
         };
 
         try {
-            // Deshabilitar botón
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="spinner"></div> Creando...';
-
-            // Crear usuario GPS
+            this.showLoading('createUserSubmit');
             await this.apiRequest('/api/admin/users', {
                 method: 'POST',
-                body: JSON.stringify(formData)
+                body: JSON.stringify(userData)
             });
 
-            // Actualizar rol y grupo (paso adicional)
-            try {
-                await this.updateUserRoleAndGroup(formData.tracker_id, formData.rol, formData.grupo);
-            } catch (roleError) {
-                console.warn('Error actualizando rol:', roleError);
+            this.showSuccess('Usuario GPS creado exitosamente');
+            e.target.reset();
+            await this.loadUsers();
+            await this.loadStats();
+            
+        } catch (error) {
+            this.showError(`Error creando usuario: ${error.message}`);
+        } finally {
+            this.hideLoading('createUserSubmit');
+        }
+    }
+
+    async editUser(userId) {
+        try {
+            // Obtener datos del usuario
+            const response = await this.apiRequest(`/api/admin/users?search=&limit=1000`);
+            const user = response.data.find(u => u.id === userId);
+            
+            if (!user) {
+                this.showError('Usuario no encontrado');
+                return;
             }
 
-            // Limpiar formulario
-            document.getElementById('createUserForm').reset();
-            document.getElementById('roleCards').style.display = 'none';
+            // Crear y mostrar modal de edición
+            this.showEditUserModal(user);
             
-            // Recargar usuarios
-            await this.loadUsers();
-            
-            alert('Usuario creado exitosamente');
-
         } catch (error) {
-            console.error('Error creando usuario:', error);
-            alert(`Error creando usuario: ${error.message}`);
-        } finally {
-            // Rehabilitar botón
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span class="material-icons">add</span> Crear Usuario';
+            this.showError(`Error obteniendo datos del usuario: ${error.message}`);
         }
     }
 
-    async updateUserRoleAndGroup(trackerId, role, group) {
-        // Actualizar con el endpoint de roles
-        try {
-            await this.apiRequest(`/api/admin/users/${trackerId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    rol: role,
-                    grupo: group
-                })
-            });
-        } catch (error) {
-            console.warn('No se pudo actualizar rol/grupo:', error);
-        }
+    showEditUserModal(user) {
+        const modal = this.createModal('editUserModal', 'Editar Usuario GPS', `
+            <form id="editUserForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Tracker ID</label>
+                        <input type="text" value="${user.tracker_id}" disabled class="form-input disabled">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" name="display_name" value="${user.display_name}" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Zenput</label>
+                        <input type="email" name="zenput_email" value="${user.zenput_email}" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <input type="tel" name="phone" value="${user.phone || ''}" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rol</label>
+                        <select name="rol" class="form-select" required>
+                            <option value="auditor" ${user.rol === 'auditor' ? 'selected' : ''}>Auditor</option>
+                            <option value="director" ${user.rol === 'director' ? 'selected' : ''}>Director</option>
+                            <option value="gerente" ${user.rol === 'gerente' ? 'selected' : ''}>Gerente</option>
+                            <option value="supervisor" ${user.rol === 'supervisor' ? 'selected' : ''}>Supervisor</option>
+                            <option value="usuario" ${user.rol === 'usuario' ? 'selected' : ''}>Usuario</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Grupo Operativo</label>
+                        <select name="grupo" class="form-select" required>
+                            ${this.operationalGroups.map(group => `
+                                <option value="${group.group_name}" ${user.grupo === group.group_name ? 'selected' : ''}>
+                                    ${group.group_name}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="adminPanel.closeModal()" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        `);
+
+        // Event listener para el formulario
+        document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+            await this.handleUpdateUser(e, user.id);
+        });
     }
 
-    async handleCreateDirector(e) {
+    async handleUpdateUser(e, userId) {
         e.preventDefault();
         
-        const formData = {
-            director_code: document.getElementById('directorCode').value,
-            full_name: document.getElementById('directorName').value,
-            email: document.getElementById('directorEmail').value,
-            telegram_chat_id: document.getElementById('telegramChat').value || null
+        const formData = new FormData(e.target);
+        const userData = {
+            display_name: formData.get('display_name'),
+            zenput_email: formData.get('zenput_email'),
+            phone: formData.get('phone'),
+            rol: formData.get('rol'),
+            grupo: formData.get('grupo')
         };
 
         try {
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="spinner"></div> Creando...';
-
-            // Crear director
-            await this.apiRequest('/api/admin/directors', {
-                method: 'POST',
-                body: JSON.stringify(formData)
+            await this.apiRequest(`/api/admin/users/${userId}`, {
+                method: 'PUT',
+                body: JSON.stringify(userData)
             });
 
-            document.getElementById('createDirectorForm').reset();
-            await this.loadDirectors();
+            this.showSuccess('Usuario actualizado exitosamente');
+            this.closeModal();
+            await this.loadUsers();
             
-            alert('Director creado exitosamente');
-
         } catch (error) {
-            console.error('Error creando director:', error);
-            alert(`Error creando director: ${error.message}`);
-        } finally {
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span class="material-icons">add</span> Crear Director';
+            this.showError(`Error actualizando usuario: ${error.message}`);
         }
     }
 
-    async editUser(trackerId) {
-        alert(`Funcionalidad de editar usuario ${trackerId} próximamente`);
+    async toggleUserStatus(userId, newStatus) {
+        const action = newStatus ? 'activar' : 'desactivar';
+        
+        if (!confirm(`¿Estás seguro de ${action} este usuario?`)) {
+            return;
+        }
+
+        try {
+            await this.apiRequest(`/api/admin/users/${userId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ active: newStatus })
+            });
+
+            this.showSuccess(`Usuario ${newStatus ? 'activado' : 'desactivado'} exitosamente`);
+            await this.loadUsers();
+            await this.loadStats();
+            
+        } catch (error) {
+            this.showError(`Error al ${action} usuario: ${error.message}`);
+        }
     }
 
-    async viewUserRoutes(trackerId) {
-        window.open(`/webapp/dashboard.html?user=${trackerId}`, '_blank');
+    async deleteUser(userId) {
+        if (!confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        try {
+            await this.apiRequest(`/api/admin/users/${userId}`, {
+                method: 'DELETE'
+            });
+
+            this.showSuccess('Usuario eliminado exitosamente');
+            await this.loadUsers();
+            await this.loadStats();
+            
+        } catch (error) {
+            this.showError(`Error eliminando usuario: ${error.message}`);
+        }
+    }
+
+    // ===============================
+    // TAB 2: GESTIÓN DE DIRECTORES
+    // ===============================
+
+    async switchTab(tabName) {
+        // Actualizar botones de tab
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[onclick="switchTab('${tabName}')"]`)?.classList.add('active');
+        
+        // Actualizar contenido
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabName}-tab`)?.classList.add('active');
+        
+        this.currentTab = tabName;
+
+        // Cargar datos específicos del tab
+        switch (tabName) {
+            case 'directors':
+                await this.loadDirectors();
+                break;
+            case 'roles':
+                this.loadRolesInfo();
+                break;
+            case 'geofences':
+                await this.loadGeofences();
+                break;
+            case 'system':
+                await this.loadSystemInfo();
+                break;
+        }
     }
 
     async loadDirectors() {
         try {
-            const directors = await this.apiRequest('/api/admin/directors');
-            this.renderDirectors(directors);
+            this.showLoading('directorsTable');
+            const response = await this.apiRequest('/api/admin/directors');
+            this.displayDirectors(response.data);
         } catch (error) {
             console.error('Error cargando directores:', error);
-            document.getElementById('directorsTable').innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #ef4444;">
-                        Error cargando directores: ${error.message}
-                    </td>
-                </tr>
-            `;
+            this.showError('Error cargando directores');
         }
     }
 
-    renderDirectors(directors) {
-        const directorsTable = document.getElementById('directorsTable');
+    displayDirectors(directors) {
+        const tbody = document.getElementById('directorsTable');
         
-        if (!directors || directors.length === 0) {
-            directorsTable.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #64748b;">
-                        No hay directores registrados
-                    </td>
-                </tr>
+        if (directors.length === 0) {
+            tbody.innerHTML = `
+                <tr><td colspan="7" class="no-data">No hay directores asignados</td></tr>
             `;
             return;
         }
 
-        directorsTable.innerHTML = directors.map(director => `
+        tbody.innerHTML = directors.map(director => `
             <tr>
-                <td><strong>${director.director_code}</strong></td>
-                <td>${director.full_name}</td>
-                <td>${director.email || '<span style="color: #64748b;">Sin email</span>'}</td>
-                <td>${director.groups && director.groups.length ? director.groups.join(', ') : '<span style="color: #64748b;">Sin grupos</span>'}</td>
-                <td>${director.telegram_chat_id || '<span style="color: #64748b;">Sin Telegram</span>'}</td>
+                <td><strong>${director.name}</strong></td>
+                <td>-</td>
+                <td>-</td>
                 <td>
-                    <span class="badge ${director.active ? 'success' : 'warning'}">
-                        ${director.active ? 'Activo' : 'Inactivo'}
-                    </span>
+                    <div class="groups-list">
+                        ${director.grupos_asignados.split(', ').map(group => 
+                            `<span class="group-badge">${group}</span>`
+                        ).join('')}
+                    </div>
                 </td>
-                <td>
-                    <button class="action-btn secondary" onclick="adminPanel.editDirector('${director.director_code}')">
+                <td>${director.total_sucursales}</td>
+                <td>-</td>
+                <td class="actions">
+                    <button onclick="adminPanel.editDirectorGroups('${director.name}')" class="btn-icon edit" title="Editar Grupos">
                         <span class="material-icons">edit</span>
-                        Editar
                     </button>
                 </td>
             </tr>
         `).join('');
     }
 
-    async loadRoles() {
-        const rolesContent = document.getElementById('rolesContent');
-        rolesContent.innerHTML = `
-            <div class="role-cards">
-                <div class="role-card">
-                    <div class="role-title">🔴 AUDITOR</div>
-                    <div class="role-description">Acceso completo al sistema</div>
-                    <div class="role-permissions">
-                        <span class="permission-tag allowed">Ve TODOS los usuarios</span>
-                        <span class="permission-tag allowed">Ve TODAS las sucursales</span>
-                        <span class="permission-tag allowed">Modifica configuraciones</span>
-                        <span class="permission-tag allowed">Estadísticas globales</span>
-                    </div>
-                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
-                        💡 <strong>Ideal para:</strong> Administradores del sistema
-                    </div>
-                </div>
-                
-                <div class="role-card">
-                    <div class="role-title">🟠 DIRECTOR</div>
-                    <div class="role-description">Supervisa grupos operativos específicos</div>
-                    <div class="role-permissions">
-                        <span class="permission-tag allowed">Ve usuarios de SUS grupos</span>
-                        <span class="permission-tag allowed">Ve sucursales de SUS grupos</span>
-                        <span class="permission-tag allowed">Reportes de SU área</span>
-                        <span class="permission-tag denied">No ve otros grupos</span>
-                    </div>
-                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
-                        💡 <strong>Ideal para:</strong> Directores regionales/zonales
-                    </div>
-                </div>
-                
-                <div class="role-card">
-                    <div class="role-title">🟡 GERENTE</div>
-                    <div class="role-description">Gestión operativa de equipos</div>
-                    <div class="role-permissions">
-                        <span class="permission-tag allowed">Ve usuarios de SU grupo</span>
-                        <span class="permission-tag allowed">Reportes de SU equipo</span>
-                        <span class="permission-tag denied">No configura sistema</span>
-                        <span class="permission-tag denied">Acceso limitado</span>
-                    </div>
-                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
-                        💡 <strong>Ideal para:</strong> Gerentes de área
-                    </div>
-                </div>
-                
-                <div class="role-card">
-                    <div class="role-title">🟢 SUPERVISOR</div>
-                    <div class="role-description">Acceso de solo lectura a sus propios datos</div>
-                    <div class="role-permissions">
-                        <span class="permission-tag allowed">Ve SUS propios reportes</span>
-                        <span class="permission-tag allowed">Descarga SUS estadísticas</span>
-                        <span class="permission-tag denied">No ve otros usuarios</span>
-                        <span class="permission-tag denied">Solo consulta</span>
-                    </div>
-                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
-                        💡 <strong>Ideal para:</strong> Supervisores de campo
-                    </div>
-                </div>
-                
-                <div class="role-card">
-                    <div class="role-title">🔵 USUARIO</div>
-                    <div class="role-description">Tracking básico únicamente</div>
-                    <div class="role-permissions">
-                        <span class="permission-tag allowed">Su dispositivo envía ubicación</span>
-                        <span class="permission-tag allowed">Aparece en el mapa</span>
-                        <span class="permission-tag denied">Sin acceso al dashboard</span>
-                        <span class="permission-tag denied">Solo GPS</span>
-                    </div>
-                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
-                        💡 <strong>Ideal para:</strong> Personal operativo básico
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    async loadSystemConfig() {
-        const systemContent = document.getElementById('systemContent');
-        systemContent.innerHTML = `
-            <div class="form-section">
-                <h3>🔧 Configuración del Sistema</h3>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-icon system">
-                                <span class="material-icons">settings</span>
-                            </div>
-                            <div class="stat-title">Estado del Sistema</div>
-                        </div>
-                        <div class="stat-number">Activo</div>
-                        <div class="stat-description">Seguimiento GPS funcionando</div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-icon users">
-                                <span class="material-icons">storage</span>
-                            </div>
-                            <div class="stat-title">Base de Datos</div>
-                        </div>
-                        <div class="stat-number">Conectada</div>
-                        <div class="stat-description">PostgreSQL Railway</div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 2rem;">
-                    <h4>🚀 Acciones del Sistema</h4>
-                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                        <button class="action-btn primary" onclick="adminPanel.cleanupDatabase()">
-                            <span class="material-icons">cleaning_services</span>
-                            Limpiar Base de Datos
-                        </button>
-                        <button class="action-btn secondary" onclick="adminPanel.exportData()">
-                            <span class="material-icons">download</span>
-                            Exportar Datos
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    async editDirector(directorCode) {
-        alert(`Funcionalidad de editar director ${directorCode} próximamente`);
-    }
-
-    async cleanupDatabase() {
-        if (confirm('¿Estás seguro de que quieres limpiar datos antiguos?')) {
-            alert('Funcionalidad de limpieza próximamente');
-        }
-    }
-
-    async exportData() {
-        alert('Funcionalidad de exportación próximamente');
-    }
-
-    async loadGroups() {
-        try {
-            const groups = await this.apiRequest('/api/admin/groups');
-            this.populateGroupSelector(groups);
-        } catch (error) {
-            console.error('Error cargando grupos:', error);
-        }
-    }
-
-    populateGroupSelector(groups) {
-        const groupSelect = document.getElementById('groupSelect');
-        if (!groupSelect) return;
-
-        // Mantener la opción "Todos los grupos"
-        groupSelect.innerHTML = '<option value="ALL">Todos los grupos</option>';
+    async handleCreateDirector(e) {
+        e.preventDefault();
         
-        // Agregar grupos dinámicamente
-        groups.forEach(group => {
-            const option = document.createElement('option');
-            option.value = group.group_name;
-            option.textContent = `${group.group_name} (${group.sucursales_activas}/${group.total_sucursales})`;
-            groupSelect.appendChild(option);
+        const formData = new FormData(e.target);
+        const selectedGroups = Array.from(document.getElementById('directorGroups').selectedOptions)
+            .map(option => option.value);
+
+        if (selectedGroups.length === 0) {
+            this.showError('Debe seleccionar al menos un grupo operativo');
+            return;
+        }
+
+        const directorData = {
+            nombre: formData.get('directorName'),
+            email: formData.get('directorEmail'),
+            telefono: formData.get('directorPhone'),
+            telegram_id: formData.get('telegramChat'),
+            grupos_asignados: selectedGroups
+        };
+
+        try {
+            await this.apiRequest('/api/admin/directors', {
+                method: 'POST',
+                body: JSON.stringify(directorData)
+            });
+
+            this.showSuccess('Director creado y asignado exitosamente');
+            e.target.reset();
+            await this.loadDirectors();
+            
+        } catch (error) {
+            this.showError(`Error creando director: ${error.message}`);
+        }
+    }
+
+    editDirectorGroups(directorName) {
+        // Implementar modal para editar grupos del director
+        this.showDirectorGroupsModal(directorName);
+    }
+
+    showDirectorGroupsModal(directorName) {
+        const modal = this.createModal('editDirectorModal', `Reasignar Grupos - ${directorName}`, `
+            <form id="editDirectorGroupsForm">
+                <div class="form-group">
+                    <label class="form-label">Grupos Operativos</label>
+                    <select name="grupos_asignados" id="editDirectorGroups" class="form-select" multiple size="10" required>
+                        ${this.operationalGroups.map(group => `
+                            <option value="${group.group_name}">
+                                ${group.group_name} (${group.total_sucursales} sucursales)
+                            </option>
+                        `).join('')}
+                    </select>
+                    <div class="help-text">Mantén presionado Ctrl/Cmd para seleccionar múltiples grupos</div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="adminPanel.closeModal()" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Reasignar Grupos</button>
+                </div>
+            </form>
+        `);
+
+        // Event listener para el formulario
+        document.getElementById('editDirectorGroupsForm').addEventListener('submit', async (e) => {
+            await this.handleUpdateDirectorGroups(e, directorName);
         });
     }
 
-    async loadGeofences() {
+    async handleUpdateDirectorGroups(e, directorName) {
+        e.preventDefault();
+        
+        const selectedGroups = Array.from(document.getElementById('editDirectorGroups').selectedOptions)
+            .map(option => option.value);
+
+        if (selectedGroups.length === 0) {
+            this.showError('Debe seleccionar al menos un grupo operativo');
+            return;
+        }
+
         try {
-            const geofences = await this.apiRequest('/api/admin/geofences');
-            this.renderGeofences(geofences);
+            await this.apiRequest(`/api/admin/directors/${encodeURIComponent(directorName)}/assign-groups`, {
+                method: 'PUT',
+                body: JSON.stringify({ grupos_asignados: selectedGroups })
+            });
+
+            this.showSuccess('Grupos reasignados exitosamente');
+            this.closeModal();
+            await this.loadDirectors();
+            
         } catch (error) {
-            console.error('Error cargando geofences:', error);
-            document.getElementById('geofencesTable').innerHTML = `
-                <div style="text-align: center; color: #ef4444; padding: 2rem;">
-                    Error cargando geofences: ${error.message}
-                </div>
-            `;
+            this.showError(`Error reasignando grupos: ${error.message}`);
         }
     }
 
-    renderGeofences(geofencesData) {
-        const geofencesTable = document.getElementById('geofencesTable');
+    // ===============================
+    // TAB 3: ROLES Y PERMISOS
+    // ===============================
+
+    loadRolesInfo() {
+        const rolesContent = document.getElementById('rolesContent');
         
-        if (typeof geofencesData === 'object' && !Array.isArray(geofencesData)) {
-            // Los geofences están agrupados por grupo operativo
-            let html = '';
-            
-            Object.keys(geofencesData).forEach(groupName => {
-                const geofences = geofencesData[groupName];
-                
-                html += `
-                    <div class="form-section" style="margin-bottom: 2rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h4 style="color: #1e293b; margin: 0;">
-                                <span class="material-icons" style="vertical-align: middle; margin-right: 0.5rem;">business</span>
-                                ${groupName} (${geofences.length} sucursales)
-                            </h4>
+        const rolesData = [
+            {
+                role: 'admin',
+                title: 'Administrador',
+                description: 'Acceso total al sistema',
+                permissions: ['Gestión completa', 'Panel de administración', 'Configuración sistema'],
+                color: 'red'
+            },
+            {
+                role: 'director',
+                title: 'Director',
+                description: 'Gestión de grupos operativos asignados',
+                permissions: ['Dashboard grupos', 'Reportes', 'Gestión supervisores'],
+                color: 'blue'
+            },
+            {
+                role: 'gerente',
+                title: 'Gerente',
+                description: 'Gestión operativa de sucursales',
+                permissions: ['Dashboard sucursales', 'Programar visitas', 'Ver reportes'],
+                color: 'green'
+            },
+            {
+                role: 'supervisor',
+                title: 'Supervisor',
+                description: 'Supervisión de sucursales específicas',
+                permissions: ['Ejecutar visitas', 'Ver histórico', 'Reportes básicos'],
+                color: 'orange'
+            },
+            {
+                role: 'auditor',
+                title: 'Auditor',
+                description: 'Auditoria y control de calidad',
+                permissions: ['Realizar auditorías', 'Generar reportes', 'Control de calidad'],
+                color: 'purple'
+            },
+            {
+                role: 'usuario',
+                title: 'Usuario',
+                description: 'Usuario básico de tracking',
+                permissions: ['Ver ubicación', 'Histórico personal'],
+                color: 'gray'
+            }
+        ];
+
+        rolesContent.innerHTML = `
+            <div class="roles-grid">
+                ${rolesData.map(role => `
+                    <div class="role-card ${role.color}">
+                        <div class="role-header">
+                            <span class="role-icon ${role.color}">
+                                <span class="material-icons">
+                                    ${role.role === 'admin' ? 'admin_panel_settings' : 
+                                      role.role === 'director' ? 'supervisor_account' : 
+                                      role.role === 'gerente' ? 'business' : 
+                                      role.role === 'supervisor' ? 'visibility' : 
+                                      role.role === 'auditor' ? 'verified' : 'person'}
+                                </span>
+                            </span>
                             <div>
-                                <button class="action-btn secondary" onclick="adminPanel.toggleGroupGeofences('${groupName}', true)">
-                                    <span class="material-icons">location_on</span>
-                                    Activar Todas
-                                </button>
-                                <button class="action-btn secondary" onclick="adminPanel.toggleGroupGeofences('${groupName}', false)">
-                                    <span class="material-icons">location_off</span>
-                                    Desactivar Todas
-                                </button>
+                                <h3>${role.title}</h3>
+                                <p>${role.description}</p>
                             </div>
                         </div>
-                        <div class="table-container">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Código</th>
-                                        <th>Nombre</th>
-                                        <th>Coordenadas</th>
-                                        <th>Radio (m)</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${geofences.map(geo => `
-                                        <tr>
-                                            <td><strong>${geo.location_code}</strong></td>
-                                            <td>${geo.name}</td>
-                                            <td>${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}</td>
-                                            <td>
-                                                <input type="number" 
-                                                       value="${geo.geofence_radius}" 
-                                                       min="10" max="1000" 
-                                                       style="width: 60px; padding: 0.25rem;"
-                                                       onchange="adminPanel.updateGeofenceRadius('${geo.location_code}', this.value)">
-                                            </td>
-                                            <td>
-                                                <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
-                                                    <input type="checkbox" 
-                                                           ${geo.geofence_enabled ? 'checked' : ''} 
-                                                           onchange="adminPanel.toggleGeofence('${geo.location_code}', this.checked)"
-                                                           style="opacity: 0; width: 0; height: 0;">
-                                                    <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${geo.geofence_enabled ? '#10b981' : '#ccc'}; transition: .4s; border-radius: 24px;">
-                                                        <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${geo.geofence_enabled ? '26px' : '3px'}; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
-                                                    </span>
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <button class="action-btn secondary" onclick="adminPanel.viewGeofenceOnMap('${geo.location_code}')">
-                                                    <span class="material-icons">map</span>
-                                                    Ver en Mapa
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+                        <div class="role-permissions">
+                            <h4>Permisos:</h4>
+                            <ul>
+                                ${role.permissions.map(permission => `
+                                    <li><span class="material-icons">check</span>${permission}</li>
+                                `).join('')}
+                            </ul>
                         </div>
                     </div>
-                `;
-            });
+                `).join('')}
+            </div>
             
-            geofencesTable.innerHTML = html;
-        } else {
-            geofencesTable.innerHTML = `
-                <div style="text-align: center; color: #64748b; padding: 2rem;">
-                    No hay geofences configurados
+            <div class="roles-hierarchy">
+                <h3><span class="material-icons">account_tree</span>Jerarquía de Roles</h3>
+                <div class="hierarchy-flow">
+                    <div class="hierarchy-item admin">
+                        <span class="material-icons">admin_panel_settings</span>
+                        Admin
+                    </div>
+                    <div class="hierarchy-arrow">↓</div>
+                    <div class="hierarchy-item director">
+                        <span class="material-icons">supervisor_account</span>
+                        Director
+                    </div>
+                    <div class="hierarchy-arrow">↓</div>
+                    <div class="hierarchy-item manager">
+                        <span class="material-icons">business</span>
+                        Gerente
+                    </div>
+                    <div class="hierarchy-arrow">↓</div>
+                    <div class="hierarchy-item supervisor">
+                        <span class="material-icons">visibility</span>
+                        Supervisor
+                    </div>
+                    <div class="hierarchy-arrow">↓</div>
+                    <div class="hierarchy-item user">
+                        <span class="material-icons">person</span>
+                        Usuario
+                    </div>
                 </div>
-            `;
+            </div>
+        `;
+    }
+
+    // ===============================
+    // TAB 4: GEOFENCES
+    // ===============================
+
+    async loadGeofences() {
+        try {
+            this.showLoading('geofencesTable');
+            await this.loadGeofencesByGroup();
+            this.initializeMap();
+        } catch (error) {
+            console.error('Error cargando geofences:', error);
+            this.showError('Error cargando geofences');
         }
     }
 
-    async toggleGeofence(locationCode, enabled) {
+    async loadGeofencesByGroup() {
         try {
-            await this.apiRequest(`/api/admin/geofences/${locationCode}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    geofence_enabled: enabled
-                })
-            });
+            const selectedGroup = document.getElementById('groupSelect')?.value || 'ALL';
+            let endpoint = '/api/admin/groups';
             
-            // No recargar todo, solo actualizar el estado visual
-            console.log(`Geofence ${locationCode} ${enabled ? 'activado' : 'desactivado'}`);
+            if (selectedGroup !== 'ALL') {
+                endpoint = `/api/admin/groups/${selectedGroup}/locations`;
+            }
+
+            const response = await this.apiRequest(endpoint);
+            const locations = selectedGroup === 'ALL' ? 
+                await this.getAllLocations() : 
+                response;
+
+            this.displayGeofences(locations);
+        } catch (error) {
+            console.error('Error cargando geofences por grupo:', error);
+        }
+    }
+
+    async getAllLocations() {
+        const allLocations = [];
+        for (const group of this.operationalGroups) {
+            try {
+                const locations = await this.apiRequest(`/api/admin/groups/${group.group_name}/locations`);
+                allLocations.push(...locations);
+            } catch (error) {
+                console.error(`Error cargando ubicaciones de ${group.group_name}:`, error);
+            }
+        }
+        return allLocations;
+    }
+
+    displayGeofences(locations) {
+        const container = document.getElementById('geofencesTable');
+        
+        if (!locations || locations.length === 0) {
+            container.innerHTML = '<div class="no-data">No hay geofences para mostrar</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="geofences-controls">
+                <div class="bulk-actions">
+                    <button onclick="adminPanel.toggleAllGeofences(true)" class="btn btn-success">
+                        <span class="material-icons">check_circle</span>
+                        Activar Todas
+                    </button>
+                    <button onclick="adminPanel.toggleAllGeofences(false)" class="btn btn-danger">
+                        <span class="material-icons">cancel</span>
+                        Desactivar Todas
+                    </button>
+                </div>
+                <div class="geofences-stats">
+                    <span class="stat active">
+                        ${locations.filter(l => l.geofence_enabled).length} Activas
+                    </span>
+                    <span class="stat inactive">
+                        ${locations.filter(l => !l.geofence_enabled).length} Inactivas
+                    </span>
+                </div>
+            </div>
+            
+            <div class="geofences-grid">
+                ${locations.map(location => `
+                    <div class="geofence-card ${location.geofence_enabled ? 'active' : 'inactive'}">
+                        <div class="geofence-header">
+                            <h4>${location.location_name || location.name}</h4>
+                            <span class="group-badge">${location.group_name}</span>
+                        </div>
+                        <div class="geofence-details">
+                            <p><span class="material-icons">location_on</span>${location.address}</p>
+                            <p><span class="material-icons">radio_button_unchecked</span>Radio: ${location.geofence_radius}m</p>
+                        </div>
+                        <div class="geofence-controls">
+                            <label class="switch">
+                                <input type="checkbox" 
+                                       ${location.geofence_enabled ? 'checked' : ''} 
+                                       onchange="adminPanel.toggleGeofence(${location.id}, this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <button onclick="adminPanel.editGeofenceRadius(${location.id}, ${location.geofence_radius})" 
+                                    class="btn-icon" title="Editar Radio">
+                                <span class="material-icons">tune</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    async toggleGeofence(locationId, enabled) {
+        try {
+            await this.apiRequest(`/api/admin/locations/${locationId}/geofence`, {
+                method: 'PUT',
+                body: JSON.stringify({ geofence_enabled: enabled })
+            });
+
+            this.showSuccess(`Geofence ${enabled ? 'activado' : 'desactivado'} exitosamente`);
+            // No recargar todo, solo actualizar el estado visualmente
             
         } catch (error) {
-            console.error('Error actualizando geofence:', error);
-            alert(`Error actualizando geofence: ${error.message}`);
+            this.showError(`Error actualizando geofence: ${error.message}`);
             // Revertir el switch
             event.target.checked = !enabled;
         }
     }
 
-    async updateGeofenceRadius(locationCode, radius) {
-        try {
-            const radiusValue = parseInt(radius);
-            if (radiusValue < 10 || radiusValue > 1000) {
-                alert('El radio debe estar entre 10 y 1000 metros');
-                return;
-            }
-
-            await this.apiRequest(`/api/admin/geofences/${locationCode}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    geofence_radius: radiusValue,
-                    geofence_enabled: true // Se activa automáticamente al cambiar el radio
-                })
-            });
-            
-            console.log(`Radio de geofence ${locationCode} actualizado a ${radiusValue}m`);
-            
-        } catch (error) {
-            console.error('Error actualizando radio:', error);
-            alert(`Error actualizando radio: ${error.message}`);
+    async toggleAllGeofences(enabled) {
+        const selectedGroup = document.getElementById('groupSelect')?.value;
+        
+        if (!selectedGroup || selectedGroup === 'ALL') {
+            this.showError('Selecciona un grupo específico para operaciones masivas');
+            return;
         }
-    }
 
-    async toggleGroupGeofences(groupName, enabled) {
-        if (!confirm(`¿Estás seguro de ${enabled ? 'activar' : 'desactivar'} todos los geofences del grupo ${groupName}?`)) {
+        if (!confirm(`¿Estás seguro de ${enabled ? 'activar' : 'desactivar'} todos los geofences del grupo ${selectedGroup}?`)) {
             return;
         }
 
         try {
-            const response = await this.apiRequest(`/api/admin/groups/${groupName}/geofences`, {
+            await this.apiRequest(`/api/admin/groups/${selectedGroup}/geofences`, {
                 method: 'PUT',
-                body: JSON.stringify({
-                    geofence_enabled: enabled
-                })
+                body: JSON.stringify({ geofence_enabled: enabled })
             });
-            
-            alert(`${response.updated_count} geofences ${enabled ? 'activados' : 'desactivados'} en ${groupName}`);
-            
-            // Recargar geofences para mostrar los cambios
+
+            this.showSuccess(`Geofences del grupo ${selectedGroup} ${enabled ? 'activados' : 'desactivados'} exitosamente`);
             await this.loadGeofencesByGroup();
             
         } catch (error) {
-            console.error('Error actualizando geofences del grupo:', error);
-            alert(`Error actualizando geofences: ${error.message}`);
+            this.showError(`Error en operación masiva: ${error.message}`);
         }
     }
 
-    async viewGeofenceOnMap(locationCode) {
-        // Abrir el dashboard con el geofence específico
-        window.open(`/webapp/dashboard.html?location=${locationCode}`, '_blank');
+    initializeMap() {
+        // Placeholder para la implementación del mapa
+        // Se implementará con Leaflet.js en una versión futura
+        console.log('🗺️ Mapa de geofences - Próximamente');
     }
 
-    async loadGeofencesByGroup() {
-        const groupSelect = document.getElementById('groupSelect');
-        const selectedGroup = groupSelect ? groupSelect.value : 'ALL';
-        
+    // ===============================
+    // TAB 5: SISTEMA
+    // ===============================
+
+    async loadSystemInfo() {
         try {
-            const url = selectedGroup === 'ALL' 
-                ? '/api/admin/geofences'
-                : `/api/admin/geofences?group=${selectedGroup}`;
-                
-            const geofences = await this.apiRequest(url);
-            this.renderGeofences(geofences);
+            const [status, metrics] = await Promise.all([
+                this.apiRequest('/api/admin/system/status'),
+                this.apiRequest('/api/admin/system/metrics')
+            ]);
+
+            this.displaySystemInfo(status, metrics);
         } catch (error) {
-            console.error('Error cargando geofences por grupo:', error);
-            document.getElementById('geofencesTable').innerHTML = `
-                <div style="text-align: center; color: #ef4444; padding: 2rem;">
-                    Error cargando geofences: ${error.message}
-                </div>
-            `;
+            console.error('Error cargando información del sistema:', error);
+            this.showError('Error cargando información del sistema');
         }
     }
-}
 
-// Función global para cambiar tabs
-function switchTab(tabName) {
-    // Remover active de todos los botones
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    // Ocultar todos los contenidos
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    // Activar el botón y contenido seleccionado
-    event.target.classList.add('active');
-    document.getElementById(tabName + '-tab').classList.add('active');
-    
-    // Cargar contenido específico del tab
-    switch(tabName) {
-        case 'directors':
-            adminPanel.loadDirectors();
-            break;
-        case 'roles':
-            adminPanel.loadRoles();
-            break;
-        case 'geofences':
-            adminPanel.loadGeofences();
-            break;
-        case 'system':
-            adminPanel.loadSystemConfig();
-            break;
+    displaySystemInfo(status, metrics) {
+        const container = document.getElementById('systemContent');
+        
+        container.innerHTML = `
+            <div class="system-overview">
+                <div class="system-cards">
+                    <div class="system-card health">
+                        <h3><span class="material-icons">health_and_safety</span>Estado del Sistema</h3>
+                        <div class="health-indicators">
+                            <div class="health-item ${status.health?.api === 'Healthy' ? 'healthy' : 'error'}">
+                                <span class="material-icons">api</span>
+                                <span>API: ${status.health?.api || 'Unknown'}</span>
+                            </div>
+                            <div class="health-item ${status.health?.database === 'Connected' ? 'healthy' : 'error'}">
+                                <span class="material-icons">storage</span>
+                                <span>Base de Datos: ${status.health?.database || 'Unknown'}</span>
+                            </div>
+                            <div class="health-item ${status.health?.auth === 'Active' ? 'healthy' : 'error'}">
+                                <span class="material-icons">security</span>
+                                <span>Autenticación: ${status.health?.auth || 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="system-card uptime">
+                        <h3><span class="material-icons">schedule</span>Tiempo de Actividad</h3>
+                        <div class="uptime-display">
+                            <div class="uptime-value">
+                                ${status.system?.uptime?.days || 0}d 
+                                ${status.system?.uptime?.hours || 0}h 
+                                ${status.system?.uptime?.minutes || 0}m
+                            </div>
+                            <div class="uptime-label">Días activo</div>
+                        </div>
+                    </div>
+
+                    <div class="system-card memory">
+                        <h3><span class="material-icons">memory</span>Memoria del Sistema</h3>
+                        <div class="memory-stats">
+                            <div class="memory-item">
+                                <span>Usado:</span>
+                                <span>${this.formatBytes(status.system?.memory?.heapUsed || 0)}</span>
+                            </div>
+                            <div class="memory-item">
+                                <span>Total:</span>
+                                <span>${this.formatBytes(status.system?.memory?.heapTotal || 0)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="system-actions">
+                    <h3><span class="material-icons">build</span>Acciones del Sistema</h3>
+                    <div class="actions-grid">
+                        <button onclick="adminPanel.syncSystemData()" class="action-btn sync">
+                            <span class="material-icons">sync</span>
+                            <span>Sincronizar Datos</span>
+                        </button>
+                        <button onclick="adminPanel.exportSystemData()" class="action-btn export">
+                            <span class="material-icons">download</span>
+                            <span>Exportar Datos</span>
+                        </button>
+                        <button onclick="adminPanel.viewSystemLogs()" class="action-btn logs">
+                            <span class="material-icons">article</span>
+                            <span>Ver Logs</span>
+                        </button>
+                        <button onclick="adminPanel.systemMaintenance()" class="action-btn maintenance">
+                            <span class="material-icons">build_circle</span>
+                            <span>Mantenimiento</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="database-stats">
+                    <h3><span class="material-icons">analytics</span>Estadísticas de Base de Datos</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value">${status.database?.total_gps_users || 0}</span>
+                            <span class="stat-label">Usuarios GPS</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${status.database?.total_branches || 0}</span>
+                            <span class="stat-label">Sucursales</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${status.database?.total_groups || 0}</span>
+                            <span class="stat-label">Grupos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${status.database?.active_sessions || 0}</span>
+                            <span class="stat-label">Sesiones Activas</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${metrics.metrics?.top_actions?.length > 0 ? `
+                    <div class="activity-metrics">
+                        <h3><span class="material-icons">trending_up</span>Actividad Reciente</h3>
+                        <div class="metrics-grid">
+                            ${metrics.metrics.top_actions.slice(0, 5).map(action => `
+                                <div class="metric-item">
+                                    <span class="metric-name">${action.action}</span>
+                                    <span class="metric-value">${action.count}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    async syncSystemData() {
+        if (!confirm('¿Estás seguro de sincronizar los datos del sistema? Esto puede tomar varios minutos.')) {
+            return;
+        }
+
+        try {
+            this.showLoading('syncButton');
+            await this.apiRequest('/api/admin/system/sync-data', {
+                method: 'POST'
+            });
+
+            this.showSuccess('Sincronización iniciada. Los datos se actualizarán en segundo plano.');
+            
+        } catch (error) {
+            this.showError(`Error iniciando sincronización: ${error.message}`);
+        } finally {
+            this.hideLoading('syncButton');
+        }
+    }
+
+    exportSystemData() {
+        this.showInfo('Función de exportación próximamente disponible');
+    }
+
+    viewSystemLogs() {
+        this.showInfo('Visor de logs próximamente disponible');
+    }
+
+    systemMaintenance() {
+        this.showInfo('Herramientas de mantenimiento próximamente disponibles');
+    }
+
+    // ===============================
+    // UTILIDADES DE UI
+    // ===============================
+
+    showLoading(elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            if (element.tagName === 'TBODY') {
+                element.innerHTML = `
+                    <tr><td colspan="7" class="loading">
+                        <div class="spinner"></div>Cargando...
+                    </td></tr>
+                `;
+            } else {
+                element.innerHTML = '<div class="spinner"></div>Cargando...';
+            }
+        }
+    }
+
+    hideLoading(elementId) {
+        // La carga se oculta cuando se actualiza el contenido
+    }
+
+    showSuccess(message) {
+        this.showToast(message, 'success');
+    }
+
+    showError(message) {
+        this.showToast(message, 'error');
+    }
+
+    showInfo(message) {
+        this.showToast(message, 'info');
+    }
+
+    showToast(message, type) {
+        // Crear toast container si no existe
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        // Crear toast
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <span class="material-icons">
+                ${type === 'success' ? 'check_circle' : 
+                  type === 'error' ? 'error' : 
+                  type === 'info' ? 'info' : 'warning'}
+            </span>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" class="toast-close">
+                <span class="material-icons">close</span>
+            </button>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto-remove después de 5 segundos
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+
+    createModal(id, title, content) {
+        // Remover modal existente si existe
+        const existingModal = document.getElementById(id);
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Crear modal
+        const modal = document.createElement('div');
+        modal.id = id;
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>${title}</h2>
+                    <button onclick="adminPanel.closeModal()" class="modal-close">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    ${content}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+
+        // Cerrar con escape
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                this.closeModal();
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+
+        return modal;
+    }
+
+    closeModal() {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => modal.remove());
+    }
+
+    updatePagination(pagination, context) {
+        // Implementar paginación si es necesario
+        console.log('Paginación:', pagination);
+    }
+
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 }
 
-// Función para mostrar información del rol seleccionado
+// ===============================
+// FUNCIONES GLOBALES
+// ===============================
+
+function switchTab(tabName) {
+    window.adminPanel.switchTab(tabName);
+}
+
 function showRoleInfo() {
-    const roleSelect = document.getElementById('userRole');
+    // Función llamada desde el HTML original
+    const role = document.getElementById('userRole').value;
     const roleCards = document.getElementById('roleCards');
     
-    if (!roleSelect.value) {
+    if (role && roleCards) {
+        const roleInfo = {
+            'auditor': 'Realizar auditorías y control de calidad',
+            'director': 'Gestionar grupos operativos asignados',
+            'gerente': 'Gestión operativa de sucursales',
+            'supervisor': 'Supervisión de sucursales específicas',
+            'usuario': 'Usuario básico de tracking GPS'
+        };
+        
+        roleCards.innerHTML = `
+            <div class="role-info">
+                <span class="material-icons">info</span>
+                ${roleInfo[role] || 'Información no disponible'}
+            </div>
+        `;
+        roleCards.style.display = 'block';
+    } else if (roleCards) {
         roleCards.style.display = 'none';
-        return;
     }
-
-    const roleInfo = {
-        'auditor': {
-            title: '🔴 AUDITOR',
-            description: 'Acceso completo al sistema',
-            permissions: ['Ve TODOS los usuarios', 'Ve TODAS las sucursales', 'Modifica configuraciones', 'Estadísticas globales'],
-            ideal: 'Administradores del sistema'
-        },
-        'director': {
-            title: '🟠 DIRECTOR', 
-            description: 'Supervisa grupos operativos específicos',
-            permissions: ['Ve usuarios de SUS grupos', 'Ve sucursales de SUS grupos', 'Reportes de SU área', 'No ve otros grupos'],
-            ideal: 'Directores regionales/zonales'
-        },
-        'gerente': {
-            title: '🟡 GERENTE',
-            description: 'Gestión operativa de equipos',
-            permissions: ['Ve usuarios de SU grupo', 'Reportes de SU equipo', 'No configura sistema', 'Acceso limitado'],
-            ideal: 'Gerentes de área'
-        },
-        'supervisor': {
-            title: '🟢 SUPERVISOR',
-            description: 'Acceso de solo lectura a sus propios datos',
-            permissions: ['Ve SUS propios reportes', 'Descarga SUS estadísticas', 'No ve otros usuarios', 'Solo consulta'],
-            ideal: 'Supervisores de campo'
-        },
-        'usuario': {
-            title: '🔵 USUARIO',
-            description: 'Tracking básico únicamente',
-            permissions: ['Su dispositivo envía ubicación', 'Aparece en el mapa', 'Sin acceso al dashboard', 'Solo GPS'],
-            ideal: 'Personal operativo básico'
-        }
-    };
-
-    const role = roleInfo[roleSelect.value];
-    if (!role) return;
-
-    roleCards.innerHTML = `
-        <div class="role-card selected">
-            <div class="role-title">${role.title}</div>
-            <div class="role-description">${role.description}</div>
-            <div class="role-permissions">
-                ${role.permissions.map(perm => 
-                    `<span class="permission-tag ${perm.startsWith('No') || perm.startsWith('Sin') ? 'denied' : 'allowed'}">${perm}</span>`
-                ).join('')}
-            </div>
-            <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
-                💡 <strong>Ideal para:</strong> ${role.ideal}
-            </div>
-        </div>
-    `;
-    
-    roleCards.style.display = 'grid';
 }
 
-// Función global para cargar geofences por grupo
 function loadGeofencesByGroup() {
     if (window.adminPanel) {
         window.adminPanel.loadGeofencesByGroup();
     }
 }
 
-// Inicializar el panel cuando el DOM esté listo
+// ===============================
+// INICIALIZACIÓN
+// ===============================
+
 document.addEventListener('DOMContentLoaded', () => {
     window.adminPanel = new AdminPanel();
 });

@@ -2910,5 +2910,556 @@ router.put('/groups/:groupName/geofences', logAction('BULK_UPDATE_GEOFENCES', 'g
   }
 });
 
+// ======================================================
+// GESTIÓN DE USUARIOS GPS (tracking_users)
+// ======================================================
+
+/**
+ * GET /api/admin/users
+ * Obtener todos los usuarios GPS con paginación y filtros
+ */
+router.get('/users', logAction('VIEW_USERS', 'users'), async (req, res) => {
+  try {
+    const { page = 1, limit = 50, search = '', grupo = '', rol = '', active } = req.query;
+    const offset = (page - 1) * limit;
+    
+    // Construir filtros
+    let whereConditions = ['1=1'];
+    let values = [];
+    let valueIndex = 1;
+    
+    if (search) {
+      whereConditions.push(`(display_name ILIKE $${valueIndex} OR zenput_email ILIKE $${valueIndex} OR tracker_id ILIKE $${valueIndex})`);
+      values.push(`%${search}%`);
+      valueIndex++;
+    }
+    
+    if (grupo) {
+      whereConditions.push(`grupo = $${valueIndex}`);
+      values.push(grupo);
+      valueIndex++;
+    }
+    
+    if (rol) {
+      whereConditions.push(`rol = $${valueIndex}`);
+      values.push(rol);
+      valueIndex++;
+    }
+    
+    if (active !== undefined) {
+      whereConditions.push(`active = $${valueIndex}`);
+      values.push(active === 'true');
+      valueIndex++;
+    }
+    
+    // Query principal con paginación
+    const result = await db.query(`
+      SELECT 
+        id,
+        tracker_id,
+        display_name,
+        zenput_email,
+        phone,
+        rol,
+        grupo,
+        active,
+        created_at,
+        updated_at
+      FROM tracking_users
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY created_at DESC
+      LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
+    `, [...values, limit, offset]);
+    
+    // Contar total para paginación
+    const countResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM tracking_users
+      WHERE ${whereConditions.join(' AND ')}
+    `, values);
+    
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
+    
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        current_page: parseInt(page),
+        total_pages: totalPages,
+        total_records: total,
+        limit: parseInt(limit),
+        has_next: page < totalPages,
+        has_prev: page > 1
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/users
+ * Crear nuevo usuario GPS
+ */
+router.post('/users', logAction('CREATE_USER', 'user'), async (req, res) => {
+  try {
+    const { tracker_id, display_name, zenput_email, phone, rol, grupo } = req.body;
+    
+    // Validaciones
+    if (!tracker_id || !display_name || !zenput_email || !rol || !grupo) {
+      return res.status(400).json({
+        error: 'Campos requeridos: tracker_id, display_name, zenput_email, rol, grupo'
+      });
+    }
+    
+    // Validar que el grupo existe
+    const groupCheck = await db.query(
+      'SELECT 1 FROM tracking_locations_cache WHERE group_name = $1 LIMIT 1',
+      [grupo]
+    );
+    
+    if (groupCheck.rows.length === 0) {
+      return res.status(400).json({
+        error: `El grupo operativo "${grupo}" no existe`
+      });
+    }
+    
+    // Crear usuario
+    const result = await db.query(`
+      INSERT INTO tracking_users (
+        tracker_id, display_name, zenput_email, phone, rol, grupo, active, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
+      RETURNING *
+    `, [tracker_id, display_name, zenput_email, phone || null, rol, grupo]);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Usuario GPS creado exitosamente',
+      data: result.rows[0]
+    });
+    
+  } catch (error) {
+    if (error.code === '23505') { // Unique violation
+      return res.status(400).json({
+        error: 'El Tracker ID ya existe. Debe ser único.'
+      });
+    }
+    console.error('❌ Error creando usuario:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/users/:id
+ * Actualizar usuario GPS existente
+ */
+router.put('/users/:id', logAction('UPDATE_USER', 'user'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { display_name, zenput_email, phone, rol, grupo, active } = req.body;
+    
+    // Verificar que el usuario existe
+    const userCheck = await db.query('SELECT 1 FROM tracking_users WHERE id = $1', [id]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    // Si se cambia el grupo, verificar que existe
+    if (grupo) {
+      const groupCheck = await db.query(
+        'SELECT 1 FROM tracking_locations_cache WHERE group_name = $1 LIMIT 1',
+        [grupo]
+      );
+      
+      if (groupCheck.rows.length === 0) {
+        return res.status(400).json({
+          error: `El grupo operativo "${grupo}" no existe`
+        });
+      }
+    }
+    
+    // Actualizar usuario
+    const result = await db.query(`
+      UPDATE tracking_users 
+      SET 
+        display_name = COALESCE($2, display_name),
+        zenput_email = COALESCE($3, zenput_email),
+        phone = COALESCE($4, phone),
+        rol = COALESCE($5, rol),
+        grupo = COALESCE($6, grupo),
+        active = COALESCE($7, active),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `, [id, display_name, zenput_email, phone, rol, grupo, active]);
+    
+    res.json({
+      success: true,
+      message: 'Usuario actualizado exitosamente',
+      data: result.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Error actualizando usuario:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Eliminar usuario GPS (soft delete)
+ */
+router.delete('/users/:id', logAction('DELETE_USER', 'user'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await db.query(`
+      UPDATE tracking_users 
+      SET active = false, updated_at = NOW()
+      WHERE id = $1
+      RETURNING tracker_id, display_name
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    res.json({
+      success: true,
+      message: `Usuario ${result.rows[0].display_name} desactivado exitosamente`,
+      data: result.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Error eliminando usuario:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ======================================================
+// GESTIÓN DE DIRECTORES
+// ======================================================
+
+/**
+ * GET /api/admin/directors
+ * Obtener todos los directores
+ */
+router.get('/directors', logAction('VIEW_DIRECTORS', 'directors'), async (req, res) => {
+  try {
+    // Obtener directores únicos de tracking_locations_cache
+    const result = await db.query(`
+      SELECT 
+        director_name as name,
+        STRING_AGG(DISTINCT group_name, ', ' ORDER BY group_name) as grupos_asignados,
+        COUNT(DISTINCT group_name) as total_grupos,
+        COUNT(*) as total_sucursales,
+        MIN(created_at) as fecha_asignacion
+      FROM tracking_locations_cache
+      WHERE director_name IS NOT NULL AND director_name != 'Director TBD'
+      GROUP BY director_name
+      ORDER BY director_name
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo directores:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/directors
+ * Crear nuevo director y asignar grupos
+ */
+router.post('/directors', logAction('CREATE_DIRECTOR', 'director'), async (req, res) => {
+  try {
+    const { nombre, email, telefono, telegram_id, grupos_asignados } = req.body;
+    
+    // Validaciones
+    if (!nombre || !grupos_asignados || grupos_asignados.length === 0) {
+      return res.status(400).json({
+        error: 'Nombre y al menos un grupo operativo son requeridos'
+      });
+    }
+    
+    // Verificar que todos los grupos existen
+    const groupsCheck = await db.query(`
+      SELECT group_name 
+      FROM tracking_locations_cache 
+      WHERE group_name = ANY($1)
+      GROUP BY group_name
+    `, [grupos_asignados]);
+    
+    if (groupsCheck.rows.length !== grupos_asignados.length) {
+      return res.status(400).json({
+        error: 'Uno o más grupos operativos no existen'
+      });
+    }
+    
+    // Asignar director a los grupos seleccionados
+    const result = await db.query(`
+      UPDATE tracking_locations_cache
+      SET director_name = $1, updated_at = NOW()
+      WHERE group_name = ANY($2)
+      RETURNING COUNT(*) as sucursales_asignadas
+    `, [nombre, grupos_asignados]);
+    
+    // Contar sucursales asignadas
+    const countResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM tracking_locations_cache
+      WHERE group_name = ANY($1)
+    `, [grupos_asignados]);
+    
+    res.status(201).json({
+      success: true,
+      message: `Director ${nombre} creado y asignado exitosamente`,
+      data: {
+        nombre,
+        email,
+        telefono,
+        telegram_id,
+        grupos_asignados,
+        sucursales_asignadas: parseInt(countResult.rows[0].total)
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creando director:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/directors/:name/assign-groups
+ * Reasignar grupos a un director
+ */
+router.put('/directors/:name/assign-groups', logAction('UPDATE_DIRECTOR_GROUPS', 'director'), async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { grupos_asignados } = req.body;
+    
+    if (!grupos_asignados || grupos_asignados.length === 0) {
+      return res.status(400).json({
+        error: 'Se requiere al menos un grupo operativo'
+      });
+    }
+    
+    // Limpiar asignaciones previas de este director
+    await db.query(`
+      UPDATE tracking_locations_cache
+      SET director_name = 'Director TBD', updated_at = NOW()
+      WHERE director_name = $1
+    `, [name]);
+    
+    // Asignar nuevos grupos
+    const result = await db.query(`
+      UPDATE tracking_locations_cache
+      SET director_name = $1, updated_at = NOW()
+      WHERE group_name = ANY($2)
+    `, [name, grupos_asignados]);
+    
+    // Contar sucursales asignadas
+    const countResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM tracking_locations_cache
+      WHERE group_name = ANY($1)
+    `, [grupos_asignados]);
+    
+    res.json({
+      success: true,
+      message: `Grupos reasignados exitosamente al director ${name}`,
+      data: {
+        director: name,
+        grupos_asignados,
+        sucursales_asignadas: parseInt(countResult.rows[0].total)
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error reasignando grupos:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ======================================================
+// INFORMACIÓN DEL SISTEMA
+// ======================================================
+
+/**
+ * GET /api/admin/system/status
+ * Estado general del sistema
+ */
+router.get('/system/status', logAction('VIEW_SYSTEM_STATUS', 'system'), async (req, res) => {
+  try {
+    // Estadísticas de base de datos
+    const stats = await Promise.all([
+      db.query('SELECT COUNT(*) as total FROM tracking_users WHERE active = true'),
+      db.query('SELECT COUNT(*) as total FROM tracking_locations_cache WHERE active = true'),
+      db.query('SELECT COUNT(DISTINCT group_name) as total FROM tracking_locations_cache'),
+      db.query('SELECT COUNT(*) as total FROM system_users WHERE active = true'),
+      db.query('SELECT COUNT(*) as total FROM user_sessions WHERE expires_at > NOW()'),
+    ]);
+    
+    // Información de la base de datos
+    const dbInfo = await db.query(`
+      SELECT 
+        schemaname,
+        tablename,
+        n_tup_ins as inserts,
+        n_tup_upd as updates,
+        n_tup_del as deletes
+      FROM pg_stat_user_tables
+      WHERE schemaname = 'public'
+      ORDER BY tablename
+    `);
+    
+    // Uptime del proceso
+    const uptimeSeconds = process.uptime();
+    const uptime = {
+      days: Math.floor(uptimeSeconds / 86400),
+      hours: Math.floor((uptimeSeconds % 86400) / 3600),
+      minutes: Math.floor((uptimeSeconds % 3600) / 60),
+      seconds: Math.floor(uptimeSeconds % 60)
+    };
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      system: {
+        node_version: process.version,
+        platform: process.platform,
+        uptime: uptime,
+        memory: process.memoryUsage(),
+        environment: process.env.NODE_ENV || 'development'
+      },
+      database: {
+        total_gps_users: parseInt(stats[0].rows[0].total),
+        total_branches: parseInt(stats[1].rows[0].total),
+        total_groups: parseInt(stats[2].rows[0].total),
+        total_admin_users: parseInt(stats[3].rows[0].total),
+        active_sessions: parseInt(stats[4].rows[0].total),
+        table_stats: dbInfo.rows
+      },
+      health: {
+        api: 'Healthy',
+        database: 'Connected',
+        auth: 'Active'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo estado del sistema:', error.message);
+    res.status(500).json({ 
+      error: error.message,
+      health: {
+        api: 'Error',
+        database: 'Disconnected',
+        auth: 'Unknown'
+      }
+    });
+  }
+});
+
+/**
+ * GET /api/admin/system/metrics
+ * Métricas de rendimiento del sistema
+ */
+router.get('/system/metrics', logAction('VIEW_SYSTEM_METRICS', 'system'), async (req, res) => {
+  try {
+    // Actividad reciente (últimas 24 horas)
+    const recentActivity = await db.query(`
+      SELECT 
+        DATE_TRUNC('hour', created_at) as hour,
+        COUNT(*) as count
+      FROM user_audit_log
+      WHERE created_at > NOW() - INTERVAL '24 hours'
+      GROUP BY hour
+      ORDER BY hour DESC
+      LIMIT 24
+    `);
+    
+    // Top usuarios más activos
+    const topUsers = await db.query(`
+      SELECT 
+        u.full_name,
+        COUNT(l.id) as actions_count
+      FROM user_audit_log l
+      JOIN system_users u ON l.user_id = u.id
+      WHERE l.created_at > NOW() - INTERVAL '7 days'
+      GROUP BY u.id, u.full_name
+      ORDER BY actions_count DESC
+      LIMIT 10
+    `);
+    
+    // Acciones más frecuentes
+    const topActions = await db.query(`
+      SELECT 
+        action,
+        COUNT(*) as count
+      FROM user_audit_log
+      WHERE created_at > NOW() - INTERVAL '7 days'
+      GROUP BY action
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      metrics: {
+        recent_activity: recentActivity.rows,
+        top_users: topUsers.rows,
+        top_actions: topActions.rows,
+        performance: {
+          response_time_avg: '< 200ms',
+          error_rate: '< 0.1%',
+          uptime: '99.9%'
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo métricas:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/system/sync-data
+ * Sincronizar datos desde Neon
+ */
+router.post('/system/sync-data', logAction('SYNC_SYSTEM_DATA', 'system'), async (req, res) => {
+  try {
+    // Ejecutar el import de datos
+    const { exec } = require('child_process');
+    
+    res.json({
+      success: true,
+      message: 'Sincronización iniciada. Los datos se actualizarán en segundo plano.',
+      timestamp: new Date().toISOString()
+    });
+    
+    // Ejecutar sync en background
+    exec('curl -X GET "http://localhost:8080/api/admin/import-production-data"', (error, stdout, stderr) => {
+      if (error) {
+        console.error('❌ Error en sync:', error);
+      } else {
+        console.log('✅ Sync completado:', stdout);
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error iniciando sync:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;

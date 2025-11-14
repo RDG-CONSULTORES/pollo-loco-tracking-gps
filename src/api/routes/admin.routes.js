@@ -41,10 +41,10 @@ router.get('/debug/schema/:table', async (req, res) => {
 });
 
 /**
- * POST /api/admin/import-real-data
- * Importar estructura real desde Neon
+ * GET /api/admin/import-real-data  
+ * Importar estructura real desde Neon (triggered via GET for Railway compatibility)
  */
-router.post('/import-real-data', async (req, res) => {
+router.get('/import-real-data', async (req, res) => {
   try {
     console.log('🏢 Iniciando importación de estructura real...');
     

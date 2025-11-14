@@ -603,6 +603,117 @@ router.get('/users', async (req, res) => {
         });
       }
     }
+
+    // Debug: Setup adaptive tracking tables if ?debug=setup_adaptive query param
+    if (req.query.debug === 'setup_adaptive') {
+      try {
+        console.log('[ADMIN] Setting up adaptive tracking tables...');
+        
+        // 1. Create tracking_config_log table
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS tracking_config_log (
+              id BIGSERIAL PRIMARY KEY,
+              tracker_id VARCHAR(50) NOT NULL,
+              action VARCHAR(50) NOT NULL,
+              context VARCHAR(50),
+              ip_address INET,
+              metadata JSONB,
+              timestamp TIMESTAMP DEFAULT NOW()
+          )
+        `);
+
+        // 2. Create tracking_adaptation_log table
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS tracking_adaptation_log (
+              id BIGSERIAL PRIMARY KEY,
+              tracker_id VARCHAR(50) NOT NULL,
+              old_profile VARCHAR(50),
+              new_profile VARCHAR(50) NOT NULL,
+              reasons JSONB NOT NULL,
+              priority INTEGER,
+              conditions JSONB,
+              effectiveness_score DECIMAL(3,2),
+              timestamp TIMESTAMP DEFAULT NOW()
+          )
+        `);
+
+        // 3. Create tracking_profile_stats table
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS tracking_profile_stats (
+              id BIGSERIAL PRIMARY KEY,
+              tracker_id VARCHAR(50) NOT NULL,
+              profile VARCHAR(50) NOT NULL,
+              usage_duration_minutes INTEGER DEFAULT 0,
+              locations_received INTEGER DEFAULT 0,
+              average_accuracy DECIMAL(6,2),
+              average_battery_drain DECIMAL(5,2),
+              geofence_events INTEGER DEFAULT 0,
+              battery_efficiency_score DECIMAL(3,2),
+              accuracy_score DECIMAL(3,2),
+              coverage_score DECIMAL(3,2),
+              started_at TIMESTAMP NOT NULL,
+              ended_at TIMESTAMP,
+              last_updated TIMESTAMP DEFAULT NOW()
+          )
+        `);
+
+        // 4. Create indexes
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_config_log_tracker ON tracking_config_log(tracker_id, timestamp DESC)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_adaptation_log_tracker ON tracking_adaptation_log(tracker_id, timestamp DESC)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_profile_stats_tracker ON tracking_profile_stats(tracker_id, started_at DESC)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_gps_locations_user_battery ON gps_locations(user_id, battery) WHERE battery IS NOT NULL`);
+
+        // 5. Insert adaptive tracking configuration
+        await db.query(`
+          INSERT INTO tracking_config (key, value, data_type, description) VALUES 
+          ('adaptive_tracking_enabled', 'true', 'boolean', 'Activar/desactivar tracking adaptativo automático'),
+          ('adaptation_cooldown_minutes', '5', 'integer', 'Minutos entre adaptaciones automáticas'),
+          ('battery_critical_threshold', '10', 'integer', 'Porcentaje de batería crítico'),
+          ('battery_low_threshold', '20', 'integer', 'Porcentaje de batería bajo'),
+          ('accuracy_poor_threshold', '100', 'integer', 'Precisión GPS pobre (metros)'),
+          ('movement_stationary_threshold', '5', 'integer', 'Velocidad estacionaria (km/h)'),
+          ('adaptation_min_priority', '5', 'integer', 'Prioridad mínima para adaptación'),
+          ('profile_effectiveness_weight', '0.7', 'decimal', 'Peso del score de efectividad')
+          ON CONFLICT (key) DO NOTHING
+        `);
+
+        // 6. Verify tables created
+        const tablesResult = await db.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+            AND table_name IN ('tracking_config_log', 'tracking_adaptation_log', 'tracking_profile_stats')
+          ORDER BY table_name
+        `);
+
+        const configResult = await db.query(`
+          SELECT key, value 
+          FROM tracking_config 
+          WHERE key LIKE 'adaptive_%' OR key LIKE '%threshold%' OR key LIKE '%cooldown%'
+          ORDER BY key
+        `);
+
+        return res.json({
+          debug: 'setup_adaptive',
+          success: true,
+          message: 'Adaptive tracking system setup completed successfully',
+          created_tables: tablesResult.rows.map(r => r.table_name),
+          config_entries: configResult.rows.length,
+          adaptive_configs: configResult.rows,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (adaptiveError) {
+        console.error('[ADMIN] Error setting up adaptive tracking:', adaptiveError);
+        return res.json({
+          debug: 'setup_adaptive_error',
+          error: adaptiveError.message,
+          code: adaptiveError.code,
+          detail: adaptiveError.detail,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
     
     // Normal users listing
     const result = await db.query(`

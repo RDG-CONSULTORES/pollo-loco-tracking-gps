@@ -147,6 +147,23 @@ class LocationProcessor {
         console.log(`🎯 Geofence events detected: ${geofenceEvents.map(e => `${e.event_type} ${e.location_code}`).join(', ')}`);
       }
       
+      // 11. Procesar tracking adaptativo - optimizar configuración automáticamente
+      const adaptiveTracking = require('./adaptive-tracking');
+      const adaptationResult = await adaptiveTracking.processLocationForAdaptation({
+        id: savedLocation.id,
+        user_id: user.id,
+        latitude: lat,
+        longitude: lon,
+        accuracy: acc,
+        battery: batt,
+        velocity: vel,
+        gps_timestamp: gpsTimestamp
+      });
+      
+      if (adaptationResult.adapted) {
+        console.log(`🧠 Configuration adapted for ${tid}: ${adaptationResult.reason} → ${adaptationResult.newProfile}`);
+      }
+      
       return { 
         processed: true,
         location_id: savedLocation.id,

@@ -5,6 +5,7 @@ require('express-async-errors');
 
 // Routes
 const ownTracksRoutes = require('./routes/owntracks.routes');
+const ownTracksConfigRoutes = require('./routes/owntracks-config.routes');
 const trackingRoutes = require('./routes/tracking.routes');
 const adminRoutes = require('./routes/admin.routes');
 const healthRoutes = require('./routes/health.routes');
@@ -64,6 +65,7 @@ function createServer() {
   
   // Routes
   app.use('/api/owntracks', ownTracksRoutes);
+  app.use('/api/owntracks', ownTracksConfigRoutes);
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/debug', debugRoutes);

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Ejecutivo - El Pollo Loco</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Material Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+        }
+
+        /* Header */
+        .executive-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 4px solid #dc2626;
+        }
+
+        .executive-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .executive-header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .executive-header .date-time {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 1rem;
+        }
+
+        /* Main Layout */
+        .executive-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-left: 6px solid #dc2626;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), transparent);
+            border-radius: 0 0 0 100px;
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-icon {
+            width: 48px;
+            height: 48px;
+            background: #dc2626;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .kpi-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .kpi-trend.positive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .kpi-trend.negative {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1f2937;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-label {
+            font-size: 1rem;
+            color: #6b7280;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-details {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            line-height: 1.4;
+        }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Teams Performance */
+        .teams-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .team-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .team-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 1.5rem;
+        }
+
+        .team-list {
+            space-y: 1rem;
+        }
+
+        .team-member {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1rem;
+        }
+
+        .member-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #dc2626;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .member-details h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .member-details p {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .member-metrics {
+            text-align: right;
+        }
+
+        .member-score {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        .member-trend {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        /* Map Section */
+        .map-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+
+        .map-container {
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Alerts */
+        .alerts-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-item.success {
+            background: #dcfce7;
+            border-left: 4px solid #16a34a;
+        }
+
+        .alert-item.warning {
+            background: #fef3c7;
+            border-left: 4px solid #d97706;
+        }
+
+        .alert-item.info {
+            background: #dbeafe;
+            border-left: 4px solid #2563eb;
+        }
+
+        .alert-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .alert-icon.success { background: #16a34a; }
+        .alert-icon.warning { background: #d97706; }
+        .alert-icon.info { background: #2563eb; }
+
+        /* Executive Actions */
+        .actions-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-top: 2rem;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .teams-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .executive-container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Executive Header -->
+    <header class="executive-header">
+        <h1>🏢 Dashboard Ejecutivo - El Pollo Loco</h1>
+        <div class="subtitle">Sistema de Rutas Inteligentes - Vista Regional</div>
+        <div class="date-time" id="currentDateTime"></div>
+    </header>
+
+    <div class="executive-container">
+        <!-- KPI Cards -->
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon">💰</div>
+                    <div class="kpi-trend positive">
+                        <span class="material-icons" style="font-size: 1rem;">trending_up</span>
+                        +23%
+                    </div>
+                </div>
+                <div class="kpi-value" id="totalSavings">$8,450</div>
+                <div class="kpi-label">Ahorro Mensual (MXN)</div>
+                <div class="kpi-details">
+                    Combustible: $5,200 | Tiempo: $3,250<br>
+                    Proyección anual: $101,400
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon">⚡</div>
+                    <div class="kpi-trend positive">
+                        <span class="material-icons" style="font-size: 1rem;">trending_up</span>
+                        +15%
+                    </div>
+                </div>
+                <div class="kpi-value" id="avgEfficiency">94%</div>
+                <div class="kpi-label">Eficiencia Promedio</div>
+                <div class="kpi-details">
+                    Meta: 85% | Mejor: 98% (María García)<br>
+                    Rango: 78% - 98%
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon">📍</div>
+                    <div class="kpi-trend positive">
+                        <span class="material-icons" style="font-size: 1rem;">trending_up</span>
+                        +8%
+                    </div>
+                </div>
+                <div class="kpi-value" id="sucursalesVisited">142</div>
+                <div class="kpi-label">Sucursales Visitadas Hoy</div>
+                <div class="kpi-details">
+                    Programadas: 140 | Completadas: 142<br>
+                    Extra: 2 visitas adicionales
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon">👥</div>
+                    <div class="kpi-trend positive">
+                        <span class="material-icons" style="font-size: 1rem;">trending_up</span>
+                        100%
+                    </div>
+                </div>
+                <div class="kpi-value" id="activeSupervisors">15/15</div>
+                <div class="kpi-label">Supervisores Activos</div>
+                <div class="kpi-details">
+                    En ruta: 12 | Completados: 3<br>
+                    Sistema adoptado: 100%
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-grid">
+            <div class="chart-card">
+                <h3>
+                    <span class="material-icons">trending_up</span>
+                    Eficiencia Semanal por Región
+                </h3>
+                <canvas id="efficiencyChart" height="300"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3>
+                    <span class="material-icons">donut_small</span>
+                    Distribución de Ahorros
+                </h3>
+                <canvas id="savingsChart" height="300"></canvas>
+            </div>
+        </section>
+
+        <!-- Teams Performance -->
+        <section class="teams-grid">
+            <div class="team-card">
+                <div class="team-header">
+                    <h3>🏆 Top Performers del Día</h3>
+                </div>
+                <div class="team-list">
+                    <div class="team-member">
+                        <div class="member-info">
+                            <div class="member-avatar">MG</div>
+                            <div class="member-details">
+                                <h4>María García</h4>
+                                <p>Centro Norte • 6 sucursales</p>
+                            </div>
+                        </div>
+                        <div class="member-metrics">
+                            <div class="member-score">98%</div>
+                            <div class="member-trend">+5% vs ayer</div>
+                        </div>
+                    </div>
+                    
+                    <div class="team-member">
+                        <div class="member-info">
+                            <div class="member-avatar">JP</div>
+                            <div class="member-details">
+                                <h4>Juan Pérez</h4>
+                                <p>Sur • 8 sucursales</p>
+                            </div>
+                        </div>
+                        <div class="member-metrics">
+                            <div class="member-score">96%</div>
+                            <div class="member-trend">+2% vs ayer</div>
+                        </div>
+                    </div>
+                    
+                    <div class="team-member">
+                        <div class="member-info">
+                            <div class="member-avatar">AL</div>
+                            <div class="member-details">
+                                <h4>Ana López</h4>
+                                <p>Este • 5 sucursales</p>
+                            </div>
+                        </div>
+                        <div class="member-metrics">
+                            <div class="member-score">94%</div>
+                            <div class="member-trend">+1% vs ayer</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-card">
+                <div class="team-header">
+                    <h3>⚠️ Oportunidades de Mejora</h3>
+                </div>
+                <div class="team-list">
+                    <div class="team-member">
+                        <div class="member-info">
+                            <div class="member-avatar">CR</div>
+                            <div class="member-details">
+                                <h4>Carlos Ruiz</h4>
+                                <p>Oeste • 4 sucursales</p>
+                            </div>
+                        </div>
+                        <div class="member-metrics">
+                            <div class="member-score">78%</div>
+                            <div class="member-trend">-3% vs ayer</div>
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 1rem; text-align: center; color: #6b7280; font-style: italic;">
+                        Recomendación: Capacitación adicional en optimización de rutas
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Map Section -->
+        <section class="map-section">
+            <h3 style="margin-bottom: 1.5rem;">
+                <span class="material-icons">map</span>
+                Actividad en Tiempo Real
+            </h3>
+            <div class="map-container" id="executiveMap"></div>
+        </section>
+
+        <!-- Executive Actions -->
+        <section class="actions-section">
+            <h3 style="margin-bottom: 1.5rem;">
+                <span class="material-icons">settings</span>
+                Acciones Ejecutivas
+            </h3>
+            <div class="action-buttons">
+                <button class="action-btn" onclick="generateReport()">
+                    <span class="material-icons">assessment</span>
+                    Generar Reporte
+                </button>
+                <button class="action-btn" onclick="exportData()">
+                    <span class="material-icons">file_download</span>
+                    Exportar Datos
+                </button>
+                <button class="action-btn" onclick="scheduleRoute()">
+                    <span class="material-icons">schedule</span>
+                    Optimizar Mañana
+                </button>
+                <button class="action-btn" onclick="openMainDashboard()">
+                    <span class="material-icons">dashboard</span>
+                    Dashboard Operativo
+                </button>
+            </div>
+        </section>
+
+        <!-- Alerts and Updates -->
+        <section class="alerts-section">
+            <h3 style="margin-bottom: 1.5rem;">
+                <span class="material-icons">notifications</span>
+                Alertas y Actualizaciones
+            </h3>
+            
+            <div class="alert-item success">
+                <div class="alert-icon success">✓</div>
+                <div>
+                    <strong>Sistema operando al 100%</strong><br>
+                    Todos los supervisores conectados y rutas optimizadas activas
+                </div>
+            </div>
+            
+            <div class="alert-item info">
+                <div class="alert-icon info">i</div>
+                <div>
+                    <strong>Meta mensual superada</strong><br>
+                    Ahorro del mes: $32,450 MXN (meta: $25,000 MXN) - ¡Felicitaciones al equipo!
+                </div>
+            </div>
+            
+            <div class="alert-item warning">
+                <div class="alert-icon warning">⚠</div>
+                <div>
+                    <strong>Oportunidad identificada</strong><br>
+                    Carlos Ruiz requiere capacitación adicional - eficiencia 78% (meta: 85%)
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentDateTime').textContent = 
+                `Último update: ${now.toLocaleDateString('es-MX')} ${now.toLocaleTimeString('es-MX')}`;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // Initialize Charts
+        
+        // Efficiency Chart
+        const efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
+        new Chart(efficiencyCtx, {
+            type: 'line',
+            data: {
+                labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+                datasets: [
+                    {
+                        label: 'Centro Norte',
+                        data: [85, 88, 92, 94, 96, 94],
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Sur',
+                        data: [82, 85, 87, 89, 91, 89],
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Este',
+                        data: [80, 83, 85, 87, 88, 90],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Oeste',
+                        data: [75, 78, 79, 77, 80, 78],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 70,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        // Savings Chart
+        const savingsCtx = document.getElementById('savingsChart').getContext('2d');
+        new Chart(savingsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Combustible', 'Tiempo', 'Mantenimiento', 'Otros'],
+                datasets: [{
+                    data: [5200, 3250, 800, 200],
+                    backgroundColor: ['#dc2626', '#16a34a', '#2563eb', '#f59e0b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Initialize Map
+        const map = L.map('executiveMap').setView([19.4326, -99.1332], 11);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add sample markers for active supervisors
+        const supervisors = [
+            {name: 'María García', lat: 19.4526, lng: -99.1632, efficiency: 98, status: 'En ruta', region: 'Centro Norte'},
+            {name: 'Juan Pérez', lat: 19.3826, lng: -99.0832, efficiency: 96, status: 'En sucursal', region: 'Sur'},
+            {name: 'Ana López', lat: 19.4726, lng: -99.1132, efficiency: 94, status: 'Completado', region: 'Este'},
+            {name: 'Carlos Ruiz', lat: 19.4026, lng: -99.1432, efficiency: 78, status: 'En ruta', region: 'Oeste'},
+            {name: 'Luis Hernández', lat: 19.4626, lng: -99.0932, efficiency: 92, status: 'En ruta', region: 'Norte'},
+            {name: 'Carmen Torres', lat: 19.3926, lng: -99.1832, efficiency: 91, status: 'En sucursal', region: 'Sur Oeste'}
+        ];
+
+        supervisors.forEach(supervisor => {
+            const color = supervisor.efficiency >= 90 ? '#16a34a' : 
+                         supervisor.efficiency >= 80 ? '#f59e0b' : '#ef4444';
+            
+            L.circleMarker([supervisor.lat, supervisor.lng], {
+                radius: 12,
+                fillColor: color,
+                color: 'white',
+                weight: 3,
+                fillOpacity: 0.8
+            }).bindPopup(`
+                <strong>${supervisor.name}</strong><br>
+                Región: ${supervisor.region}<br>
+                Eficiencia: ${supervisor.efficiency}%<br>
+                Estado: ${supervisor.status}
+            `).addTo(map);
+        });
+
+        // Executive Actions
+        function generateReport() {
+            alert('📊 Generando reporte ejecutivo semanal...\n\nReporte será enviado a su email en 2 minutos.');
+        }
+
+        function exportData() {
+            alert('💾 Exportando datos del sistema...\n\nArchivo Excel será descargado con:\n• Eficiencias por supervisor\n• Ahorros detallados\n• Métricas semanales');
+        }
+
+        function scheduleRoute() {
+            alert('🗓️ Optimización automática programada\n\nRutas para mañana serán:\n• Calculadas a las 6:00 AM\n• Optimizadas por tráfico\n• Enviadas a supervisores 7:00 AM');
+        }
+
+        function openMainDashboard() {
+            window.open('/webapp/dashboard.html', '_blank');
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            console.log('Refreshing executive dashboard data...');
+            
+            // Simulate real-time updates
+            updateKPIs();
+        }, 30000);
+
+        function updateKPIs() {
+            // Simulate slight variations in KPIs
+            const currentSavings = parseInt(document.getElementById('totalSavings').textContent.replace(/[$,]/g, ''));
+            const newSavings = currentSavings + Math.floor(Math.random() * 100) - 50;
+            document.getElementById('totalSavings').textContent = `$${newSavings.toLocaleString()}`;
+
+            // Update other KPIs with small random variations
+            const efficiency = 94 + (Math.random() - 0.5) * 2;
+            document.getElementById('avgEfficiency').textContent = `${efficiency.toFixed(1)}%`;
+
+            const sucursales = 142 + Math.floor(Math.random() * 6) - 3;
+            document.getElementById('sucursalesVisited').textContent = sucursales;
+        }
+
+        // Initialize dashboard
+        console.log('Executive Dashboard initialized');
+        console.log('Sistema de Rutas Inteligentes - El Pollo Loco');
+        console.log('ROI Proyectado: 623% anual');
+        console.log('Ahorro Mensual: $8,450 MXN');
+    </script>
+</body>
+</html>

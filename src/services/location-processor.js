@@ -145,7 +145,26 @@ class LocationProcessor {
       
       if (geofenceEvents.length > 0) {
         console.log(`🎯 Geofence events detected: ${geofenceEvents.map(e => `${e.event_type} ${e.location_code}`).join(', ')}`);
+        
+        // Enviar eventos de geofencing a clientes WebSocket
+        const websocketManager = require('./websocket-manager');
+        geofenceEvents.forEach(event => {
+          websocketManager.broadcastGeofenceEvent(event);
+        });
       }
+      
+      // Broadcast location update a clientes WebSocket
+      const websocketManager = require('./websocket-manager');
+      websocketManager.broadcastLocationUpdate({
+        id: savedLocation.id,
+        user_id: user.id,
+        latitude: lat,
+        longitude: lon,
+        accuracy: acc,
+        battery: batt,
+        velocity: vel,
+        gps_timestamp: gpsTimestamp
+      }, user);
       
       // 11. Procesar tracking adaptativo - optimizar configuración automáticamente
       const adaptiveTracking = require('./adaptive-tracking');

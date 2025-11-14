@@ -10,6 +10,7 @@ const trackingRoutes = require('./routes/tracking.routes');
 const adminRoutes = require('./routes/admin.routes');
 const healthRoutes = require('./routes/health.routes');
 const debugRoutes = require('./routes/debug.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 /**
  * Configurar servidor Express
@@ -32,6 +33,15 @@ function createServer() {
   
   // Servir archivos estáticos (Telegram Web App)
   app.use('/webapp', express.static(path.join(__dirname, '../webapp')));
+  
+  // Rutas específicas para el dashboard
+  app.get('/webapp/dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/dashboard.html'));
+  });
+  
+  app.get('/webapp/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/login.html'));
+  });
   
   // Middleware de logging
   app.use((req, res, next) => {
@@ -58,6 +68,7 @@ function createServer() {
         owntracks: '/api/owntracks/location',
         admin: '/api/admin/*',
         debug: '/api/debug/*',
+        dashboard: '/api/dashboard/*',
         webapp: '/webapp'
       }
     });
@@ -69,6 +80,7 @@ function createServer() {
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/debug', debugRoutes);
+  app.use('/api/dashboard', dashboardRoutes);
   app.use('/health', healthRoutes);
   
   // Middleware de manejo de errores
@@ -119,6 +131,7 @@ function startServer() {
   const server = app.listen(port, () => {
     console.log(`🚀 API Server running on port ${port}`);
     console.log(`📱 Web App available at: /webapp`);
+    console.log(`🗺️ Dashboard available at: /webapp/dashboard.html`);
     console.log(`🔗 OwnTracks endpoint: /api/owntracks/location`);
     console.log(`💚 Health endpoint: /health`);
     
@@ -127,6 +140,11 @@ function startServer() {
     } else {
       console.log(`🌐 Local URL: http://localhost:${port}`);
     }
+    
+    // Inicializar WebSocket
+    const websocketManager = require('../services/websocket-manager');
+    websocketManager.initialize(server);
+    websocketManager.startHeartbeat();
     
     // Log todas las rutas registradas
     console.log('\n📋 Rutas registradas:');

@@ -1,0 +1,927 @@
+/**
+ * Pollo Loco GPS Dashboard
+ * Dashboard en tiempo real con mapa Leaflet y WebSocket
+ */
+
+class GPSDashboard {
+    constructor() {
+        this.ws = null;
+        this.map = null;
+        this.markers = new Map(); // Map<userId, marker>
+        this.geofenceMarkers = new Map(); // Map<geofenceId, circle>
+        this.userTrails = new Map(); // Map<userId, polyline>
+        this.users = new Map(); // Map<userId, userData>
+        this.geofences = new Map(); // Map<geofenceId, geofenceData>
+        
+        // Estados
+        this.selectedUser = null;
+        this.showGeofences = true;
+        this.showTrails = false;
+        this.currentFilter = 'all';
+        this.notifications = [];
+        
+        // Configuración
+        this.config = {
+            monterrey: { lat: 25.6866, lng: -100.3161 }, // Centro de Monterrey
+            defaultZoom: 11,
+            maxNotifications: 5,
+            notificationTimeout: 10000, // 10 segundos
+            reconnectInterval: 5000,
+            heartbeatInterval: 30000
+        };
+
+        this.init();
+    }
+
+    /**
+     * Inicializar dashboard
+     */
+    async init() {
+        console.log('🚀 Inicializando GPS Dashboard...');
+        
+        try {
+            // Verificar autenticación
+            if (!this.checkAuthentication()) {
+                window.location.href = '/webapp/login.html';
+                return;
+            }
+            
+            this.initializeMap();
+            this.initializeUI();
+            this.connectWebSocket();
+            this.updateUserInfo();
+            this.hideLoading();
+            
+            console.log('✅ Dashboard inicializado correctamente');
+        } catch (error) {
+            console.error('❌ Error inicializando dashboard:', error);
+            this.showError('Error inicializando dashboard');
+        }
+    }
+
+    /**
+     * Verificar autenticación del usuario
+     */
+    checkAuthentication() {
+        const session = localStorage.getItem('gps-dashboard-session');
+        if (!session) return false;
+        
+        try {
+            const sessionData = JSON.parse(session);
+            const loginTime = new Date(sessionData.loginTime);
+            const now = new Date();
+            
+            // Sesión válida por 24 horas
+            const sessionDuration = 24 * 60 * 60 * 1000;
+            
+            if ((now - loginTime) > sessionDuration) {
+                localStorage.removeItem('gps-dashboard-session');
+                return false;
+            }
+            
+            this.currentUserSession = sessionData;
+            return true;
+        } catch {
+            localStorage.removeItem('gps-dashboard-session');
+            return false;
+        }
+    }
+
+    /**
+     * Actualizar información del usuario en el header
+     */
+    updateUserInfo() {
+        if (this.currentUserSession) {
+            const userElement = document.getElementById('currentUser');
+            const roleText = this.getRoleDisplayName(this.currentUserSession.userRole);
+            userElement.textContent = `${this.currentUserSession.trackerId} (${roleText})`;
+        }
+    }
+
+    /**
+     * Obtener nombre de visualización del rol
+     */
+    getRoleDisplayName(role) {
+        const roles = {
+            'auditor': 'Auditor',
+            'director': 'Director',
+            'gerente': 'Gerente', 
+            'supervisor': 'Supervisor',
+            'usuario': 'Usuario'
+        };
+        return roles[role] || role;
+    }
+
+    /**
+     * Inicializar mapa Leaflet
+     */
+    initializeMap() {
+        console.log('🗺️ Inicializando mapa...');
+        
+        // Crear mapa centrado en Monterrey
+        this.map = L.map('map').setView([this.config.monterrey.lat, this.config.monterrey.lng], this.config.defaultZoom);
+
+        // Agregar tile layer de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.map);
+
+        // Configurar eventos del mapa
+        this.map.on('click', () => {
+            this.clearUserSelection();
+        });
+
+        console.log('✅ Mapa inicializado');
+    }
+
+    /**
+     * Inicializar interfaz de usuario
+     */
+    initializeUI() {
+        console.log('🎨 Inicializando UI...');
+        
+        // Event listeners para filtros
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.setFilter(e.target.dataset.filter);
+            });
+        });
+
+        // Event listener para búsqueda
+        document.getElementById('userSearch').addEventListener('input', (e) => {
+            this.filterUsers(e.target.value);
+        });
+
+        // Event listeners para controles del mapa
+        document.getElementById('showGeofences').addEventListener('click', () => {
+            this.toggleGeofences();
+        });
+
+        document.getElementById('centerMap').addEventListener('click', () => {
+            this.centerMap();
+        });
+
+        document.getElementById('showTrails').addEventListener('click', () => {
+            this.toggleTrails();
+        });
+
+        document.getElementById('toggleFullscreen').addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+
+        // Event listener para logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            this.logout();
+        });
+
+        console.log('✅ UI inicializada');
+    }
+
+    /**
+     * Conectar WebSocket
+     */
+    connectWebSocket() {
+        console.log('🔌 Conectando WebSocket...');
+        
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const token = this.getAuthToken();
+        const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+        
+        this.ws = new WebSocket(wsUrl);
+        
+        this.ws.onopen = () => {
+            console.log('✅ WebSocket conectado');
+            this.updateConnectionStatus(true);
+            this.subscribeToEvents();
+            this.startHeartbeat();
+        };
+        
+        this.ws.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                this.handleWebSocketMessage(message);
+            } catch (error) {
+                console.error('❌ Error procesando mensaje WebSocket:', error);
+            }
+        };
+        
+        this.ws.onclose = () => {
+            console.log('🔌 WebSocket desconectado');
+            this.updateConnectionStatus(false);
+            setTimeout(() => this.connectWebSocket(), this.config.reconnectInterval);
+        };
+        
+        this.ws.onerror = (error) => {
+            console.error('❌ Error WebSocket:', error);
+            this.updateConnectionStatus(false);
+        };
+    }
+
+    /**
+     * Suscribirse a eventos WebSocket
+     */
+    subscribeToEvents() {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'subscribe',
+                events: ['location_updates', 'geofence_events', 'system_alerts'],
+                filters: {}
+            }));
+            
+            // Solicitar datos iniciales
+            this.ws.send(JSON.stringify({ type: 'request_current_locations' }));
+            this.ws.send(JSON.stringify({ type: 'request_geofences' }));
+        }
+    }
+
+    /**
+     * Manejar mensajes WebSocket
+     */
+    handleWebSocketMessage(message) {
+        console.log(`📨 WebSocket mensaje: ${message.type}`);
+        
+        switch (message.type) {
+            case 'connection_established':
+                console.log('✅ Conexión WebSocket establecida');
+                break;
+                
+            case 'current_locations':
+                this.updateCurrentLocations(message.data);
+                break;
+                
+            case 'geofences':
+                this.updateGeofences(message.data);
+                break;
+                
+            case 'location_update':
+                this.handleLocationUpdate(message.data);
+                break;
+                
+            case 'geofence_event':
+                this.handleGeofenceEvent(message.data);
+                break;
+                
+            case 'system_stats':
+                this.updateSystemStats(message.data);
+                break;
+                
+            case 'subscription_confirmed':
+                console.log('📡 Suscripciones confirmadas:', message.events);
+                break;
+                
+            case 'error':
+                console.error('❌ Error del servidor:', message.error);
+                this.showNotification('Error: ' + message.error, 'error');
+                break;
+                
+            default:
+                console.log(`⚠️ Tipo de mensaje no manejado: ${message.type}`);
+        }
+    }
+
+    /**
+     * Actualizar ubicaciones actuales
+     */
+    updateCurrentLocations(locations) {
+        console.log(`📍 Actualizando ${locations.length} ubicaciones`);
+        
+        locations.forEach(location => {
+            this.updateUserLocation(location);
+        });
+        
+        this.updateUsersList();
+        this.updateStats();
+    }
+
+    /**
+     * Actualizar geofences (sucursales)
+     */
+    updateGeofences(geofences) {
+        console.log(`🎯 Actualizando ${geofences.length} geofences`);
+        
+        // Limpiar geofences existentes
+        this.geofenceMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.geofenceMarkers.clear();
+        
+        // Agregar nuevos geofences
+        geofences.forEach(geofence => {
+            this.geofences.set(geofence.id, geofence);
+            
+            if (this.showGeofences) {
+                this.addGeofenceToMap(geofence);
+            }
+        });
+    }
+
+    /**
+     * Manejar actualización de ubicación en tiempo real
+     */
+    handleLocationUpdate(data) {
+        console.log(`🔄 Ubicación actualizada: ${data.user.display_name}`);
+        
+        this.updateUserLocation({
+            user_id: data.user.id,
+            tracker_id: data.user.tracker_id,
+            display_name: data.user.display_name,
+            grupo: data.user.grupo,
+            latitude: data.location.latitude,
+            longitude: data.location.longitude,
+            accuracy: data.location.accuracy,
+            battery: data.location.battery,
+            velocity: data.location.velocity,
+            gps_timestamp: data.location.timestamp,
+            minutes_ago: 0
+        });
+        
+        this.updateUsersList();
+        this.updateStats();
+        
+        // Actualizar trail si está activo
+        if (this.showTrails) {
+            this.updateUserTrail(data.user.id, data.location);
+        }
+    }
+
+    /**
+     * Manejar evento de geofencing
+     */
+    handleGeofenceEvent(event) {
+        console.log(`🎯 Evento geofence: ${event.event_type} - ${event.location_name}`);
+        
+        const isEntry = event.event_type === 'enter';
+        const icon = isEntry ? '🟢' : '🔴';
+        const action = isEntry ? 'ENTRADA' : 'SALIDA';
+        
+        const notification = {
+            type: `geofence-${event.event_type}`,
+            title: `${icon} ${action} DETECTADA`,
+            message: `${event.user_name} - ${event.location_name}`,
+            timestamp: new Date(),
+            data: event
+        };
+        
+        this.showNotification(notification);
+        
+        // Destacar usuario en el mapa
+        this.highlightUserOnMap(event.user_id, isEntry);
+    }
+
+    /**
+     * Actualizar ubicación de usuario
+     */
+    updateUserLocation(location) {
+        const userId = location.user_id;
+        const user = {
+            id: userId,
+            tracker_id: location.tracker_id,
+            display_name: location.display_name,
+            grupo: location.grupo,
+            latitude: parseFloat(location.latitude),
+            longitude: parseFloat(location.longitude),
+            accuracy: location.accuracy,
+            battery: location.battery,
+            velocity: location.velocity,
+            timestamp: new Date(location.gps_timestamp),
+            minutesAgo: location.minutes_ago || 0
+        };
+        
+        this.users.set(userId, user);
+        
+        // Actualizar marker en el mapa
+        this.updateUserMarker(user);
+    }
+
+    /**
+     * Actualizar marker de usuario en el mapa
+     */
+    updateUserMarker(user) {
+        const existingMarker = this.markers.get(user.id);
+        
+        if (existingMarker) {
+            // Actualizar posición del marker existente
+            existingMarker.setLatLng([user.latitude, user.longitude]);
+            existingMarker.setPopupContent(this.createUserPopupContent(user));
+        } else {
+            // Crear nuevo marker
+            const icon = this.createUserIcon(user);
+            const marker = L.marker([user.latitude, user.longitude], { icon })
+                .bindPopup(this.createUserPopupContent(user))
+                .addTo(this.map);
+            
+            // Event listener para selección
+            marker.on('click', () => {
+                this.selectUser(user.id);
+            });
+            
+            this.markers.set(user.id, marker);
+        }
+    }
+
+    /**
+     * Crear icono personalizado para usuario
+     */
+    createUserIcon(user) {
+        const batteryLevel = user.battery || 0;
+        const isOnline = user.minutesAgo < 5;
+        
+        let color = '#10b981'; // Verde por defecto
+        if (!isOnline) {
+            color = '#6b7280'; // Gris para offline
+        } else if (batteryLevel < 10) {
+            color = '#ef4444'; // Rojo para batería crítica
+        } else if (batteryLevel < 20) {
+            color = '#f59e0b'; // Amarillo para batería baja
+        }
+        
+        const initials = user.display_name
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+        
+        return L.divIcon({
+            className: 'user-marker',
+            html: `
+                <div style="
+                    background: ${color};
+                    color: white;
+                    border-radius: 50%;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 11px;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                ">
+                    ${initials}
+                </div>
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+    }
+
+    /**
+     * Crear contenido del popup de usuario
+     */
+    createUserPopupContent(user) {
+        const batteryLevel = user.battery || 0;
+        const accuracy = user.accuracy || 0;
+        const velocity = user.velocity || 0;
+        
+        const batteryColor = batteryLevel < 20 ? '#ef4444' : batteryLevel < 50 ? '#f59e0b' : '#10b981';
+        
+        return `
+            <div style="min-width: 200px;">
+                <h3 style="margin: 0 0 8px 0; color: #1f2937;">${user.display_name}</h3>
+                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                    <div><strong>ID:</strong> ${user.tracker_id}</div>
+                    <div><strong>Grupo:</strong> ${user.grupo || 'N/A'}</div>
+                    <div><strong>Batería:</strong> <span style="color: ${batteryColor}">${batteryLevel}%</span></div>
+                    <div><strong>Precisión:</strong> ${accuracy}m</div>
+                    <div><strong>Velocidad:</strong> ${Math.round(velocity)} km/h</div>
+                    <div><strong>Última actualización:</strong> ${user.minutesAgo < 1 ? 'Ahora' : user.minutesAgo + ' min'}</div>
+                    <div><strong>Coordenadas:</strong> ${user.latitude.toFixed(6)}, ${user.longitude.toFixed(6)}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Agregar geofence al mapa
+     */
+    addGeofenceToMap(geofence) {
+        const circle = L.circle([geofence.latitude, geofence.longitude], {
+            color: '#dc2626',
+            fillColor: '#dc2626',
+            fillOpacity: 0.1,
+            radius: geofence.radius_meters || 150,
+            weight: 2
+        }).bindPopup(`
+            <div>
+                <h4 style="margin: 0 0 8px 0;">${geofence.location_name}</h4>
+                <div style="font-size: 12px;">
+                    <div><strong>Código:</strong> ${geofence.location_code}</div>
+                    <div><strong>Grupo:</strong> ${geofence.grupo || 'N/A'}</div>
+                    <div><strong>Radio:</strong> ${geofence.radius_meters}m</div>
+                </div>
+            </div>
+        `).addTo(this.map);
+        
+        this.geofenceMarkers.set(geofence.id, circle);
+    }
+
+    /**
+     * Actualizar lista de usuarios en sidebar
+     */
+    updateUsersList() {
+        const usersList = document.getElementById('usersList');
+        const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+        
+        // Filtrar y ordenar usuarios
+        let filteredUsers = Array.from(this.users.values()).filter(user => {
+            // Filtro de búsqueda
+            if (searchTerm && !user.display_name.toLowerCase().includes(searchTerm)) {
+                return false;
+            }
+            
+            // Filtro por estado
+            switch (this.currentFilter) {
+                case 'online':
+                    return user.minutesAgo < 5;
+                case 'geofence':
+                    return this.isUserInGeofence(user);
+                case 'battery':
+                    return (user.battery || 0) < 20;
+                default:
+                    return true;
+            }
+        }).sort((a, b) => a.minutesAgo - b.minutesAgo);
+        
+        // Renderizar lista
+        usersList.innerHTML = filteredUsers.map(user => this.renderUserItem(user)).join('');
+        
+        // Agregar event listeners
+        usersList.querySelectorAll('.user-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const userId = parseInt(item.dataset.userId);
+                this.selectUser(userId);
+            });
+        });
+    }
+
+    /**
+     * Renderizar item de usuario
+     */
+    renderUserItem(user) {
+        const batteryLevel = user.battery || 0;
+        const isOnline = user.minutesAgo < 5;
+        const isSelected = user.id === this.selectedUser;
+        
+        let statusClass = 'offline';
+        if (isOnline) {
+            if (batteryLevel < 10) statusClass = 'battery-critical';
+            else if (batteryLevel < 20) statusClass = 'battery-low';
+            else statusClass = 'online';
+        }
+        
+        const initials = user.display_name
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+        
+        return `
+            <div class="user-item ${isSelected ? 'selected' : ''}" data-user-id="${user.id}">
+                <div class="user-avatar">${initials}</div>
+                <div class="user-info-item">
+                    <div class="user-name">${user.display_name}</div>
+                    <div class="user-details">${user.grupo || 'Sin grupo'} • ${user.tracker_id}</div>
+                    <div class="user-status">
+                        <div class="status-indicator ${statusClass}"></div>
+                        <span>Batería: ${batteryLevel}% • ${user.minutesAgo < 1 ? 'Ahora' : user.minutesAgo + ' min'}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Verificar si usuario está en algún geofence
+     */
+    isUserInGeofence(user) {
+        for (const geofence of this.geofences.values()) {
+            const distance = this.calculateDistance(
+                user.latitude, user.longitude,
+                geofence.latitude, geofence.longitude
+            );
+            if (distance <= (geofence.radius_meters || 150)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Calcular distancia entre dos puntos (metros)
+     */
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000; // Radio de la Tierra en metros
+        const dLat = this.toRadians(lat2 - lat1);
+        const dLon = this.toRadians(lon2 - lon1);
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    toRadians(degrees) {
+        return degrees * (Math.PI/180);
+    }
+
+    /**
+     * Actualizar estadísticas
+     */
+    updateStats() {
+        const users = Array.from(this.users.values());
+        
+        const totalUsers = users.length;
+        const onlineUsers = users.filter(u => u.minutesAgo < 5).length;
+        const inGeofence = users.filter(u => this.isUserInGeofence(u)).length;
+        const batteryLow = users.filter(u => (u.battery || 0) < 20).length;
+        
+        document.getElementById('totalUsers').textContent = totalUsers;
+        document.getElementById('onlineUsers').textContent = onlineUsers;
+        document.getElementById('inGeofence').textContent = inGeofence;
+        document.getElementById('batteryLow').textContent = batteryLow;
+    }
+
+    /**
+     * Seleccionar usuario
+     */
+    selectUser(userId) {
+        this.selectedUser = userId;
+        const user = this.users.get(userId);
+        
+        if (user) {
+            // Centrar mapa en usuario
+            this.map.setView([user.latitude, user.longitude], 15);
+            
+            // Abrir popup
+            const marker = this.markers.get(userId);
+            if (marker) {
+                marker.openPopup();
+            }
+        }
+        
+        this.updateUsersList();
+    }
+
+    /**
+     * Limpiar selección de usuario
+     */
+    clearUserSelection() {
+        this.selectedUser = null;
+        this.updateUsersList();
+    }
+
+    /**
+     * Establecer filtro
+     */
+    setFilter(filter) {
+        this.currentFilter = filter;
+        
+        // Actualizar UI de filtros
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filter);
+        });
+        
+        this.updateUsersList();
+    }
+
+    /**
+     * Filtrar usuarios por texto
+     */
+    filterUsers(searchTerm) {
+        this.updateUsersList();
+    }
+
+    /**
+     * Toggle geofences
+     */
+    toggleGeofences() {
+        this.showGeofences = !this.showGeofences;
+        const btn = document.getElementById('showGeofences');
+        
+        if (this.showGeofences) {
+            this.geofences.forEach(geofence => {
+                this.addGeofenceToMap(geofence);
+            });
+            btn.classList.add('active');
+        } else {
+            this.geofenceMarkers.forEach(marker => {
+                this.map.removeLayer(marker);
+            });
+            this.geofenceMarkers.clear();
+            btn.classList.remove('active');
+        }
+    }
+
+    /**
+     * Centrar mapa
+     */
+    centerMap() {
+        if (this.users.size > 0) {
+            const bounds = L.latLngBounds();
+            this.users.forEach(user => {
+                bounds.extend([user.latitude, user.longitude]);
+            });
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+        } else {
+            this.map.setView([this.config.monterrey.lat, this.config.monterrey.lng], this.config.defaultZoom);
+        }
+    }
+
+    /**
+     * Toggle trails
+     */
+    toggleTrails() {
+        this.showTrails = !this.showTrails;
+        const btn = document.getElementById('showTrails');
+        
+        if (this.showTrails) {
+            btn.classList.add('active');
+            // Cargar trails para usuarios visibles
+            this.loadUserTrails();
+        } else {
+            btn.classList.remove('active');
+            // Limpiar trails
+            this.userTrails.forEach(trail => {
+                this.map.removeLayer(trail);
+            });
+            this.userTrails.clear();
+        }
+    }
+
+    /**
+     * Toggle fullscreen
+     */
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    /**
+     * Mostrar notificación
+     */
+    showNotification(notification, type = 'info') {
+        const panel = document.getElementById('notificationsPanel');
+        
+        if (typeof notification === 'string') {
+            notification = {
+                type: type,
+                title: type === 'error' ? 'Error' : 'Notificación',
+                message: notification,
+                timestamp: new Date()
+            };
+        }
+        
+        this.notifications.unshift(notification);
+        
+        // Limitar número de notificaciones
+        if (this.notifications.length > this.config.maxNotifications) {
+            this.notifications = this.notifications.slice(0, this.config.maxNotifications);
+        }
+        
+        this.renderNotifications();
+        
+        // Auto-remove después del timeout
+        setTimeout(() => {
+            this.removeNotification(notification);
+        }, this.config.notificationTimeout);
+    }
+
+    /**
+     * Renderizar notificaciones
+     */
+    renderNotifications() {
+        const panel = document.getElementById('notificationsPanel');
+        
+        panel.innerHTML = this.notifications.map(notification => `
+            <div class="notification ${notification.type}">
+                <div style="font-weight: 600; margin-bottom: 4px;">${notification.title}</div>
+                <div style="font-size: 0.875rem; color: #64748b;">${notification.message}</div>
+                <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                    ${notification.timestamp.toLocaleTimeString()}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /**
+     * Remover notificación
+     */
+    removeNotification(notification) {
+        const index = this.notifications.indexOf(notification);
+        if (index > -1) {
+            this.notifications.splice(index, 1);
+            this.renderNotifications();
+        }
+    }
+
+    /**
+     * Destacar usuario en el mapa
+     */
+    highlightUserOnMap(userId, isEntry) {
+        const marker = this.markers.get(userId);
+        if (marker) {
+            // Crear efecto de highlight temporal
+            const originalIcon = marker.getIcon();
+            const highlightColor = isEntry ? '#10b981' : '#f59e0b';
+            
+            // Cambiar temporalmente el icono
+            setTimeout(() => {
+                marker.setIcon(originalIcon);
+            }, 3000);
+            
+            // Abrir popup
+            marker.openPopup();
+        }
+    }
+
+    /**
+     * Cargar trails de usuarios
+     */
+    async loadUserTrails() {
+        // TODO: Implementar carga de trails desde API
+        console.log('🛤️ Cargando trails de usuarios...');
+    }
+
+    /**
+     * Actualizar estado de conexión
+     */
+    updateConnectionStatus(connected) {
+        const dot = document.getElementById('connectionDot');
+        const status = document.getElementById('connectionStatus');
+        
+        if (connected) {
+            dot.classList.remove('disconnected');
+            status.textContent = 'Conectado';
+        } else {
+            dot.classList.add('disconnected');
+            status.textContent = 'Desconectado';
+        }
+    }
+
+    /**
+     * Logout del usuario
+     */
+    logout() {
+        localStorage.removeItem('gps-dashboard-session');
+        window.location.href = '/webapp/login.html';
+    }
+
+    /**
+     * Obtener token de autenticación
+     */
+    getAuthToken() {
+        if (this.currentUserSession) {
+            return this.currentUserSession.trackerId;
+        }
+        return 'RD01'; // Fallback
+    }
+
+    /**
+     * Iniciar heartbeat
+     */
+    startHeartbeat() {
+        setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, this.config.heartbeatInterval);
+    }
+
+    /**
+     * Ocultar loading
+     */
+    hideLoading() {
+        const loading = document.getElementById('loadingOverlay');
+        if (loading) {
+            loading.style.display = 'none';
+        }
+    }
+
+    /**
+     * Mostrar error
+     */
+    showError(message) {
+        console.error('❌', message);
+        this.showNotification(message, 'error');
+    }
+}
+
+// Inicializar dashboard cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    window.gpsDashboard = new GPSDashboard();
+});
+
+// Manejar errores globales
+window.addEventListener('error', (event) => {
+    console.error('❌ Error global:', event.error);
+    if (window.gpsDashboard) {
+        window.gpsDashboard.showError('Error en la aplicación');
+    }
+});

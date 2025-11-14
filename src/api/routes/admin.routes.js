@@ -715,6 +715,85 @@ router.get('/users', async (req, res) => {
       }
     }
     
+    // Debug: Setup roles and permissions if ?debug=setup_roles query param
+    if (req.query.debug === 'setup_roles') {
+      try {
+        console.log('[ADMIN] Setting up roles and permissions system...');
+        
+        // Agregar columnas de rol y grupo si no existen
+        await db.query(`
+          ALTER TABLE tracking_users 
+          ADD COLUMN IF NOT EXISTS rol VARCHAR(20) DEFAULT 'usuario',
+          ADD COLUMN IF NOT EXISTS grupo VARCHAR(50) DEFAULT NULL
+        `);
+        
+        // Crear tabla de roles si no existe
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS user_roles (
+            id SERIAL PRIMARY KEY,
+            role_name VARCHAR(20) UNIQUE NOT NULL,
+            display_name VARCHAR(50) NOT NULL,
+            description TEXT,
+            permissions JSONB DEFAULT '{}',
+            active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+        
+        // Insertar roles por defecto
+        await db.query(`
+          INSERT INTO user_roles (role_name, display_name, description, permissions) VALUES
+          ('auditor', 'Auditor', 'Acceso completo a todos los usuarios y sucursales', '{"view_all_users": true, "view_all_geofences": true, "view_all_reports": true, "admin_access": true}'),
+          ('director', 'Director', 'Acceso a usuarios y sucursales de su grupo', '{"view_group_users": true, "view_group_geofences": true, "view_group_reports": true}'),
+          ('gerente', 'Gerente', 'Acceso a usuarios de su grupo', '{"view_group_users": true, "view_group_reports": true}'),
+          ('supervisor', 'Supervisor', 'Acceso limitado de solo lectura', '{"view_own_reports": true}'),
+          ('usuario', 'Usuario', 'Acceso básico de tracking', '{"basic_tracking": true}')
+          ON CONFLICT (role_name) DO UPDATE SET
+            display_name = EXCLUDED.display_name,
+            description = EXCLUDED.description,
+            permissions = EXCLUDED.permissions
+        `);
+        
+        // Actualizar usuarios existentes con roles por defecto
+        await db.query(`
+          UPDATE tracking_users 
+          SET rol = 'auditor',
+              grupo = 'TEPEYAC'
+          WHERE tracker_id = 'RD01' OR tracker_id = '01'
+        `);
+        
+        // Verificar setup
+        const rolesResult = await db.query('SELECT * FROM user_roles ORDER BY role_name');
+        const usersResult = await db.query(`
+          SELECT tracker_id, display_name, rol, grupo 
+          FROM tracking_users 
+          WHERE rol IS NOT NULL 
+          ORDER BY display_name
+        `);
+        
+        return res.json({
+          debug: 'setup_roles',
+          success: true,
+          message: 'Roles and permissions setup completed',
+          roles_created: rolesResult.rows.length,
+          roles: rolesResult.rows,
+          users_with_roles: usersResult.rows.length,
+          users: usersResult.rows,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (rolesError) {
+        console.error('[ADMIN] Error setting up roles:', rolesError);
+        return res.json({
+          debug: 'setup_roles_error',
+          error: rolesError.message,
+          code: rolesError.code,
+          detail: rolesError.detail,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Normal users listing
     const result = await db.query(`
       SELECT 

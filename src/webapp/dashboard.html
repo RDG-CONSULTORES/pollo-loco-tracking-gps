@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pollo Loco - Dashboard GPS</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Material Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Layout */
+        .dashboard-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .filter-section {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: #dc2626;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+        }
+
+        .search-box input {
+            border: none;
+            outline: none;
+            flex: 1;
+            padding: 0.25rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Users List */
+        .users-section {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .users-header {
+            padding: 0.75rem 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-item:hover {
+            background: #f8fafc;
+        }
+
+        .user-item.selected {
+            background: #fef2f2;
+            border-left: 3px solid #dc2626;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #dc2626;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .user-info-item {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #1f2937;
+            line-height: 1.2;
+        }
+
+        .user-details {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .user-status {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+        }
+
+        .status-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-indicator.online { background: #10b981; }
+        .status-indicator.offline { background: #6b7280; }
+        .status-indicator.battery-low { background: #f59e0b; }
+        .status-indicator.battery-critical { background: #ef4444; }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Map Controls */
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: #f8fafc;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .control-btn.active {
+            background: #dc2626;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        /* Notifications */
+        .notifications-panel {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            width: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notification {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification.geofence-enter {
+            border-left: 4px solid #10b981;
+        }
+
+        .notification.geofence-exit {
+            border-left: 4px solid #f59e0b;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 2000;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #dc2626;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: 40vh;
+                order: 2;
+            }
+            
+            .map-container {
+                height: 60vh;
+                order: 1;
+            }
+            
+            .dashboard-container {
+                flex-direction: column;
+            }
+            
+            .header {
+                padding: 0.75rem 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .header h1 {
+                font-size: 1.25rem;
+            }
+            
+            .header-info {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>
+            <span class="material-icons">location_on</span>
+            Pollo Loco GPS Dashboard
+        </h1>
+        <div class="header-info">
+            <div class="connection-status">
+                <div class="status-dot" id="connectionDot"></div>
+                <span id="connectionStatus">Conectando...</span>
+            </div>
+            <div class="user-info">
+                <span class="material-icons">person</span>
+                <span id="currentUser">Cargando...</span>
+                <button id="logoutBtn" style="
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    color: white;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 0.25rem;
+                    cursor: pointer;
+                    font-size: 0.75rem;
+                    margin-left: 0.5rem;
+                " title="Cerrar Sesión">
+                    Salir
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <!-- Filters -->
+                <div class="filter-section">
+                    <button class="filter-btn active" data-filter="all">Todos</button>
+                    <button class="filter-btn" data-filter="online">Online</button>
+                    <button class="filter-btn" data-filter="geofence">En Sucursal</button>
+                    <button class="filter-btn" data-filter="battery">Batería Baja</button>
+                </div>
+                
+                <!-- Search -->
+                <div class="search-box">
+                    <span class="material-icons">search</span>
+                    <input type="text" id="userSearch" placeholder="Buscar usuarios...">
+                </div>
+                
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="onlineUsers">0</div>
+                        <div class="stat-label">Online</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="inGeofence">0</div>
+                        <div class="stat-label">En Sucursal</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="batteryLow">0</div>
+                        <div class="stat-label">Batería Baja</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users List -->
+            <div class="users-section">
+                <div class="users-header">
+                    Usuarios Activos
+                </div>
+                <div class="users-list" id="usersList">
+                    <!-- Users will be populated here -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <main class="map-container">
+            <div id="map"></div>
+            
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <button class="control-btn" id="showGeofences" title="Mostrar/Ocultar Geofences">
+                    <span class="material-icons">radio_button_checked</span>
+                </button>
+                <button class="control-btn" id="centerMap" title="Centrar Mapa">
+                    <span class="material-icons">my_location</span>
+                </button>
+                <button class="control-btn" id="showTrails" title="Mostrar/Ocultar Rutas">
+                    <span class="material-icons">timeline</span>
+                </button>
+                <button class="control-btn" id="toggleFullscreen" title="Pantalla Completa">
+                    <span class="material-icons">fullscreen</span>
+                </button>
+            </div>
+            
+            <!-- Notifications Panel -->
+            <div class="notifications-panel" id="notificationsPanel">
+                <!-- Real-time notifications will appear here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div>Cargando dashboard...</div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Dashboard JS -->
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

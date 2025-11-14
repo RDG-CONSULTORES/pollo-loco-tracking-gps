@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pollo Loco - Acceso al Dashboard</title>
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 3rem;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #dc2626, #f59e0b, #10b981, #3b82f6);
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: #dc2626;
+            border-radius: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .app-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            background: #f9fafb;
+            cursor: pointer;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #dc2626;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 0.875rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .login-btn:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+        }
+
+        .login-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .quick-access {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .quick-access-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        .quick-access-btn {
+            width: 100%;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        .quick-access-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.75rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .login-container {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo">🐔</div>
+            <div class="app-name">Pollo Loco GPS</div>
+            <div class="app-subtitle">Dashboard de Seguimiento</div>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            Credenciales incorrectas. Intenta nuevamente.
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label" for="trackerId">ID de Rastreador</label>
+                <input 
+                    type="text" 
+                    id="trackerId" 
+                    class="form-input" 
+                    placeholder="Ej: RD01, 01, TEST01"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="userRole">Rol de Usuario</label>
+                <select id="userRole" class="form-select" required>
+                    <option value="">Seleccionar rol...</option>
+                    <option value="auditor">Auditor (Acceso completo)</option>
+                    <option value="director">Director (Acceso por grupo)</option>
+                    <option value="gerente">Gerente (Acceso por grupo)</option>
+                    <option value="supervisor">Supervisor (Solo lectura)</option>
+                    <option value="usuario">Usuario (Básico)</option>
+                </select>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span id="loginBtnText">Acceder al Dashboard</span>
+                <div class="loading-spinner" id="loginSpinner" style="display: none;"></div>
+            </button>
+        </form>
+
+        <div class="quick-access">
+            <div class="quick-access-title">Acceso Rápido</div>
+            <button class="quick-access-btn" onclick="quickLogin('RD01', 'auditor')">
+                Roberto Dávila - Auditor
+            </button>
+            <button class="quick-access-btn" onclick="quickLogin('01', 'auditor')">
+                Roberto Dávila - iPhone
+            </button>
+            <button class="quick-access-btn" onclick="quickLogin('TEST01', 'supervisor')">
+                Usuario de Prueba
+            </button>
+        </div>
+
+        <div class="footer">
+            Sistema de seguimiento GPS en tiempo real<br>
+            © 2024 Pollo Loco
+        </div>
+    </div>
+
+    <script>
+        class LoginManager {
+            constructor() {
+                this.form = document.getElementById('loginForm');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.loginBtn = document.getElementById('loginBtn');
+                this.loginBtnText = document.getElementById('loginBtnText');
+                this.loginSpinner = document.getElementById('loginSpinner');
+                
+                this.init();
+            }
+
+            init() {
+                this.form.addEventListener('submit', (e) => this.handleLogin(e));
+                
+                // Auto-focus en el primer campo
+                document.getElementById('trackerId').focus();
+                
+                // Check si ya está logueado
+                if (this.isLoggedIn()) {
+                    this.redirectToDashboard();
+                }
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                
+                const trackerId = document.getElementById('trackerId').value.trim();
+                const userRole = document.getElementById('userRole').value;
+                
+                if (!trackerId || !userRole) {
+                    this.showError('Por favor completa todos los campos');
+                    return;
+                }
+                
+                this.setLoading(true);
+                this.hideError();
+                
+                try {
+                    // Simular validación (en producción esto sería contra una API real)
+                    const isValid = await this.validateCredentials(trackerId, userRole);
+                    
+                    if (isValid) {
+                        // Guardar sesión
+                        this.saveSession(trackerId, userRole);
+                        
+                        // Mostrar éxito temporalmente
+                        this.loginBtnText.textContent = '¡Acceso autorizado!';
+                        
+                        // Redirigir al dashboard
+                        setTimeout(() => {
+                            this.redirectToDashboard();
+                        }, 1000);
+                        
+                    } else {
+                        this.showError('Credenciales incorrectas o acceso no autorizado');
+                        this.setLoading(false);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error en login:', error);
+                    this.showError('Error de conexión. Intenta nuevamente.');
+                    this.setLoading(false);
+                }
+            }
+
+            async validateCredentials(trackerId, userRole) {
+                // Simular llamada al servidor
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Lista de credenciales válidas (en producción esto vendría de la base de datos)
+                const validCredentials = [
+                    { trackerId: 'RD01', roles: ['auditor', 'director', 'gerente'] },
+                    { trackerId: '01', roles: ['auditor', 'director', 'gerente'] },
+                    { trackerId: 'TEST01', roles: ['supervisor', 'usuario'] }
+                ];
+                
+                const user = validCredentials.find(cred => 
+                    cred.trackerId.toLowerCase() === trackerId.toLowerCase()
+                );
+                
+                return user && user.roles.includes(userRole);
+            }
+
+            saveSession(trackerId, userRole) {
+                const sessionData = {
+                    trackerId: trackerId,
+                    userRole: userRole,
+                    loginTime: new Date().toISOString()
+                };
+                
+                localStorage.setItem('gps-dashboard-session', JSON.stringify(sessionData));
+            }
+
+            isLoggedIn() {
+                const session = localStorage.getItem('gps-dashboard-session');
+                if (!session) return false;
+                
+                try {
+                    const sessionData = JSON.parse(session);
+                    const loginTime = new Date(sessionData.loginTime);
+                    const now = new Date();
+                    
+                    // Sesión válida por 24 horas
+                    const sessionDuration = 24 * 60 * 60 * 1000;
+                    
+                    return (now - loginTime) < sessionDuration;
+                } catch {
+                    return false;
+                }
+            }
+
+            redirectToDashboard() {
+                window.location.href = '/webapp/dashboard.html';
+            }
+
+            setLoading(loading) {
+                if (loading) {
+                    this.loginBtn.disabled = true;
+                    this.loginBtnText.textContent = 'Verificando acceso...';
+                    this.loginSpinner.style.display = 'block';
+                } else {
+                    this.loginBtn.disabled = false;
+                    this.loginBtnText.textContent = 'Acceder al Dashboard';
+                    this.loginSpinner.style.display = 'none';
+                }
+            }
+
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+            }
+
+            hideError() {
+                this.errorMessage.style.display = 'none';
+            }
+        }
+
+        // Función para botones de acceso rápido
+        function quickLogin(trackerId, role) {
+            document.getElementById('trackerId').value = trackerId;
+            document.getElementById('userRole').value = role;
+        }
+
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            window.loginManager = new LoginManager();
+        });
+    </script>
+</body>
+</html>

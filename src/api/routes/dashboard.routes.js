@@ -60,7 +60,7 @@ router.get('/users', async (req, res) => {
 
 /**
  * GET /api/dashboard/geofences
- * Obtener lista de geofences (sucursales)
+ * Obtener lista de geofences (sucursales) desde tracking_locations_cache
  */
 router.get('/geofences', async (req, res) => {
   try {
@@ -68,16 +68,16 @@ router.get('/geofences', async (req, res) => {
       SELECT 
         id,
         location_code,
-        location_name,
-        grupo,
+        name as location_name,
+        group_name as grupo,
         latitude,
         longitude,
-        radius_meters,
+        geofence_radius as radius_meters,
         active,
-        created_at
-      FROM geofences 
+        synced_at as created_at
+      FROM tracking_locations_cache 
       WHERE active = true
-      ORDER BY location_name
+      ORDER BY name
     `);
 
     res.json({
@@ -90,6 +90,51 @@ router.get('/geofences', async (req, res) => {
     console.error('❌ Error obteniendo geofences:', error);
     res.status(500).json({ 
       error: 'Error obteniendo geofences',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * GET /api/dashboard/locations
+ * Obtener lista de ubicaciones agrupadas por grupo operativo
+ */
+router.get('/locations', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        group_name,
+        COUNT(*) as total_locations,
+        array_agg(
+          json_build_object(
+            'id', id,
+            'location_code', location_code,
+            'name', name,
+            'address', address,
+            'latitude', latitude,
+            'longitude', longitude,
+            'director_name', director_name,
+            'active', active,
+            'geofence_radius', geofence_radius
+          )
+        ) as locations
+      FROM tracking_locations_cache 
+      WHERE active = true
+      GROUP BY group_name
+      ORDER BY group_name
+    `);
+
+    res.json({
+      groups: result.rows,
+      total_groups: result.rows.length,
+      total_locations: result.rows.reduce((sum, group) => sum + parseInt(group.total_locations), 0),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo locations:', error);
+    res.status(500).json({ 
+      error: 'Error obteniendo locations',
       details: error.message 
     });
   }
@@ -223,12 +268,12 @@ router.get('/recent-events', async (req, res) => {
         ge.longitude,
         tu.display_name as user_name,
         tu.tracker_id,
-        g.location_name,
+        g.name as location_name,
         g.location_code,
-        g.grupo
+        g.group_name as grupo
       FROM geofence_events ge
       INNER JOIN tracking_users tu ON ge.user_id = tu.id
-      INNER JOIN geofences g ON ge.geofence_id = g.id
+      INNER JOIN tracking_locations_cache g ON ge.geofence_id = g.id
       ORDER BY ge.event_timestamp DESC
       LIMIT $1
     `, [parseInt(limit)]);

@@ -468,6 +468,141 @@ router.get('/users', async (req, res) => {
         });
       }
     }
+
+    // Debug: Import geofences if ?debug=import_geofences query param
+    if (req.query.debug === 'import_geofences') {
+      try {
+        console.log('[ADMIN] Importing geofences from sucursales...');
+        
+        // 1. Obtener sucursales existentes
+        const sucursalesResult = await db.query(`
+          SELECT 
+            location_code,
+            name as store_name,
+            group_name,
+            latitude,
+            longitude,
+            active,
+            created_at
+          FROM tracking_locations_cache
+          WHERE latitude IS NOT NULL 
+            AND longitude IS NOT NULL
+            AND latitude != 0 
+            AND longitude != 0
+          ORDER BY group_name, name
+        `);
+        
+        console.log(`[ADMIN] Found ${sucursalesResult.rows.length} sucursales with coordinates`);
+        
+        // 2. Limpiar geofences existentes
+        const deleteResult = await db.query(`DELETE FROM sucursal_geofences`);
+        console.log(`[ADMIN] Deleted ${deleteResult.rowCount} existing geofences`);
+        
+        // 3. Obtener radio por defecto
+        const defaultRadius = 150;
+        
+        // 4. Insertar geofences
+        let imported = 0;
+        let skipped = 0;
+        
+        for (const sucursal of sucursalesResult.rows) {
+          try {
+            const lat = parseFloat(sucursal.latitude);
+            const lon = parseFloat(sucursal.longitude);
+            
+            // Validar coordenadas
+            if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) {
+              skipped++;
+              continue;
+            }
+            
+            // Validar rango México
+            if (lat < 14 || lat > 33 || lon < -118 || lon > -86) {
+              skipped++;
+              continue;
+            }
+            
+            // Insertar geofence
+            await db.query(`
+              INSERT INTO sucursal_geofences (
+                location_code, store_name, group_name, 
+                latitude, longitude, radius_meters, active, created_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            `, [
+              sucursal.location_code,
+              sucursal.store_name,
+              sucursal.group_name,
+              lat,
+              lon,
+              defaultRadius,
+              sucursal.active || true
+            ]);
+            
+            imported++;
+            
+          } catch (error) {
+            console.error(`[ADMIN] Error importing ${sucursal.store_name}:`, error.message);
+            skipped++;
+          }
+        }
+        
+        // 5. Verificar resultados
+        const verifyResult = await db.query(`
+          SELECT 
+            COUNT(*) as total,
+            COUNT(*) FILTER (WHERE active = true) as active,
+            COUNT(DISTINCT group_name) as groups
+          FROM sucursal_geofences
+        `);
+        
+        const stats = verifyResult.rows[0];
+        
+        // 6. Obtener resumen por grupo
+        const groupSummary = await db.query(`
+          SELECT 
+            group_name,
+            COUNT(*) as count,
+            COUNT(*) FILTER (WHERE active = true) as active
+          FROM sucursal_geofences
+          GROUP BY group_name
+          ORDER BY count DESC
+        `);
+        
+        // 7. Probar función de búsqueda
+        const testResult = await db.query(`
+          SELECT * FROM get_nearby_geofences(25.6866, -100.3161, 500) LIMIT 3
+        `);
+
+        return res.json({
+          debug: 'import_geofences',
+          success: true,
+          message: 'Geofences imported successfully',
+          stats: {
+            imported: imported,
+            skipped: skipped,
+            total: parseInt(stats.total),
+            active: parseInt(stats.active),
+            groups: parseInt(stats.groups)
+          },
+          groups: groupSummary.rows,
+          test_search: testResult.rows.map(gf => ({
+            store_name: gf.store_name,
+            distance_meters: Math.round(parseFloat(gf.distance_meters))
+          })),
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (importError) {
+        console.error('[ADMIN] Error importing geofences:', importError);
+        return res.json({
+          debug: 'import_geofences_error',
+          error: importError.message,
+          code: importError.code,
+          detail: importError.detail,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
     
     // Normal users listing
     const result = await db.query(`

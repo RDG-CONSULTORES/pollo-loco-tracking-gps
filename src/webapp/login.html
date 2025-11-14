@@ -389,8 +389,16 @@
             }
 
             redirectToDashboard() {
-                // Redirigir al dashboard con parámetro para mostrar admin
-                window.location.href = '/webapp/dashboard.html?admin=true';
+                // Obtener los datos del usuario del localStorage
+                const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+                
+                // Si es admin, redirigir al panel de administración
+                if (userData.userType === 'admin') {
+                    window.location.href = '/webapp/admin.html';
+                } else {
+                    // Usuario normal va al dashboard GPS
+                    window.location.href = '/webapp/dashboard.html';
+                }
             }
 
             setLoading(loading) {

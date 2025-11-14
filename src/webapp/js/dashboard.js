@@ -41,7 +41,7 @@ class GPSDashboard {
         
         try {
             // Verificar autenticación
-            if (!this.checkAuthentication()) {
+            if (!(await this.checkAuthentication())) {
                 window.location.href = '/webapp/login.html';
                 return;
             }
@@ -62,28 +62,53 @@ class GPSDashboard {
     /**
      * Verificar autenticación del usuario
      */
-    checkAuthentication() {
-        const session = localStorage.getItem('gps-dashboard-session');
-        if (!session) return false;
+    async checkAuthentication() {
+        const authToken = localStorage.getItem('auth_token');
+        const userData = localStorage.getItem('user_data');
+        
+        if (!authToken || !userData) {
+            return false;
+        }
         
         try {
-            const sessionData = JSON.parse(session);
-            const loginTime = new Date(sessionData.loginTime);
-            const now = new Date();
+            // Verificar token con el servidor
+            const response = await fetch('/api/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
             
-            // Sesión válida por 24 horas
-            const sessionDuration = 24 * 60 * 60 * 1000;
-            
-            if ((now - loginTime) > sessionDuration) {
-                localStorage.removeItem('gps-dashboard-session');
+            if (!response.ok) {
+                // Token inválido, limpiar datos
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
                 return false;
             }
             
-            this.currentUserSession = sessionData;
+            const result = await response.json();
+            if (!result.success) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                return false;
+            }
+            
+            // Usar datos actualizados del servidor
+            this.currentUserSession = result.user;
+            localStorage.setItem('user_data', JSON.stringify(result.user));
             return true;
-        } catch {
-            localStorage.removeItem('gps-dashboard-session');
-            return false;
+            
+        } catch (error) {
+            console.error('Error verificando autenticación:', error);
+            // En caso de error de red, usar datos locales temporalmente
+            try {
+                this.currentUserSession = JSON.parse(userData);
+                return true;
+            } catch {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                return false;
+            }
         }
     }
 
@@ -93,8 +118,9 @@ class GPSDashboard {
     updateUserInfo() {
         if (this.currentUserSession) {
             const userElement = document.getElementById('currentUser');
-            const roleText = this.getRoleDisplayName(this.currentUserSession.userRole);
-            userElement.textContent = `${this.currentUserSession.trackerId} (${roleText})`;
+            const roleText = this.getRoleDisplayName(this.currentUserSession.userType || this.currentUserSession.rol);
+            const displayName = this.currentUserSession.fullName || this.currentUserSession.display_name || this.currentUserSession.email;
+            userElement.textContent = `${displayName} (${roleText})`;
         }
     }
 
@@ -103,6 +129,7 @@ class GPSDashboard {
      */
     getRoleDisplayName(role) {
         const roles = {
+            'admin': 'Administrador',
             'auditor': 'Auditor',
             'director': 'Director',
             'gerente': 'Gerente', 
@@ -868,19 +895,36 @@ class GPSDashboard {
     /**
      * Logout del usuario
      */
-    logout() {
-        localStorage.removeItem('gps-dashboard-session');
-        window.location.href = '/webapp/login.html';
+    async logout() {
+        try {
+            // Llamar al endpoint de logout
+            const authToken = localStorage.getItem('auth_token');
+            if (authToken) {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
+        } catch (error) {
+            console.log('Error en logout:', error);
+        } finally {
+            // Limpiar datos locales independientemente del resultado
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            
+            // Redirigir al login
+            window.location.href = '/webapp/login.html';
+        }
     }
 
     /**
      * Obtener token de autenticación
      */
     getAuthToken() {
-        if (this.currentUserSession) {
-            return this.currentUserSession.trackerId;
-        }
-        return 'RD01'; // Fallback
+        return localStorage.getItem('auth_token') || null;
     }
 
     /**

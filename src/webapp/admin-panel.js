@@ -61,6 +61,24 @@ class AdminPanel {
         window.location.href = '/webapp/login.html';
     }
 
+    async logout() {
+        try {
+            // Llamar al endpoint de logout
+            await this.apiRequest('/api/auth/logout', {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.log('Error en logout:', error);
+        } finally {
+            // Limpiar datos locales independientemente del resultado
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            
+            // Redirigir al login
+            this.redirectToLogin();
+        }
+    }
+
     async apiRequest(endpoint, options = {}) {
         const config = {
             headers: {
@@ -334,8 +352,192 @@ class AdminPanel {
     }
 
     async loadDirectors() {
-        // Implementar cuando tengamos el endpoint de directores
-        console.log('Cargando directores...');
+        try {
+            const directors = await this.apiRequest('/api/admin/directors');
+            this.renderDirectors(directors);
+        } catch (error) {
+            console.error('Error cargando directores:', error);
+            document.getElementById('directorsTable').innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #ef4444;">
+                        Error cargando directores: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    renderDirectors(directors) {
+        const directorsTable = document.getElementById('directorsTable');
+        
+        if (!directors || directors.length === 0) {
+            directorsTable.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #64748b;">
+                        No hay directores registrados
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        directorsTable.innerHTML = directors.map(director => `
+            <tr>
+                <td><strong>${director.director_code}</strong></td>
+                <td>${director.full_name}</td>
+                <td>${director.email || '<span style="color: #64748b;">Sin email</span>'}</td>
+                <td>${director.groups && director.groups.length ? director.groups.join(', ') : '<span style="color: #64748b;">Sin grupos</span>'}</td>
+                <td>${director.telegram_chat_id || '<span style="color: #64748b;">Sin Telegram</span>'}</td>
+                <td>
+                    <span class="badge ${director.active ? 'success' : 'warning'}">
+                        ${director.active ? 'Activo' : 'Inactivo'}
+                    </span>
+                </td>
+                <td>
+                    <button class="action-btn secondary" onclick="adminPanel.editDirector('${director.director_code}')">
+                        <span class="material-icons">edit</span>
+                        Editar
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async loadRoles() {
+        const rolesContent = document.getElementById('rolesContent');
+        rolesContent.innerHTML = `
+            <div class="role-cards">
+                <div class="role-card">
+                    <div class="role-title">🔴 AUDITOR</div>
+                    <div class="role-description">Acceso completo al sistema</div>
+                    <div class="role-permissions">
+                        <span class="permission-tag allowed">Ve TODOS los usuarios</span>
+                        <span class="permission-tag allowed">Ve TODAS las sucursales</span>
+                        <span class="permission-tag allowed">Modifica configuraciones</span>
+                        <span class="permission-tag allowed">Estadísticas globales</span>
+                    </div>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
+                        💡 <strong>Ideal para:</strong> Administradores del sistema
+                    </div>
+                </div>
+                
+                <div class="role-card">
+                    <div class="role-title">🟠 DIRECTOR</div>
+                    <div class="role-description">Supervisa grupos operativos específicos</div>
+                    <div class="role-permissions">
+                        <span class="permission-tag allowed">Ve usuarios de SUS grupos</span>
+                        <span class="permission-tag allowed">Ve sucursales de SUS grupos</span>
+                        <span class="permission-tag allowed">Reportes de SU área</span>
+                        <span class="permission-tag denied">No ve otros grupos</span>
+                    </div>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
+                        💡 <strong>Ideal para:</strong> Directores regionales/zonales
+                    </div>
+                </div>
+                
+                <div class="role-card">
+                    <div class="role-title">🟡 GERENTE</div>
+                    <div class="role-description">Gestión operativa de equipos</div>
+                    <div class="role-permissions">
+                        <span class="permission-tag allowed">Ve usuarios de SU grupo</span>
+                        <span class="permission-tag allowed">Reportes de SU equipo</span>
+                        <span class="permission-tag denied">No configura sistema</span>
+                        <span class="permission-tag denied">Acceso limitado</span>
+                    </div>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
+                        💡 <strong>Ideal para:</strong> Gerentes de área
+                    </div>
+                </div>
+                
+                <div class="role-card">
+                    <div class="role-title">🟢 SUPERVISOR</div>
+                    <div class="role-description">Acceso de solo lectura a sus propios datos</div>
+                    <div class="role-permissions">
+                        <span class="permission-tag allowed">Ve SUS propios reportes</span>
+                        <span class="permission-tag allowed">Descarga SUS estadísticas</span>
+                        <span class="permission-tag denied">No ve otros usuarios</span>
+                        <span class="permission-tag denied">Solo consulta</span>
+                    </div>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
+                        💡 <strong>Ideal para:</strong> Supervisores de campo
+                    </div>
+                </div>
+                
+                <div class="role-card">
+                    <div class="role-title">🔵 USUARIO</div>
+                    <div class="role-description">Tracking básico únicamente</div>
+                    <div class="role-permissions">
+                        <span class="permission-tag allowed">Su dispositivo envía ubicación</span>
+                        <span class="permission-tag allowed">Aparece en el mapa</span>
+                        <span class="permission-tag denied">Sin acceso al dashboard</span>
+                        <span class="permission-tag denied">Solo GPS</span>
+                    </div>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #059669;">
+                        💡 <strong>Ideal para:</strong> Personal operativo básico
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async loadSystemConfig() {
+        const systemContent = document.getElementById('systemContent');
+        systemContent.innerHTML = `
+            <div class="form-section">
+                <h3>🔧 Configuración del Sistema</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon system">
+                                <span class="material-icons">settings</span>
+                            </div>
+                            <div class="stat-title">Estado del Sistema</div>
+                        </div>
+                        <div class="stat-number">Activo</div>
+                        <div class="stat-description">Seguimiento GPS funcionando</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon users">
+                                <span class="material-icons">storage</span>
+                            </div>
+                            <div class="stat-title">Base de Datos</div>
+                        </div>
+                        <div class="stat-number">Conectada</div>
+                        <div class="stat-description">PostgreSQL Railway</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem;">
+                    <h4>🚀 Acciones del Sistema</h4>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="action-btn primary" onclick="adminPanel.cleanupDatabase()">
+                            <span class="material-icons">cleaning_services</span>
+                            Limpiar Base de Datos
+                        </button>
+                        <button class="action-btn secondary" onclick="adminPanel.exportData()">
+                            <span class="material-icons">download</span>
+                            Exportar Datos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async editDirector(directorCode) {
+        alert(`Funcionalidad de editar director ${directorCode} próximamente`);
+    }
+
+    async cleanupDatabase() {
+        if (confirm('¿Estás seguro de que quieres limpiar datos antiguos?')) {
+            alert('Funcionalidad de limpieza próximamente');
+        }
+    }
+
+    async exportData() {
+        alert('Funcionalidad de exportación próximamente');
     }
 }
 

@@ -2,16 +2,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../config/database');
 const { logAdminAction } = require('../../utils/admin-logger');
+const { requireAdmin, extractClientInfo, logAction } = require('../../middleware/auth-middleware');
 
 /**
- * Middleware: Verificar autenticación (simplificado para demo)
- * En producción, implementar JWT o autenticación más robusta
+ * Middleware: Verificar autenticación
+ * Solo administradores pueden acceder a estas rutas
  */
-router.use((req, res, next) => {
-  // TODO: Implementar autenticación real
-  // Por ahora, permitir acceso directo desde Telegram Web App
-  next();
-});
+router.use(extractClientInfo);
+router.use(requireAdmin);
 
 /**
  * GET /api/admin/debug/schema/:table
@@ -1569,7 +1567,7 @@ router.get('/setup-user-management', async (req, res) => {
  * POST /api/admin/users
  * Crear nuevo usuario de tracking
  */
-router.post('/users', async (req, res) => {
+router.post('/users', logAction('CREATE_USER', 'user'), async (req, res) => {
   try {
     const {
       tracker_id,
@@ -1627,7 +1625,7 @@ router.post('/users', async (req, res) => {
  * PUT /api/admin/users/:tracker_id
  * Actualizar usuario de tracking
  */
-router.put('/users/:tracker_id', async (req, res) => {
+router.put('/users/:tracker_id', logAction('UPDATE_USER', 'user'), async (req, res) => {
   try {
     const { tracker_id } = req.params;
     const { active, display_name, phone, zenput_email } = req.body;
@@ -2023,7 +2021,7 @@ router.get('/gps/latest', async (req, res) => {
  * POST /api/admin/directors
  * Crear nuevo director
  */
-router.post('/directors', async (req, res) => {
+router.post('/directors', logAction('CREATE_DIRECTOR', 'director'), async (req, res) => {
   try {
     const {
       director_code,

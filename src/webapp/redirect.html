@@ -122,29 +122,94 @@
         </div>
         
         <div class="countdown">
-            Redirigiendo al nuevo dashboard en <span id="countdown">5</span> segundos...
+            Redirigiendo en <span id="countdown">3</span> segundos...
         </div>
     </div>
 
     <script>
-        let countdown = 5;
+        let countdown = 3;
         const countdownElement = document.getElementById('countdown');
         
-        const timer = setInterval(() => {
-            countdown--;
-            countdownElement.textContent = countdown;
+        // Verificar si ya está logueado y redirigir apropiadamente
+        async function checkAuthAndRedirect() {
+            const token = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
             
-            if (countdown <= 0) {
-                clearInterval(timer);
-                window.location.href = '/webapp/login.html';
+            if (!token || !userData) {
+                return false;
             }
-        }, 1000);
+            
+            try {
+                // Verificar token con el servidor
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    // Token inválido, limpiar datos
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    return false;
+                }
+                
+                const result = await response.json();
+                if (!result.success) {
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    return false;
+                }
+                
+                // Ya está logueado, redirigir según tipo de usuario
+                if (result.user.userType === 'admin') {
+                    window.location.href = '/webapp/admin.html';
+                } else {
+                    window.location.href = '/webapp/dashboard.html';
+                }
+                return true;
+                
+            } catch (error) {
+                console.error('Error verificando autenticación:', error);
+                // En caso de error de red, usar datos locales temporalmente
+                try {
+                    const user = JSON.parse(userData);
+                    if (user.userType === 'admin') {
+                        window.location.href = '/webapp/admin.html';
+                    } else {
+                        window.location.href = '/webapp/dashboard.html';
+                    }
+                    return true;
+                } catch {
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    return false;
+                }
+            }
+        }
         
-        // Cancelar redirección automática si el usuario hace clic
-        document.querySelectorAll('.redirect-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                clearInterval(timer);
-            });
+        // Verificar inmediatamente
+        checkAuthAndRedirect().then(isAuthenticated => {
+            if (!isAuthenticated) {
+                // No está logueado, mostrar countdown
+                const timer = setInterval(() => {
+                    countdown--;
+                    countdownElement.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        window.location.href = '/webapp/login.html';
+                    }
+                }, 1000);
+                
+                // Cancelar redirección automática si el usuario hace clic
+                document.querySelectorAll('.redirect-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        clearInterval(timer);
+                    });
+                });
+            }
         });
     </script>
 </body>

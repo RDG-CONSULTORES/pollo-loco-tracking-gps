@@ -2645,7 +2645,7 @@ router.get('/groups', logAction('VIEW_GROUPS', 'groups'), async (req, res) => {
         COUNT(CASE WHEN active THEN 1 END) as sucursales_activas,
         COUNT(CASE WHEN geofence_enabled THEN 1 END) as geofences_activos,
         ROUND(AVG(geofence_radius)) as radio_promedio,
-        MIN(created_at) as fecha_creacion
+        MIN(synced_at) as fecha_creacion
       FROM tracking_locations_cache
       WHERE group_name IS NOT NULL
       GROUP BY group_name
@@ -2679,7 +2679,7 @@ router.get('/groups/:groupName/locations', logAction('VIEW_GROUP_LOCATIONS', 'lo
       SELECT 
         id,
         location_code,
-        location_name,
+        name as location_name,
         address,
         latitude,
         longitude,
@@ -2688,8 +2688,8 @@ router.get('/groups/:groupName/locations', logAction('VIEW_GROUP_LOCATIONS', 'lo
         active,
         geofence_radius,
         geofence_enabled,
-        created_at,
-        updated_at
+        synced_at as created_at,
+        synced_at as updated_at
       FROM tracking_locations_cache
       WHERE group_name = $1
       ORDER BY location_code
@@ -2876,7 +2876,7 @@ router.put('/groups/:groupName/geofences', logAction('BULK_UPDATE_GEOFENCES', 'g
       });
     }
     
-    const updateFields = ['geofence_enabled = $2', 'updated_at = NOW()'];
+    const updateFields = ['geofence_enabled = $2'];
     const values = [groupName, geofence_enabled];
     
     if (geofence_radius && geofence_radius >= 10 && geofence_radius <= 1000) {
@@ -3156,7 +3156,7 @@ router.get('/directors', logAction('VIEW_DIRECTORS', 'directors'), async (req, r
         STRING_AGG(DISTINCT group_name, ', ' ORDER BY group_name) as grupos_asignados,
         COUNT(DISTINCT group_name) as total_grupos,
         COUNT(*) as total_sucursales,
-        MIN(created_at) as fecha_asignacion
+        MIN(synced_at) as fecha_asignacion
       FROM tracking_locations_cache
       WHERE director_name IS NOT NULL AND director_name != 'Director TBD'
       GROUP BY director_name
@@ -3312,13 +3312,13 @@ router.get('/system/status', logAction('VIEW_SYSTEM_STATUS', 'system'), async (r
     const dbInfo = await db.query(`
       SELECT 
         schemaname,
-        tablename,
+        relname as tablename,
         n_tup_ins as inserts,
         n_tup_upd as updates,
         n_tup_del as deletes
       FROM pg_stat_user_tables
       WHERE schemaname = 'public'
-      ORDER BY tablename
+      ORDER BY relname
     `);
     
     // Uptime del proceso

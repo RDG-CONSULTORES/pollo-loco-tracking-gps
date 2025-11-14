@@ -102,7 +102,7 @@ class ReportesCommands {
             const timeText = minutesAgo < 60 ? `${minutesAgo} min` : `${Math.round(minutesAgo/60)}h`;
             
             message += `👤 *${user.display_name}* (${user.tracker_id})\n`;
-            message += `📍 ${parseFloat(loc.latitude).toFixed(6)}, ${parseFloat(loc.longitude).toFixed(6)}\n`;
+            message += `📍 ${Number(loc.latitude).toFixed(6)}, ${Number(loc.longitude).toFixed(6)}\n`;
             if (loc.accuracy) {
               message += `🎯 Precisión: ${loc.accuracy}m`;
             }

@@ -6,6 +6,9 @@
   <title>Pollo Loco Admin</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Leaflet for maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <!-- Loading Screen -->
@@ -30,6 +33,9 @@
     </button>
     <button class="tab" onclick="showSection('usuarios')" data-section="usuarios">
       👥 Usuarios
+    </button>
+    <button class="tab" onclick="showSection('ubicaciones')" data-section="ubicaciones">
+      🗺️ Mapa
     </button>
     <button class="tab" onclick="showSection('config')" data-section="config">
       ⚙️ Config
@@ -114,6 +120,35 @@
     
     <div id="configList" class="config-list">
       <div class="loading-placeholder">Cargando configuración...</div>
+    </div>
+  </div>
+  
+  <!-- Ubicaciones Section -->
+  <div id="ubicaciones" class="section">
+    <div class="section-header">
+      <h3>🗺️ Mapa de Ubicaciones GPS</h3>
+      <div class="map-controls">
+        <button class="btn btn-primary" onclick="refreshMap()">
+          🔄 Actualizar
+        </button>
+        <select id="mapTimeFilter" onchange="refreshMap()">
+          <option value="1">Última hora</option>
+          <option value="6">Últimas 6 horas</option>
+          <option value="24" selected>Último día</option>
+          <option value="48">Últimos 2 días</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="map-container">
+      <div id="map" style="height: 500px; width: 100%; border-radius: 8px; overflow: hidden;"></div>
+    </div>
+    
+    <div class="location-list">
+      <h4>📍 Últimas Ubicaciones</h4>
+      <div id="locationsList" class="locations-grid">
+        <div class="loading-placeholder">Cargando ubicaciones...</div>
+      </div>
     </div>
   </div>
   

@@ -68,6 +68,9 @@ function showSection(sectionName) {
     case 'usuarios':
       loadUsers();
       break;
+    case 'ubicaciones':
+      initializeMap();
+      break;
     case 'config':
       loadConfig();
       break;
@@ -474,6 +477,197 @@ if (tg) {
   document.querySelectorAll('.modal').forEach((modal) => {
     observer.observe(modal, { attributes: true });
   });
+}
+
+// =========================
+// MAP FUNCTIONALITY
+// =========================
+
+let map = null;
+let markersLayer = null;
+
+// Initialize map
+async function initializeMap() {
+  try {
+    // Only initialize once
+    if (map) {
+      await refreshMap();
+      return;
+    }
+
+    // Create map centered on Mexico (or adjust as needed)
+    map = L.map('map').setView([25.6866, -100.3161], 11);
+
+    // Add tile layer (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(map);
+
+    // Create markers layer
+    markersLayer = L.layerGroup().addTo(map);
+
+    // Load locations
+    await refreshMap();
+
+    console.log('✅ Map initialized');
+
+  } catch (error) {
+    console.error('❌ Error initializing map:', error);
+    showToast('Error inicializando mapa', 'error');
+  }
+}
+
+// Refresh map with latest locations
+async function refreshMap() {
+  try {
+    if (!map) return;
+
+    const hours = document.getElementById('mapTimeFilter').value || 24;
+    
+    // Show loading
+    showToast('Actualizando mapa...', 'info');
+
+    // Fetch latest locations
+    const response = await fetch(`${API_URL}/admin/gps/latest`);
+    const data = await response.json();
+
+    // Clear existing markers
+    if (markersLayer) {
+      markersLayer.clearLayers();
+    }
+
+    // Add markers for each user's latest location
+    const bounds = [];
+    
+    data.users.forEach(user => {
+      if (!user.latitude || !user.longitude) return;
+
+      const lat = parseFloat(user.latitude);
+      const lon = parseFloat(user.longitude);
+      bounds.push([lat, lon]);
+
+      // Choose marker color based on status
+      let color = 'gray';
+      let icon = '📍';
+      
+      switch(user.status) {
+        case 'online':
+          color = 'green';
+          icon = '🟢';
+          break;
+        case 'recent':
+          color = 'orange';
+          icon = '🟡';
+          break;
+        case 'away':
+          color = 'red';
+          icon = '🔴';
+          break;
+        default:
+          color = 'gray';
+          icon = '⚫';
+      }
+
+      // Create custom marker
+      const marker = L.marker([lat, lon], {
+        icon: L.divIcon({
+          html: `<div style="background-color: ${color}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${icon}</div>`,
+          className: 'custom-marker',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        })
+      });
+
+      // Add popup with user info
+      const popupContent = `
+        <div style="text-align: center;">
+          <h4>${user.display_name}</h4>
+          <p><strong>ID:</strong> ${user.tracker_id}</p>
+          <p><strong>Estado:</strong> ${getStatusText(user.status)}</p>
+          <p><strong>Última actualización:</strong><br>${user.time_ago}</p>
+          ${user.accuracy ? `<p><strong>Precisión:</strong> ${user.accuracy}m</p>` : ''}
+          ${user.battery ? `<p><strong>Batería:</strong> ${user.battery}%</p>` : ''}
+          <p><small>Lat: ${user.latitude.toFixed(6)}<br>Lon: ${user.longitude.toFixed(6)}</small></p>
+        </div>
+      `;
+      
+      marker.bindPopup(popupContent);
+      markersLayer.addLayer(marker);
+    });
+
+    // Fit map to show all markers
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+
+    // Update locations list
+    updateLocationsList(data.users);
+
+    showToast(`${data.users.length} ubicaciones cargadas`, 'success');
+
+  } catch (error) {
+    console.error('❌ Error refreshing map:', error);
+    showToast('Error actualizando mapa', 'error');
+  }
+}
+
+// Update locations list below map
+function updateLocationsList(users) {
+  const container = document.getElementById('locationsList');
+  
+  if (!users || users.length === 0) {
+    container.innerHTML = '<div class="no-data">No hay ubicaciones disponibles</div>';
+    return;
+  }
+
+  let html = '';
+  
+  users.forEach(user => {
+    const statusClass = getStatusClass(user.status);
+    const statusText = getStatusText(user.status);
+    
+    html += `
+      <div class="location-card ${statusClass}">
+        <div class="location-header">
+          <span class="user-name">${user.display_name}</span>
+          <span class="user-id">${user.tracker_id}</span>
+        </div>
+        <div class="location-status">
+          <span class="status-indicator ${user.status}">${statusText}</span>
+          <span class="time-ago">${user.time_ago}</span>
+        </div>
+        ${user.latitude ? `
+          <div class="location-coords">
+            <small>📍 ${user.latitude.toFixed(6)}, ${user.longitude.toFixed(6)}</small>
+          </div>
+        ` : '<div class="no-location">❌ Sin ubicación</div>'}
+        ${user.accuracy || user.battery ? `
+          <div class="location-details">
+            ${user.accuracy ? `<span class="accuracy">🎯 ${user.accuracy}m</span>` : ''}
+            ${user.battery ? `<span class="battery">🔋 ${user.battery}%</span>` : ''}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// Helper functions
+function getStatusClass(status) {
+  return `status-${status}`;
+}
+
+function getStatusText(status) {
+  switch(status) {
+    case 'online': return '🟢 En línea';
+    case 'recent': return '🟡 Reciente';
+    case 'away': return '🔴 Inactivo';
+    case 'offline': return '⚫ Desconectado';
+    default: return '❓ Desconocido';
+  }
 }
 
 console.log('📱 Pollo Loco Admin Web App loaded');

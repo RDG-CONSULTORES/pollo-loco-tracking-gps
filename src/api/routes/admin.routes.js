@@ -46,6 +46,43 @@ router.get('/debug/schema/:table', async (req, res) => {
  */
 router.get('/users', async (req, res) => {
   try {
+    // Debug: Check GPS locations if ?debug=gps query param
+    if (req.query.debug === 'gps') {
+      try {
+        const gpsResult = await db.query(`
+          SELECT 
+            gl.id,
+            gl.user_id,
+            tu.tracker_id,
+            tu.display_name,
+            gl.latitude,
+            gl.longitude,
+            gl.accuracy,
+            gl.battery,
+            gl.gps_timestamp,
+            EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 as minutes_ago
+          FROM gps_locations gl
+          LEFT JOIN tracking_users tu ON gl.user_id = tu.id
+          ORDER BY gl.gps_timestamp DESC
+          LIMIT 10
+        `);
+        
+        return res.json({
+          debug: 'gps_locations',
+          count: gpsResult.rows.length,
+          locations: gpsResult.rows,
+          timestamp: new Date().toISOString()
+        });
+      } catch (gpsError) {
+        return res.json({
+          debug: 'gps_error',
+          error: gpsError.message,
+          code: gpsError.code,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Debug: Check what columns tracking_locations actually has
     if (req.query.debug === 'describe') {
       try {
@@ -531,6 +568,125 @@ router.get('/logs', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error obteniendo logs:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/gps/locations
+ * Obtener ubicaciones GPS recientes
+ */
+router.get('/gps/locations', async (req, res) => {
+  try {
+    const { limit = 100, hours = 24, user_id } = req.query;
+    
+    let query = `
+      SELECT 
+        gl.id,
+        gl.user_id,
+        tu.tracker_id,
+        tu.display_name,
+        gl.latitude,
+        gl.longitude,
+        gl.accuracy,
+        gl.altitude,
+        gl.battery,
+        gl.velocity,
+        gl.heading,
+        gl.gps_timestamp,
+        gl.received_at,
+        EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 as minutes_ago,
+        CASE 
+          WHEN EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 < 60 
+          THEN CONCAT(ROUND(EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60), ' min')
+          ELSE CONCAT(ROUND(EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/3600, 1), ' horas')
+        END as time_ago
+      FROM gps_locations gl
+      INNER JOIN tracking_users tu ON gl.user_id = tu.id
+      WHERE gl.gps_timestamp >= NOW() - INTERVAL '${parseInt(hours)} hours'
+    `;
+    
+    const queryParams = [];
+    
+    if (user_id) {
+      queryParams.push(parseInt(user_id));
+      query += ` AND gl.user_id = $${queryParams.length}`;
+    }
+    
+    query += `
+      ORDER BY gl.gps_timestamp DESC
+      LIMIT ${parseInt(limit)}
+    `;
+    
+    const result = await db.query(query, queryParams);
+    
+    res.json({
+      locations: result.rows,
+      count: result.rows.length,
+      filters: {
+        hours: parseInt(hours),
+        user_id: user_id ? parseInt(user_id) : null,
+        limit: parseInt(limit)
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo ubicaciones GPS:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/gps/latest
+ * Obtener última ubicación de cada usuario
+ */
+router.get('/gps/latest', async (req, res) => {
+  try {
+    const result = await db.query(`
+      WITH latest_locations AS (
+        SELECT DISTINCT ON (user_id)
+          gl.id,
+          gl.user_id,
+          tu.tracker_id,
+          tu.display_name,
+          tu.active as user_active,
+          gl.latitude,
+          gl.longitude,
+          gl.accuracy,
+          gl.battery,
+          gl.velocity,
+          gl.gps_timestamp,
+          EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 as minutes_ago
+        FROM gps_locations gl
+        INNER JOIN tracking_users tu ON gl.user_id = tu.id
+        WHERE gl.gps_timestamp >= NOW() - INTERVAL '24 hours'
+        ORDER BY user_id, gps_timestamp DESC
+      )
+      SELECT 
+        *,
+        CASE 
+          WHEN minutes_ago < 5 THEN 'online'
+          WHEN minutes_ago < 15 THEN 'recent'
+          WHEN minutes_ago < 60 THEN 'away'
+          ELSE 'offline'
+        END as status,
+        CASE 
+          WHEN minutes_ago < 60 
+          THEN CONCAT(ROUND(minutes_ago), ' min')
+          ELSE CONCAT(ROUND(minutes_ago/60, 1), ' horas')
+        END as time_ago
+      FROM latest_locations
+      ORDER BY user_active DESC, minutes_ago ASC
+    `);
+    
+    res.json({
+      users: result.rows,
+      count: result.rows.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo últimas ubicaciones:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

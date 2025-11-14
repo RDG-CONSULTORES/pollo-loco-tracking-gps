@@ -607,6 +607,190 @@ input:checked + .slider:before {
   }
 }
 
+/* =========================
+   MAP STYLES
+   ========================= */
+
+.map-container {
+  margin: 20px 0;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.map-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.map-controls select {
+  padding: 8px 12px;
+  border: 1px solid var(--tg-hint-color);
+  border-radius: 6px;
+  background: var(--tg-bg-color);
+  color: var(--tg-text-color);
+  font-size: 14px;
+}
+
+.location-list {
+  margin-top: 30px;
+}
+
+.location-list h4 {
+  margin-bottom: 15px;
+  color: var(--tg-text-color);
+  font-size: 16px;
+}
+
+.locations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 15px;
+}
+
+.location-card {
+  background: var(--tg-secondary-bg-color);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  border-left: 4px solid var(--tg-hint-color);
+  transition: var(--transition);
+}
+
+.location-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.location-card.status-online {
+  border-left-color: var(--success-color);
+}
+
+.location-card.status-recent {
+  border-left-color: var(--warning-color);
+}
+
+.location-card.status-away {
+  border-left-color: var(--error-color);
+}
+
+.location-card.status-offline {
+  border-left-color: var(--tg-hint-color);
+}
+
+.location-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--tg-text-color);
+}
+
+.user-id {
+  background: var(--tg-hint-color);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.location-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.status-indicator {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-indicator.online {
+  color: var(--success-color);
+}
+
+.status-indicator.recent {
+  color: var(--warning-color);
+}
+
+.status-indicator.away {
+  color: var(--error-color);
+}
+
+.status-indicator.offline {
+  color: var(--tg-hint-color);
+}
+
+.time-ago {
+  color: var(--tg-hint-color);
+  font-size: 12px;
+}
+
+.location-coords {
+  margin-bottom: 8px;
+  color: var(--tg-hint-color);
+  font-family: monospace;
+}
+
+.location-details {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.location-details .accuracy,
+.location-details .battery {
+  background: rgba(51, 144, 236, 0.1);
+  color: var(--tg-link-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.no-location {
+  color: var(--error-color);
+  font-size: 14px;
+  text-align: center;
+  padding: 10px;
+}
+
+.no-data {
+  text-align: center;
+  color: var(--tg-hint-color);
+  padding: 40px 20px;
+  font-style: italic;
+}
+
+/* Custom Leaflet marker fixes */
+.custom-marker {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Responsive adjustments for map */
+@media (max-width: 768px) {
+  .locations-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .map-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .map-controls select,
+  .map-controls button {
+    width: 100%;
+  }
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   :root {

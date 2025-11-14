@@ -71,20 +71,22 @@ class ReportesCommands {
         SELECT 
           tu.tracker_id,
           tu.display_name,
-          tl.latitude,
-          tl.longitude,
-          tl.gps_timestamp,
-          EXTRACT(EPOCH FROM (NOW() - tl.gps_timestamp))/60 as minutes_ago
+          gl.latitude,
+          gl.longitude,
+          gl.accuracy,
+          gl.battery,
+          gl.gps_timestamp,
+          EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 as minutes_ago
         FROM tracking_users tu
         LEFT JOIN LATERAL (
-          SELECT latitude, longitude, gps_timestamp 
-          FROM tracking_locations 
-          WHERE tracker_id = tu.tracker_id 
+          SELECT latitude, longitude, accuracy, battery, gps_timestamp 
+          FROM gps_locations 
+          WHERE user_id = tu.id 
           ORDER BY gps_timestamp DESC 
           LIMIT 1
-        ) tl ON true
+        ) gl ON true
         WHERE tu.active = true
-        ORDER BY tl.gps_timestamp DESC NULLS LAST
+        ORDER BY gl.gps_timestamp DESC NULLS LAST
       `);
       
       if (result.rows.length === 0) {
@@ -100,7 +102,14 @@ class ReportesCommands {
           const timeText = minutesAgo < 60 ? `${minutesAgo} min` : `${Math.round(minutesAgo/60)}h`;
           
           message += `👤 *${user.display_name}* (${user.tracker_id})\n`;
-          message += `📍 Lat: ${user.latitude}, Lon: ${user.longitude}\n`;
+          message += `📍 Lat: ${user.latitude.toFixed(6)}, Lon: ${user.longitude.toFixed(6)}\n`;
+          if (user.accuracy) {
+            message += `🎯 Precisión: ${user.accuracy}m`;
+          }
+          if (user.battery) {
+            message += ` | 🔋 Batería: ${user.battery}%`;
+          }
+          message += '\n';
           message += `🕒 Hace ${timeText}\n\n`;
         } else {
           message += `👤 *${user.display_name}* (${user.tracker_id})\n`;

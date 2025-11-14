@@ -6,7 +6,7 @@
     <title>Dashboard Ejecutivo - El Pollo Loco</title>
     
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,6 +26,7 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #f8fafc;
             color: #334155;
+            overflow-x: hidden;
         }
 
         /* Header */
@@ -35,6 +36,23 @@
             padding: 2rem;
             text-align: center;
             border-bottom: 4px solid #dc2626;
+            position: relative;
+        }
+
+        .executive-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #dc2626, #ef4444, #dc2626);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .executive-header h1 {
@@ -78,6 +96,12 @@
             border-left: 6px solid #dc2626;
             position: relative;
             overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
         }
 
         .kpi-card::before {
@@ -85,10 +109,10 @@
             position: absolute;
             top: 0;
             right: 0;
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), transparent);
-            border-radius: 0 0 0 100px;
+            border-radius: 0 0 0 80px;
         }
 
         .kpi-header {
@@ -176,6 +200,28 @@
             gap: 0.5rem;
         }
 
+        .chart-container {
+            position: relative;
+            height: 300px !important;
+            width: 100% !important;
+            max-height: 300px !important;
+            max-width: 100% !important;
+            min-height: 300px !important;
+            overflow: hidden !important;
+            border: 1px solid #e2e8f0;
+        }
+
+        .chart-container canvas {
+            height: 300px !important;
+            width: 100% !important;
+            max-height: 300px !important;
+            max-width: 100% !important;
+            min-height: 300px !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+        }
+
         /* Teams Performance */
         .teams-grid {
             display: grid;
@@ -192,14 +238,13 @@
         }
 
         .team-header {
-            display: flex;
-            align-items: center;
-            justify-content: between;
             margin-bottom: 1.5rem;
         }
 
-        .team-list {
-            space-y: 1rem;
+        .team-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
         }
 
         .team-member {
@@ -272,6 +317,42 @@
             overflow: hidden;
         }
 
+        /* Executive Actions */
+        .actions-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
         /* Alerts */
         .alerts-section {
             background: white;
@@ -313,50 +394,15 @@
             justify-content: center;
             color: white;
             font-size: 1rem;
+            flex-shrink: 0;
         }
 
         .alert-icon.success { background: #16a34a; }
         .alert-icon.warning { background: #d97706; }
         .alert-icon.info { background: #2563eb; }
 
-        /* Executive Actions */
-        .actions-section {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-top: 2rem;
-        }
-
-        .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        .action-btn {
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            justify-content: center;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-        }
-
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .charts-grid {
                 grid-template-columns: 1fr;
             }
@@ -364,13 +410,19 @@
             .teams-grid {
                 grid-template-columns: 1fr;
             }
-            
+        }
+
+        @media (max-width: 768px) {
             .kpi-grid {
                 grid-template-columns: 1fr;
             }
             
             .executive-container {
                 padding: 1rem;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -442,10 +494,10 @@
                         100%
                     </div>
                 </div>
-                <div class="kpi-value" id="activeSupervisors">15/15</div>
+                <div class="kpi-value" id="activeSupervisors">8/8</div>
                 <div class="kpi-label">Supervisores Activos</div>
                 <div class="kpi-details">
-                    En ruta: 12 | Completados: 3<br>
+                    En ruta: 6 | Completados: 2<br>
                     Sistema adoptado: 100%
                 </div>
             </div>
@@ -458,7 +510,9 @@
                     <span class="material-icons">trending_up</span>
                     Eficiencia Semanal por Región
                 </h3>
-                <canvas id="efficiencyChart" height="300"></canvas>
+                <div class="chart-container">
+                    <canvas id="efficiencyChart"></canvas>
+                </div>
             </div>
             
             <div class="chart-card">
@@ -466,7 +520,9 @@
                     <span class="material-icons">donut_small</span>
                     Distribución de Ahorros
                 </h3>
-                <canvas id="savingsChart" height="300"></canvas>
+                <div class="chart-container">
+                    <canvas id="savingsChart"></canvas>
+                </div>
             </div>
         </section>
 
@@ -540,8 +596,8 @@
                         </div>
                     </div>
                     
-                    <div style="padding: 1rem; text-align: center; color: #6b7280; font-style: italic;">
-                        Recomendación: Capacitación adicional en optimización de rutas
+                    <div style="padding: 1rem; text-align: center; color: #6b7280; font-style: italic; border-radius: 8px; background: #f8fafc;">
+                        💡 Recomendación: Capacitación adicional en optimización de rutas
                     </div>
                 </div>
             </div>
@@ -586,7 +642,7 @@
         <section class="alerts-section">
             <h3 style="margin-bottom: 1.5rem;">
                 <span class="material-icons">notifications</span>
-                Alertas y Actualizaciones
+                Alertas y Actualizaciones del Sistema
             </h3>
             
             <div class="alert-item success">
@@ -619,168 +675,374 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Iniciando Dashboard Ejecutivo - El Pollo Loco');
+            if (!window.dashboardInitialized) {
+                initializeDashboard();
+            }
+        });
+        
+        // Handle window resize para las gráficas
+        window.addEventListener('resize', function() {
+            clearTimeout(window.resizeTimeout);
+            window.resizeTimeout = setTimeout(() => {
+                if (window.efficiencyChart) {
+                    window.efficiencyChart.resize();
+                }
+                if (window.savingsChart) {
+                    window.savingsChart.resize();
+                }
+                console.log('📊 Gráficas redimensionadas por resize');
+            }, 250);
+        });
+
+        function initializeDashboard() {
+            updateDateTime();
+            
+            // Inicializar gráficas después de que el DOM esté completamente cargado
+            setTimeout(() => {
+                initializeCharts();
+            }, 500);
+            
+            initializeMap();
+            
+            // Set up auto-refresh
+            setInterval(updateDateTime, 30000);
+            setInterval(updateKPIs, 60000);
+            
+            // Prevenir multiple inicializaciones
+            window.dashboardInitialized = true;
+        }
+
         // Update date and time
         function updateDateTime() {
             const now = new Date();
-            document.getElementById('currentDateTime').textContent = 
-                `Último update: ${now.toLocaleDateString('es-MX')} ${now.toLocaleTimeString('es-MX')}`;
+            const element = document.getElementById('currentDateTime');
+            if (element) {
+                element.textContent = 
+                    `Último update: ${now.toLocaleDateString('es-MX')} ${now.toLocaleTimeString('es-MX')}`;
+            }
         }
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
 
-        // Initialize Charts
-        
-        // Efficiency Chart
-        const efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
-        new Chart(efficiencyCtx, {
-            type: 'line',
-            data: {
-                labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-                datasets: [
-                    {
-                        label: 'Centro Norte',
-                        data: [85, 88, 92, 94, 96, 94],
-                        borderColor: '#dc2626',
-                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Sur',
-                        data: [82, 85, 87, 89, 91, 89],
-                        borderColor: '#16a34a',
-                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Este',
-                        data: [80, 83, 85, 87, 88, 90],
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Oeste',
-                        data: [75, 78, 79, 77, 80, 78],
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: 70,
-                        max: 100
-                    }
-                }
-            }
-        });
-
-        // Savings Chart
-        const savingsCtx = document.getElementById('savingsChart').getContext('2d');
-        new Chart(savingsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Combustible', 'Tiempo', 'Mantenimiento', 'Otros'],
-                datasets: [{
-                    data: [5200, 3250, 800, 200],
-                    backgroundColor: ['#dc2626', '#16a34a', '#2563eb', '#f59e0b']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-
-        // Initialize Map
-        const map = L.map('executiveMap').setView([19.4326, -99.1332], 11);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Add sample markers for active supervisors
-        const supervisors = [
-            {name: 'María García', lat: 19.4526, lng: -99.1632, efficiency: 98, status: 'En ruta', region: 'Centro Norte'},
-            {name: 'Juan Pérez', lat: 19.3826, lng: -99.0832, efficiency: 96, status: 'En sucursal', region: 'Sur'},
-            {name: 'Ana López', lat: 19.4726, lng: -99.1132, efficiency: 94, status: 'Completado', region: 'Este'},
-            {name: 'Carlos Ruiz', lat: 19.4026, lng: -99.1432, efficiency: 78, status: 'En ruta', region: 'Oeste'},
-            {name: 'Luis Hernández', lat: 19.4626, lng: -99.0932, efficiency: 92, status: 'En ruta', region: 'Norte'},
-            {name: 'Carmen Torres', lat: 19.3926, lng: -99.1832, efficiency: 91, status: 'En sucursal', region: 'Sur Oeste'}
-        ];
-
-        supervisors.forEach(supervisor => {
-            const color = supervisor.efficiency >= 90 ? '#16a34a' : 
-                         supervisor.efficiency >= 80 ? '#f59e0b' : '#ef4444';
+        // Initialize Charts with proper sizing and responsiveness
+        function initializeCharts() {
+            console.log('🔧 Inicializando gráficas con configuración corregida');
             
-            L.circleMarker([supervisor.lat, supervisor.lng], {
-                radius: 12,
-                fillColor: color,
-                color: 'white',
-                weight: 3,
-                fillOpacity: 0.8
-            }).bindPopup(`
-                <strong>${supervisor.name}</strong><br>
-                Región: ${supervisor.region}<br>
-                Eficiencia: ${supervisor.efficiency}%<br>
-                Estado: ${supervisor.status}
-            `).addTo(map);
-        });
+            // CLEANUP COMPLETO - Destruir charts existentes
+            if (window.efficiencyChart) {
+                window.efficiencyChart.destroy();
+                window.efficiencyChart = null;
+            }
+            if (window.savingsChart) {
+                window.savingsChart.destroy();
+                window.savingsChart = null;
+            }
+            
+            // Efficiency Chart
+            const efficiencyCanvas = document.getElementById('efficiencyChart');
+            if (efficiencyCanvas) {
+                // FORZAR DIMENSIONES DEL CANVAS
+                efficiencyCanvas.style.height = '300px';
+                efficiencyCanvas.style.width = '100%';
+                efficiencyCanvas.height = 300;
+                efficiencyCanvas.width = efficiencyCanvas.offsetWidth;
+                
+                // Reset canvas para evitar memory leaks
+                const ctx = efficiencyCanvas.getContext('2d');
+                
+                window.efficiencyChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+                        datasets: [
+                            {
+                                label: 'Centro Norte',
+                                data: [85, 88, 92, 94, 96, 98],
+                                borderColor: '#dc2626',
+                                backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: 'Sur',
+                                data: [82, 85, 87, 89, 91, 96],
+                                borderColor: '#16a34a',
+                                backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: 'Este',
+                                data: [80, 83, 85, 87, 88, 94],
+                                borderColor: '#2563eb',
+                                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: 'Oeste',
+                                data: [75, 76, 77, 78, 80, 78],
+                                borderColor: '#f59e0b',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        layout: {
+                            padding: 20
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: '#dc2626',
+                                borderWidth: 1
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                beginAtZero: false,
+                                min: 70,
+                                max: 100,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Savings Chart
+            const savingsCanvas = document.getElementById('savingsChart');
+            if (savingsCanvas) {
+                // FORZAR DIMENSIONES DEL CANVAS
+                savingsCanvas.style.height = '300px';
+                savingsCanvas.style.width = '100%';
+                savingsCanvas.height = 300;
+                savingsCanvas.width = savingsCanvas.offsetWidth;
+                
+                // Reset canvas para evitar memory leaks
+                const ctx = savingsCanvas.getContext('2d');
+                
+                window.savingsChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Combustible', 'Tiempo', 'Mantenimiento', 'Otros'],
+                        datasets: [{
+                            data: [5200, 3250, 800, 200],
+                            backgroundColor: [
+                                '#dc2626',
+                                '#16a34a', 
+                                '#2563eb',
+                                '#f59e0b'
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        layout: {
+                            padding: 20
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: '#dc2626',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.formattedValue;
+                                        return `${label}: $${value} MXN`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Forzar resize después de inicialización
+            setTimeout(() => {
+                if (window.efficiencyChart) {
+                    window.efficiencyChart.resize();
+                }
+                if (window.savingsChart) {
+                    window.savingsChart.resize();
+                }
+                console.log('📊 Gráficas inicializadas y redimensionadas correctamente');
+            }, 100);
+        }
+
+        // Initialize Map with proper error handling
+        function initializeMap() {
+            try {
+                const mapElement = document.getElementById('executiveMap');
+                if (!mapElement) {
+                    console.error('❌ Elemento del mapa no encontrado');
+                    return;
+                }
+
+                // Initialize map
+                const map = L.map('executiveMap').setView([19.4326, -99.1332], 11);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }).addTo(map);
+
+                // Add sample markers for active supervisors
+                const supervisors = [
+                    {name: 'María García', lat: 19.4526, lng: -99.1632, efficiency: 98, status: 'En ruta', region: 'Centro Norte'},
+                    {name: 'Juan Pérez', lat: 19.3826, lng: -99.0832, efficiency: 96, status: 'En sucursal', region: 'Sur'},
+                    {name: 'Ana López', lat: 19.4726, lng: -99.1132, efficiency: 94, status: 'Completado', region: 'Este'},
+                    {name: 'Carlos Ruiz', lat: 19.4026, lng: -99.1432, efficiency: 78, status: 'En ruta', region: 'Oeste'},
+                    {name: 'Luis Hernández', lat: 19.4626, lng: -99.0932, efficiency: 92, status: 'En ruta', region: 'Norte'},
+                    {name: 'Carmen Torres', lat: 19.3926, lng: -99.1832, efficiency: 91, status: 'En sucursal', region: 'Sur Oeste'}
+                ];
+
+                supervisors.forEach(supervisor => {
+                    const color = supervisor.efficiency >= 90 ? '#16a34a' : 
+                                 supervisor.efficiency >= 80 ? '#f59e0b' : '#ef4444';
+                    
+                    L.circleMarker([supervisor.lat, supervisor.lng], {
+                        radius: 8,
+                        fillColor: color,
+                        color: 'white',
+                        weight: 2,
+                        fillOpacity: 0.8
+                    }).bindPopup(`
+                        <div style="font-family: Inter, sans-serif;">
+                            <strong>${supervisor.name}</strong><br>
+                            <small>Región: ${supervisor.region}</small><br>
+                            <span style="color: ${color};">Eficiencia: ${supervisor.efficiency}%</span><br>
+                            Estado: ${supervisor.status}
+                        </div>
+                    `).addTo(map);
+                });
+
+                console.log('🗺️ Mapa inicializado correctamente');
+                window.executiveMap = map;
+
+            } catch (error) {
+                console.error('❌ Error inicializando mapa:', error);
+            }
+        }
 
         // Executive Actions
         function generateReport() {
-            alert('📊 Generando reporte ejecutivo semanal...\n\nReporte será enviado a su email en 2 minutos.');
+            alert('📊 Generando reporte ejecutivo semanal...\n\n✅ Reporte será enviado a su email en 2 minutos.\n📧 Incluirá:\n• Métricas de eficiencia\n• Ahorros detallados\n• Recomendaciones estratégicas');
         }
 
         function exportData() {
-            alert('💾 Exportando datos del sistema...\n\nArchivo Excel será descargado con:\n• Eficiencias por supervisor\n• Ahorros detallados\n• Métricas semanales');
+            alert('💾 Exportando datos del sistema...\n\n✅ Archivo Excel será descargado con:\n• Eficiencias por supervisor\n• Ahorros detallados por región\n• Métricas semanales\n• Análisis de tendencias');
         }
 
         function scheduleRoute() {
-            alert('🗓️ Optimización automática programada\n\nRutas para mañana serán:\n• Calculadas a las 6:00 AM\n• Optimizadas por tráfico\n• Enviadas a supervisores 7:00 AM');
+            alert('🗓️ Optimización automática programada\n\n✅ Rutas para mañana serán:\n• Calculadas a las 6:00 AM\n• Optimizadas considerando tráfico\n• Enviadas a supervisores a las 7:00 AM\n• Basadas en patrones históricos');
         }
 
         function openMainDashboard() {
             window.open('/webapp/dashboard.html', '_blank');
         }
 
-        // Auto-refresh data every 30 seconds
-        setInterval(() => {
-            console.log('Refreshing executive dashboard data...');
-            
-            // Simulate real-time updates
-            updateKPIs();
-        }, 30000);
-
+        // Update KPIs with realistic variations
         function updateKPIs() {
-            // Simulate slight variations in KPIs
-            const currentSavings = parseInt(document.getElementById('totalSavings').textContent.replace(/[$,]/g, ''));
-            const newSavings = currentSavings + Math.floor(Math.random() * 100) - 50;
-            document.getElementById('totalSavings').textContent = `$${newSavings.toLocaleString()}`;
+            try {
+                // Simulate slight variations in KPIs
+                const savingsElement = document.getElementById('totalSavings');
+                const efficiencyElement = document.getElementById('avgEfficiency');
+                const sucursalesElement = document.getElementById('sucursalesVisited');
+                const supervisorsElement = document.getElementById('activeSupervisors');
 
-            // Update other KPIs with small random variations
-            const efficiency = 94 + (Math.random() - 0.5) * 2;
-            document.getElementById('avgEfficiency').textContent = `${efficiency.toFixed(1)}%`;
+                if (savingsElement) {
+                    const currentSavings = parseInt(savingsElement.textContent.replace(/[$,]/g, ''));
+                    const variation = Math.floor(Math.random() * 200) - 100; // ±100
+                    const newSavings = Math.max(7000, currentSavings + variation);
+                    savingsElement.textContent = `$${newSavings.toLocaleString()}`;
+                }
 
-            const sucursales = 142 + Math.floor(Math.random() * 6) - 3;
-            document.getElementById('sucursalesVisited').textContent = sucursales;
+                if (efficiencyElement) {
+                    const baseEfficiency = 94;
+                    const variation = (Math.random() - 0.5) * 4; // ±2%
+                    const newEfficiency = Math.max(85, Math.min(100, baseEfficiency + variation));
+                    efficiencyElement.textContent = `${newEfficiency.toFixed(1)}%`;
+                }
+
+                if (sucursalesElement) {
+                    const baseSucursales = 142;
+                    const variation = Math.floor(Math.random() * 6) - 3; // ±3
+                    const newSucursales = Math.max(135, baseSucursales + variation);
+                    sucursalesElement.textContent = newSucursales;
+                }
+
+                console.log('📊 KPIs actualizados');
+            } catch (error) {
+                console.error('❌ Error actualizando KPIs:', error);
+            }
         }
 
+        // Error handling for missing elements
+        window.addEventListener('error', function(e) {
+            console.error('❌ Error en Dashboard Ejecutivo:', e.error);
+        });
+
         // Initialize dashboard
-        console.log('Executive Dashboard initialized');
-        console.log('Sistema de Rutas Inteligentes - El Pollo Loco');
-        console.log('ROI Proyectado: 623% anual');
-        console.log('Ahorro Mensual: $8,450 MXN');
+        console.log('🚀 Dashboard Ejecutivo - El Pollo Loco iniciado');
+        console.log('💰 ROI Proyectado: 623% anual');
+        console.log('📊 Score de Sistema: 92%');
     </script>
 </body>
 </html>

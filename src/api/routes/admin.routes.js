@@ -163,25 +163,51 @@ router.get('/import-production-data', async (req, res) => {
     
     await neonClient.end();
     
-    // Crear tabla tracking_locations_cache si no existe
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS tracking_locations_cache (
-        id SERIAL PRIMARY KEY,
-        location_code VARCHAR(10) UNIQUE NOT NULL,
-        location_name VARCHAR(255) NOT NULL,
-        address TEXT,
-        latitude DECIMAL(10,8) NOT NULL,
-        longitude DECIMAL(11,8) NOT NULL,
-        group_name VARCHAR(100) NOT NULL,
-        director_name VARCHAR(100),
-        active BOOLEAN DEFAULT true,
-        geofence_radius INTEGER DEFAULT 150,
-        geofence_enabled BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        synced_at TIMESTAMP DEFAULT NOW()
-      );
+    // Primero verificar qué columnas existen
+    const existingColumns = await db.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'tracking_locations_cache'
+      ORDER BY ordinal_position
     `);
+    
+    if (existingColumns.rows.length === 0) {
+      // Crear tabla nueva con estructura correcta
+      await db.query(`
+        CREATE TABLE tracking_locations_cache (
+          id SERIAL PRIMARY KEY,
+          location_code VARCHAR(10) UNIQUE NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          address TEXT,
+          latitude DECIMAL(10,8) NOT NULL,
+          longitude DECIMAL(11,8) NOT NULL,
+          group_name VARCHAR(100) NOT NULL,
+          director_name VARCHAR(100),
+          active BOOLEAN DEFAULT true,
+          geofence_radius INTEGER DEFAULT 150,
+          geofence_enabled BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW(),
+          synced_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
+    } else {
+      // Verificar y agregar columnas faltantes si la tabla existe
+      const columnNames = existingColumns.rows.map(row => row.column_name);
+      
+      if (!columnNames.includes('name')) {
+        await db.query('ALTER TABLE tracking_locations_cache ADD COLUMN name VARCHAR(255)');
+      }
+      if (!columnNames.includes('geofence_enabled')) {
+        await db.query('ALTER TABLE tracking_locations_cache ADD COLUMN geofence_enabled BOOLEAN DEFAULT true');
+      }
+      if (!columnNames.includes('geofence_radius')) {
+        await db.query('ALTER TABLE tracking_locations_cache ADD COLUMN geofence_radius INTEGER DEFAULT 150');
+      }
+      if (!columnNames.includes('synced_at')) {
+        await db.query('ALTER TABLE tracking_locations_cache ADD COLUMN synced_at TIMESTAMP DEFAULT NOW()');
+      }
+    }
     
     // Limpiar datos existentes
     await db.query('DELETE FROM tracking_locations_cache');
@@ -207,11 +233,11 @@ router.get('/import-production-data', async (req, res) => {
         
         await db.query(`
           INSERT INTO tracking_locations_cache (
-            location_code, location_name, address, latitude, longitude,
+            location_code, name, address, latitude, longitude,
             group_name, director_name, active, geofence_radius, geofence_enabled, synced_at
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
           ON CONFLICT (location_code) DO UPDATE SET
-            location_name = EXCLUDED.location_name, 
+            name = EXCLUDED.name, 
             group_name = EXCLUDED.group_name,
             latitude = EXCLUDED.latitude, 
             longitude = EXCLUDED.longitude,

@@ -2590,22 +2590,36 @@ router.post('/actions/cleanup', async (req, res) => {
  */
 router.get('/groups', logAction('VIEW_GROUPS', 'groups'), async (req, res) => {
   try {
-    // Obtener grupos con sucursales y estadísticas
+    console.log('🔍 Obteniendo grupos operativos...');
+    
+    // Verificar datos en tabla
+    const count = await db.query('SELECT COUNT(*) as total FROM tracking_locations_cache');
+    console.log(`📊 Total sucursales en BD: ${count.rows[0].total}`);
+    
+    // Obtener grupos con sucursales y estadísticas 
     const result = await db.query(`
       SELECT 
         group_name,
-        director_name,
+        STRING_AGG(DISTINCT director_name, ', ') as directores,
         COUNT(*) as total_sucursales,
         COUNT(CASE WHEN active THEN 1 END) as sucursales_activas,
         COUNT(CASE WHEN geofence_enabled THEN 1 END) as geofences_activos,
-        AVG(geofence_radius) as radio_promedio,
+        ROUND(AVG(geofence_radius)) as radio_promedio,
         MIN(created_at) as fecha_creacion
       FROM tracking_locations_cache
-      GROUP BY group_name, director_name
+      WHERE group_name IS NOT NULL
+      GROUP BY group_name
       ORDER BY group_name
     `);
     
-    res.json(result.rows);
+    console.log(`📋 Grupos encontrados: ${result.rows.length}`);
+    
+    res.json({
+      success: true,
+      data: result.rows,
+      total_grupos: result.rows.length,
+      total_sucursales: count.rows[0].total
+    });
     
   } catch (error) {
     console.error('❌ Error obteniendo grupos:', error.message);

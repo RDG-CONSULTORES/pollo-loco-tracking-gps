@@ -78,13 +78,12 @@ class ReportesCommands {
           gl.gps_timestamp,
           EXTRACT(EPOCH FROM (NOW() - gl.gps_timestamp))/60 as minutes_ago
         FROM tracking_users tu
-        LEFT JOIN LATERAL (
-          SELECT latitude, longitude, accuracy, battery, gps_timestamp 
+        LEFT JOIN (
+          SELECT DISTINCT ON (user_id) 
+            user_id, latitude, longitude, accuracy, battery, gps_timestamp 
           FROM gps_locations 
-          WHERE user_id = tu.id 
-          ORDER BY gps_timestamp DESC 
-          LIMIT 1
-        ) gl ON true
+          ORDER BY user_id, gps_timestamp DESC 
+        ) gl ON tu.id = gl.user_id
         WHERE tu.active = true
         ORDER BY gl.gps_timestamp DESC NULLS LAST
       `);

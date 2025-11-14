@@ -483,7 +483,7 @@ router.get('/users', async (req, res) => {
             latitude,
             longitude,
             active,
-            created_at
+            synced_at
           FROM tracking_locations_cache
           WHERE latitude IS NOT NULL 
             AND longitude IS NOT NULL

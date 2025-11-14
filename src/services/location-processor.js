@@ -131,8 +131,21 @@ class LocationProcessor {
       
       console.log(`✅ Ubicación guardada: ${tid} @ ${lat}, ${lon} (${user.display_name})`);
       
-      // 10. Verificar geofencing (¿está en alguna sucursal?)
-      await geofenceManager.checkGeofence(tid, user.zenput_email, lat, lon, gpsTimestamp);
+      // 10. Procesar geofencing - detectar entradas/salidas de sucursales
+      const geofenceEngine = require('./geofence-engine');
+      const geofenceEvents = await geofenceEngine.processLocation({
+        id: savedLocation.id,
+        user_id: user.id,
+        latitude: lat,
+        longitude: lon,
+        accuracy: acc,
+        battery: batt,
+        gps_timestamp: gpsTimestamp
+      });
+      
+      if (geofenceEvents.length > 0) {
+        console.log(`🎯 Geofence events detected: ${geofenceEvents.map(e => `${e.event_type} ${e.location_code}`).join(', ')}`);
+      }
       
       return { 
         processed: true,

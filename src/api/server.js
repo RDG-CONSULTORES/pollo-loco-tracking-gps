@@ -43,6 +43,10 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/login.html'));
   });
   
+  app.get('/webapp/redirect.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/redirect.html'));
+  });
+  
   // Middleware de logging
   app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
@@ -56,8 +60,13 @@ function createServer() {
     next();
   });
   
-  // Ruta por defecto PRIMERO
+  // Ruta por defecto PRIMERO - redirigir al nuevo dashboard
   app.get('/', (req, res) => {
+    res.redirect('/webapp/redirect.html');
+  });
+  
+  // API info endpoint
+  app.get('/api', (req, res) => {
     res.json({
       name: 'Pollo Loco Tracking GPS',
       version: '1.0.0',

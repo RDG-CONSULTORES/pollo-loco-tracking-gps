@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pollo Loco GPS - Redirigiendo...</title>
+    
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin: 0;
+        }
+        
+        .redirect-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 3rem;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+        
+        .redirect-btn {
+            background: white;
+            color: #dc2626;
+            padding: 0.875rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.2s;
+            margin: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .redirect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        .redirect-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .countdown {
+            margin-top: 1rem;
+            opacity: 0.8;
+            font-size: 0.875rem;
+        }
+        
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-container">
+        <div class="logo">🐔</div>
+        <div class="title">Pollo Loco GPS</div>
+        <div class="subtitle">Sistema de Seguimiento en Tiempo Real</div>
+        
+        <div class="spinner"></div>
+        
+        <div class="options">
+            <a href="/webapp/login.html" class="redirect-btn">
+                🗺️ Nuevo Dashboard (Recomendado)
+            </a>
+            <a href="/webapp/index.html" class="redirect-btn secondary">
+                📊 Admin Clásico (Telegram)
+            </a>
+        </div>
+        
+        <div class="countdown">
+            Redirigiendo al nuevo dashboard en <span id="countdown">5</span> segundos...
+        </div>
+    </div>
+
+    <script>
+        let countdown = 5;
+        const countdownElement = document.getElementById('countdown');
+        
+        const timer = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(timer);
+                window.location.href = '/webapp/login.html';
+            }
+        }, 1000);
+        
+        // Cancelar redirección automática si el usuario hace clic
+        document.querySelectorAll('.redirect-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                clearInterval(timer);
+            });
+        });
+    </script>
+</body>
+</html>

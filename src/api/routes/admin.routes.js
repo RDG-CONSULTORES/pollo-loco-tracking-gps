@@ -185,6 +185,260 @@ router.get('/users', async (req, res) => {
         });
       }
     }
+
+    // Debug: Create geofencing tables if ?debug=setup_geofencing query param
+    if (req.query.debug === 'setup_geofencing') {
+      try {
+        console.log('[ADMIN] Setting up geofencing system...');
+        
+        // 1. Crear tabla sucursal_geofences
+        console.log('[ADMIN] Creating sucursal_geofences table...');
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS sucursal_geofences (
+              id BIGSERIAL PRIMARY KEY,
+              location_code VARCHAR(50) NOT NULL,
+              store_name VARCHAR(200),
+              group_name VARCHAR(100),
+              
+              -- Coordenadas del centro del geofence
+              latitude DECIMAL(10, 8) NOT NULL,
+              longitude DECIMAL(11, 8) NOT NULL,
+              
+              -- Radio en metros (default 150m)
+              radius_meters INTEGER DEFAULT 150,
+              
+              -- Control
+              active BOOLEAN DEFAULT true,
+              created_at TIMESTAMP DEFAULT NOW(),
+              updated_at TIMESTAMP DEFAULT NOW(),
+              
+              -- Constraint para location_code
+              CONSTRAINT fk_geofence_location 
+                  FOREIGN KEY (location_code) 
+                  REFERENCES tracking_locations_cache(location_code)
+                  ON DELETE CASCADE
+          )
+        `);
+
+        // 2. Crear tabla geofence_events
+        console.log('[ADMIN] Creating geofence_events table...');
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS geofence_events (
+              id BIGSERIAL PRIMARY KEY,
+              
+              -- Referencias
+              user_id INTEGER NOT NULL,
+              location_code VARCHAR(50) NOT NULL,
+              raw_location_id BIGINT,
+              
+              -- Tipo de evento
+              event_type VARCHAR(20) NOT NULL CHECK (event_type IN ('enter', 'exit')),
+              
+              -- Ubicación del evento
+              latitude DECIMAL(10, 8) NOT NULL,
+              longitude DECIMAL(11, 8) NOT NULL,
+              distance_from_center DECIMAL(8, 2),
+              
+              -- Timestamp del evento
+              event_timestamp TIMESTAMP DEFAULT NOW(),
+              
+              -- Estado de notificaciones
+              telegram_sent BOOLEAN DEFAULT false,
+              telegram_sent_at TIMESTAMP,
+              telegram_error TEXT,
+              
+              -- Metadatos
+              accuracy_meters INTEGER,
+              battery_percentage INTEGER,
+              
+              -- Constraints
+              CONSTRAINT fk_geofence_event_user 
+                  FOREIGN KEY (user_id) 
+                  REFERENCES tracking_users(id)
+                  ON DELETE CASCADE,
+              
+              CONSTRAINT fk_geofence_event_raw_location 
+                  FOREIGN KEY (raw_location_id) 
+                  REFERENCES gps_locations(id)
+                  ON DELETE SET NULL
+          )
+        `);
+
+        // 3. Crear tabla user_sucursal_state
+        console.log('[ADMIN] Creating user_sucursal_state table...');
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS user_sucursal_state (
+              id BIGSERIAL PRIMARY KEY,
+              user_id INTEGER NOT NULL,
+              location_code VARCHAR(50) NOT NULL,
+              
+              -- Estado actual
+              is_inside BOOLEAN DEFAULT false,
+              last_enter_event_id BIGINT,
+              last_exit_event_id BIGINT,
+              
+              -- Timestamps
+              last_enter_time TIMESTAMP,
+              last_exit_time TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT NOW(),
+              
+              -- Unique constraint para evitar duplicados
+              CONSTRAINT unique_user_location 
+                  UNIQUE (user_id, location_code),
+              
+              -- Foreign keys
+              CONSTRAINT fk_user_state_user 
+                  FOREIGN KEY (user_id) 
+                  REFERENCES tracking_users(id)
+                  ON DELETE CASCADE,
+                  
+              CONSTRAINT fk_user_state_enter_event 
+                  FOREIGN KEY (last_enter_event_id) 
+                  REFERENCES geofence_events(id)
+                  ON DELETE SET NULL,
+                  
+              CONSTRAINT fk_user_state_exit_event 
+                  FOREIGN KEY (last_exit_event_id) 
+                  REFERENCES geofence_events(id)
+                  ON DELETE SET NULL
+          )
+        `);
+
+        // 4. Crear función de distancia
+        console.log('[ADMIN] Creating distance calculation function...');
+        await db.query(`
+          CREATE OR REPLACE FUNCTION calculate_distance_meters(
+              lat1 DECIMAL(10,8), 
+              lon1 DECIMAL(11,8), 
+              lat2 DECIMAL(10,8), 
+              lon2 DECIMAL(11,8)
+          ) RETURNS DECIMAL(10,2) AS $$
+          DECLARE
+              R CONSTANT DECIMAL := 6371000; -- Radio de la Tierra en metros
+              lat1_rad DECIMAL;
+              lat2_rad DECIMAL;
+              delta_lat DECIMAL;
+              delta_lon DECIMAL;
+              a DECIMAL;
+              c DECIMAL;
+          BEGIN
+              -- Convertir a radianes
+              lat1_rad := radians(lat1);
+              lat2_rad := radians(lat2);
+              delta_lat := radians(lat2 - lat1);
+              delta_lon := radians(lon2 - lon1);
+              
+              -- Fórmula Haversine
+              a := sin(delta_lat/2) * sin(delta_lat/2) + 
+                   cos(lat1_rad) * cos(lat2_rad) * 
+                   sin(delta_lon/2) * sin(delta_lon/2);
+              c := 2 * atan2(sqrt(a), sqrt(1-a));
+              
+              RETURN R * c;
+          END;
+          $$ LANGUAGE plpgsql IMMUTABLE
+        `);
+
+        // 5. Crear función para encontrar geofences cercanos
+        console.log('[ADMIN] Creating nearby geofences function...');
+        await db.query(`
+          CREATE OR REPLACE FUNCTION get_nearby_geofences(
+              user_lat DECIMAL(10,8), 
+              user_lon DECIMAL(11,8), 
+              max_distance_meters INTEGER DEFAULT 200
+          ) RETURNS TABLE (
+              geofence_id BIGINT,
+              location_code VARCHAR(50),
+              store_name VARCHAR(200),
+              distance_meters DECIMAL(10,2),
+              is_inside BOOLEAN
+          ) AS $$
+          BEGIN
+              RETURN QUERY
+              SELECT 
+                  sg.id,
+                  sg.location_code,
+                  sg.store_name,
+                  calculate_distance_meters(user_lat, user_lon, sg.latitude, sg.longitude) as distance,
+                  (calculate_distance_meters(user_lat, user_lon, sg.latitude, sg.longitude) <= sg.radius_meters) as inside
+              FROM sucursal_geofences sg
+              WHERE sg.active = true
+                AND calculate_distance_meters(user_lat, user_lon, sg.latitude, sg.longitude) <= max_distance_meters
+              ORDER BY distance;
+          END;
+          $$ LANGUAGE plpgsql
+        `);
+
+        // 6. Crear índices
+        console.log('[ADMIN] Creating geofencing indexes...');
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_geofences_location_code ON sucursal_geofences(location_code)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_geofences_coordinates ON sucursal_geofences(latitude, longitude)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_geofences_active ON sucursal_geofences(active) WHERE active = true`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_geofence_events_user_timestamp ON geofence_events(user_id, event_timestamp DESC)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_geofence_events_location_timestamp ON geofence_events(location_code, event_timestamp DESC)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_geofence_events_type_timestamp ON geofence_events(event_type, event_timestamp DESC)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_geofence_events_telegram_pending ON geofence_events(telegram_sent) WHERE telegram_sent = false`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_user_state_user ON user_sucursal_state(user_id)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_user_state_location ON user_sucursal_state(location_code)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_user_state_inside ON user_sucursal_state(is_inside) WHERE is_inside = true`);
+
+        // 7. Insertar configuración
+        console.log('[ADMIN] Inserting geofencing configuration...');
+        await db.query(`
+          INSERT INTO tracking_config (key, value, data_type, description) VALUES 
+          ('geofencing_enabled', 'true', 'boolean', 'Activar/desactivar sistema de geofencing'),
+          ('geofence_default_radius', '150', 'integer', 'Radio por defecto para geofences en metros'),
+          ('geofence_max_search_radius', '200', 'integer', 'Radio máximo para buscar geofences cercanos'),
+          ('geofence_telegram_alerts', 'true', 'boolean', 'Enviar alertas de geofencing por Telegram'),
+          ('geofence_alert_channels', '[]', 'json', 'Configuración de canales para alertas de geofencing')
+          ON CONFLICT (key) DO NOTHING
+        `);
+        
+        // Verificar instalación
+        const tablesResult = await db.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+            AND table_name IN ('sucursal_geofences', 'geofence_events', 'user_sucursal_state')
+          ORDER BY table_name
+        `);
+        
+        const functionsResult = await db.query(`
+          SELECT routine_name 
+          FROM information_schema.routines 
+          WHERE routine_schema = 'public' 
+            AND routine_name IN ('calculate_distance_meters', 'get_nearby_geofences')
+          ORDER BY routine_name
+        `);
+        
+        const configResult = await db.query(`
+          SELECT key, value 
+          FROM tracking_config 
+          WHERE key LIKE 'geofenc%'
+          ORDER BY key
+        `);
+
+        return res.json({
+          debug: 'setup_geofencing',
+          success: true,
+          message: 'Geofencing system setup completed successfully',
+          created_tables: tablesResult.rows.map(r => r.table_name),
+          created_functions: functionsResult.rows.map(r => r.routine_name),
+          config_entries: configResult.rows.length,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (createError) {
+        console.error('[ADMIN] Error setting up geofencing:', createError);
+        return res.json({
+          debug: 'setup_geofencing_error',
+          error: createError.message,
+          code: createError.code,
+          detail: createError.detail,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
     
     // Debug: Test location insert if ?debug=insert query param
     if (req.query.debug === 'insert') {

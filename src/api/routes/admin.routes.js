@@ -904,6 +904,147 @@ router.get('/users', async (req, res) => {
       }
     }
     
+    // Debug: Clean import (normalized structure) from Neon if ?debug=clean_import query param
+    if (req.query.debug === 'clean_import') {
+      try {
+        console.log('🧹 === IMPORTACIÓN LIMPIA DE ESTRUCTURA ===');
+        console.log('📊 Objetivo: 20 Grupos + 83 Sucursales (sin duplicados)');
+        
+        const { Client } = require('pg');
+        
+        // Conectar a Neon
+        const neonClient = new Client({
+          connectionString: 'postgresql://neondb_owner:npg_DlSRAHuyaY83@ep-orange-grass-a402u4o5-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require',
+          ssl: { rejectUnauthorized: false }
+        });
+        
+        await neonClient.connect();
+        
+        // Obtener estructura limpia (excluir duplicados)
+        const estructuraResult = await neonClient.query(\`
+          SELECT DISTINCT
+            location_name,
+            sucursal_clean,
+            latitud,
+            longitud,
+            estado_normalizado,
+            municipio,
+            grupo_operativo_limpio,
+            director_operativo
+          FROM supervision_operativa_clean
+          WHERE latitud IS NOT NULL 
+            AND longitud IS NOT NULL
+            AND location_name IS NOT NULL
+            AND grupo_operativo_limpio IS NOT NULL
+            AND grupo_operativo_limpio != 'NO_ENCONTRADO'
+            AND grupo_operativo_limpio != 'SIN_MAPEO'
+          ORDER BY grupo_operativo_limpio, location_name
+        \`);
+        
+        // Normalizar TEPEYAC (eliminar duplicados formato "Sucursal XX")
+        const sucursalesLimpias = estructuraResult.rows.filter(row => {
+          const nombre = row.location_name;
+          
+          if (row.grupo_operativo_limpio === 'TEPEYAC') {
+            if (nombre.startsWith('Sucursal ')) {
+              console.log(\`  🚫 Eliminando duplicado TEPEYAC: \${nombre}\`);
+              return false;
+            }
+          }
+          
+          return true;
+        });
+        
+        console.log(\`✅ Después de limpieza: \${sucursalesLimpias.length} sucursales\`);
+        
+        // Agrupar por grupo operativo
+        const gruposPorOperativo = new Map();
+        sucursalesLimpias.forEach(row => {
+          const grupo = row.grupo_operativo_limpio;
+          if (!gruposPorOperativo.has(grupo)) {
+            gruposPorOperativo.set(grupo, []);
+          }
+          gruposPorOperativo.get(grupo).push(row);
+        });
+        
+        // Limpiar tabla actual
+        await db.query('DELETE FROM tracking_locations_cache');
+        
+        // Importar estructura limpia
+        let totalImportadas = 0;
+        const gruposImportados = [];
+        
+        for (const [grupoNombre, sucursalesGrupo] of gruposPorOperativo.entries()) {
+          let sucursalesGrupoImportadas = 0;
+          
+          for (const sucursal of sucursalesGrupo) {
+            const codigoMatch = sucursal.location_name.match(/^(\\\\d+)/);
+            const locationCode = codigoMatch ? codigoMatch[1] : \`AUTO_\${totalImportadas + 1}\`;
+            
+            await db.query(\`
+              INSERT INTO tracking_locations_cache (
+                location_code, name, address, latitude, longitude,
+                group_name, director_name, active, geofence_radius, synced_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+              ON CONFLICT (location_code) DO UPDATE SET
+                name = EXCLUDED.name, group_name = EXCLUDED.group_name,
+                latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude,
+                director_name = EXCLUDED.director_name, synced_at = NOW()
+            \`, [
+              locationCode, sucursal.location_name,
+              \`\${sucursal.municipio}, \${sucursal.estado_normalizado}\`,
+              parseFloat(sucursal.latitud), parseFloat(sucursal.longitud),
+              grupoNombre, sucursal.director_operativo || 'Director TBD',
+              true, 150
+            ]);
+            
+            totalImportadas++;
+            sucursalesGrupoImportadas++;
+          }
+          
+          gruposImportados.push({
+            grupo: grupoNombre,
+            sucursales: sucursalesGrupoImportadas
+          });
+        }
+        
+        await neonClient.end();
+        
+        // Verificación final
+        const verificacion = await db.query(\`
+          SELECT group_name, COUNT(*) as total
+          FROM tracking_locations_cache 
+          WHERE active = true
+          GROUP BY group_name
+          ORDER BY group_name
+        \`);
+        
+        return res.json({
+          debug: 'clean_import',
+          success: true,
+          message: '🧹 Estructura limpia importada (sin duplicados)',
+          stats: {
+            grupos_importados: gruposPorOperativo.size,
+            sucursales_importadas: totalImportadas,
+            grupos_detalle: gruposImportados,
+            verificacion_final: verificacion.rows,
+            tepeyac_normalizado: true
+          },
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (error) {
+        console.error('Error en importación limpia:', error);
+        return res.json({
+          debug: 'clean_import_error',
+          success: false,
+          error: error.message,
+          stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Debug: Import real data from Neon if ?debug=import_real query param
     if (req.query.debug === 'import_real') {
       try {

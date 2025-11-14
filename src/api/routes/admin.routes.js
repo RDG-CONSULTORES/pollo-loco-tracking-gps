@@ -291,6 +291,46 @@ router.get('/import-production-data', async (req, res) => {
 });
 
 /**
+ * GET /api/admin/debug/counts
+ * Debug endpoint sin autenticación para verificar datos
+ */
+router.get('/debug/counts', async (req, res) => {
+  try {
+    // Contar total sucursales
+    const totalSucursales = await db.query('SELECT COUNT(*) as total FROM tracking_locations_cache');
+    
+    // Contar grupos únicos
+    const totalGrupos = await db.query(`
+      SELECT COUNT(DISTINCT group_name) as total 
+      FROM tracking_locations_cache 
+      WHERE group_name IS NOT NULL
+    `);
+    
+    // Listar todos los grupos
+    const gruposDetalle = await db.query(`
+      SELECT 
+        group_name,
+        COUNT(*) as sucursales,
+        COUNT(CASE WHEN active THEN 1 END) as activas
+      FROM tracking_locations_cache 
+      WHERE group_name IS NOT NULL
+      GROUP BY group_name 
+      ORDER BY group_name
+    `);
+    
+    res.json({
+      total_sucursales: totalSucursales.rows[0].total,
+      total_grupos: totalGrupos.rows[0].total,
+      grupos: gruposDetalle.rows,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * Middleware: Verificar autenticación
  * Solo administradores pueden acceder a estas rutas (excepto bootstrap e import)
  */

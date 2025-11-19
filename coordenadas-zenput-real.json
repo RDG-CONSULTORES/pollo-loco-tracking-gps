@@ -1,0 +1,652 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-19T19:46:27.011Z",
+    "total_zenput_locations": 83,
+    "locations_with_coordinates": 0,
+    "exact_matches": 0,
+    "partial_matches": 0,
+    "no_matches": 80
+  },
+  "zenput_coordinates": {},
+  "mapping_results": {
+    "exactMatches": [],
+    "partialMatches": [],
+    "noMatches": [
+      {
+        "trackingCode": "2247000",
+        "trackingName": "1 - Pino Suarez"
+      },
+      {
+        "trackingCode": "2247001",
+        "trackingName": "2 - Madero"
+      },
+      {
+        "trackingCode": "2247002",
+        "trackingName": "3 - Matamoros"
+      },
+      {
+        "trackingCode": "2247003",
+        "trackingName": "Sucursal SC - Santa Catarina"
+      },
+      {
+        "trackingCode": "2247004",
+        "trackingName": "5 - Felix U. Gomez"
+      },
+      {
+        "trackingCode": "2247005",
+        "trackingName": "Sucursal GC - Garcia"
+      },
+      {
+        "trackingCode": "2247006",
+        "trackingName": "Sucursal LH - La Huasteca"
+      },
+      {
+        "trackingCode": "2247007",
+        "trackingName": "8 - Gonzalitos"
+      },
+      {
+        "trackingCode": "2247008",
+        "trackingName": "9 - Anahuac"
+      },
+      {
+        "trackingCode": "2247009",
+        "trackingName": "10 - Barragan"
+      },
+      {
+        "trackingCode": "2247010",
+        "trackingName": "11 - Lincoln"
+      },
+      {
+        "trackingCode": "2247011",
+        "trackingName": "12 - Concordia"
+      },
+      {
+        "trackingCode": "2247012",
+        "trackingName": "13 - Escobedo"
+      },
+      {
+        "trackingCode": "2247013",
+        "trackingName": "14 - Aztlan"
+      },
+      {
+        "trackingCode": "2247014",
+        "trackingName": "15 - Ruiz Cortinez"
+      },
+      {
+        "trackingCode": "2247015",
+        "trackingName": "16 - Solidaridad"
+      },
+      {
+        "trackingCode": "2247016",
+        "trackingName": "17 - Romulo Garza"
+      },
+      {
+        "trackingCode": "2247017",
+        "trackingName": "18 - Linda Vista"
+      },
+      {
+        "trackingCode": "2247018",
+        "trackingName": "19 - Valle Soleado"
+      },
+      {
+        "trackingCode": "2247019",
+        "trackingName": "20 - Tecnológico"
+      },
+      {
+        "trackingCode": "2247020",
+        "trackingName": "21 - Chapultepec"
+      },
+      {
+        "trackingCode": "2247021",
+        "trackingName": "22 - Satelite"
+      },
+      {
+        "trackingCode": "2247022",
+        "trackingName": "23 - Guasave"
+      },
+      {
+        "trackingCode": "2247023",
+        "trackingName": "24 - Exposicion"
+      },
+      {
+        "trackingCode": "2247024",
+        "trackingName": "25 - Juarez"
+      },
+      {
+        "trackingCode": "2247025",
+        "trackingName": "26 - Cadereyta"
+      },
+      {
+        "trackingCode": "2247026",
+        "trackingName": "27 - Santiago"
+      },
+      {
+        "trackingCode": "2247027",
+        "trackingName": "28 - Guerrero"
+      },
+      {
+        "trackingCode": "2247028",
+        "trackingName": "29 - Pablo Livas"
+      },
+      {
+        "trackingCode": "2247029",
+        "trackingName": "30 - Carrizo"
+      },
+      {
+        "trackingCode": "2247030",
+        "trackingName": "31 - Las Quintas"
+      },
+      {
+        "trackingCode": "2247031",
+        "trackingName": "32 - Allende"
+      },
+      {
+        "trackingCode": "2247032",
+        "trackingName": "33 - Eloy Cavazos"
+      },
+      {
+        "trackingCode": "2247033",
+        "trackingName": "34 - Montemorelos"
+      },
+      {
+        "trackingCode": "2247035",
+        "trackingName": "36 - Apodaca Centro"
+      },
+      {
+        "trackingCode": "2247036",
+        "trackingName": "37 - Stiva"
+      },
+      {
+        "trackingCode": "2247037",
+        "trackingName": "38 - Gomez Morin"
+      },
+      {
+        "trackingCode": "2247038",
+        "trackingName": "39 - Lazaro Cardenas"
+      },
+      {
+        "trackingCode": "2247039",
+        "trackingName": "40 - Plaza 1500"
+      },
+      {
+        "trackingCode": "2247040",
+        "trackingName": "41 - Vasconcelos"
+      },
+      {
+        "trackingCode": "2247041",
+        "trackingName": "42 - Independencia"
+      },
+      {
+        "trackingCode": "2247042",
+        "trackingName": "43 - Revolucion"
+      },
+      {
+        "trackingCode": "2247043",
+        "trackingName": "44 - Senderos"
+      },
+      {
+        "trackingCode": "2247044",
+        "trackingName": "45 - Triana"
+      },
+      {
+        "trackingCode": "2247045",
+        "trackingName": "46 - Campestre"
+      },
+      {
+        "trackingCode": "2247046",
+        "trackingName": "47 - San Antonio"
+      },
+      {
+        "trackingCode": "2247047",
+        "trackingName": "48 - Refugio"
+      },
+      {
+        "trackingCode": "2247048",
+        "trackingName": "49 - Pueblito"
+      },
+      {
+        "trackingCode": "2247049",
+        "trackingName": "50 - Patio"
+      },
+      {
+        "trackingCode": "2247050",
+        "trackingName": "51 - Constituyentes"
+      },
+      {
+        "trackingCode": "2247051",
+        "trackingName": "52 - Venustiano Carranza"
+      },
+      {
+        "trackingCode": "2247052",
+        "trackingName": "53 - Lienzo Charro"
+      },
+      {
+        "trackingCode": "2247053",
+        "trackingName": "54 - Ramos Arizpe"
+      },
+      {
+        "trackingCode": "2247054",
+        "trackingName": "55 - Eulalio Gutierrez"
+      },
+      {
+        "trackingCode": "2247055",
+        "trackingName": "56 - Luis Echeverria"
+      },
+      {
+        "trackingCode": "2247056",
+        "trackingName": "57 - Harold R. Pape"
+      },
+      {
+        "trackingCode": "2247057",
+        "trackingName": "58 - Universidad (Tampico)"
+      },
+      {
+        "trackingCode": "2247058",
+        "trackingName": "59 - Plaza 3601"
+      },
+      {
+        "trackingCode": "2247059",
+        "trackingName": "60 - Centro (Tampico)"
+      },
+      {
+        "trackingCode": "2247060",
+        "trackingName": "61 - Aeropuerto (Tampico)"
+      },
+      {
+        "trackingCode": "2247061",
+        "trackingName": "62 - Lazaro Cardenas (Morelia)"
+      },
+      {
+        "trackingCode": "2247062",
+        "trackingName": "63 - Madero (Morelia)"
+      },
+      {
+        "trackingCode": "2247063",
+        "trackingName": "64 - Huerta"
+      },
+      {
+        "trackingCode": "2247064",
+        "trackingName": "65 - Pedro Cardenas"
+      },
+      {
+        "trackingCode": "2247065",
+        "trackingName": "66 - Lauro Villar"
+      },
+      {
+        "trackingCode": "2247066",
+        "trackingName": "67 - Centro (Matamoros)"
+      },
+      {
+        "trackingCode": "2247067",
+        "trackingName": "68 - Avenida del Niño"
+      },
+      {
+        "trackingCode": "2247068",
+        "trackingName": "69 - Puerto Rico"
+      },
+      {
+        "trackingCode": "2247069",
+        "trackingName": "70 - Coahuila Comidas"
+      },
+      {
+        "trackingCode": "2247070",
+        "trackingName": "71 - Centrito Valle"
+      },
+      {
+        "trackingCode": "2247071",
+        "trackingName": "72 - Sabinas Hidalgo"
+      },
+      {
+        "trackingCode": "2247072",
+        "trackingName": "73 - Anzalduas"
+      },
+      {
+        "trackingCode": "2247073",
+        "trackingName": "74 - Hidalgo (Reynosa)"
+      },
+      {
+        "trackingCode": "2247074",
+        "trackingName": "75 - Libramiento (Reynosa)"
+      },
+      {
+        "trackingCode": "2247075",
+        "trackingName": "76 - Aeropuerto (Reynosa)"
+      },
+      {
+        "trackingCode": "2247076",
+        "trackingName": "77 - Boulevard Morelos"
+      },
+      {
+        "trackingCode": "2247077",
+        "trackingName": "78 - Alcala"
+      },
+      {
+        "trackingCode": "2247078",
+        "trackingName": "79 - Rio Bravo"
+      },
+      {
+        "trackingCode": "2247079",
+        "trackingName": "80 - Guerrero 2 (Ruelas)"
+      },
+      {
+        "trackingCode": "2247080",
+        "trackingName": "81 - Reforma (Ruelas)"
+      }
+    ],
+    "multipleMatches": []
+  },
+  "raw_zenput_data": [
+    {
+      "id": 2247000,
+      "name": "1 - Pino Suarez",
+      "address": "Av. Pino Suarez\n#500 sur Col. Centro",
+      "city": "Monterrey",
+      "state": "NL",
+      "region": "",
+      "zipcode": "64000",
+      "country": "MX",
+      "email": "pinosuarez@epl.mx",
+      "phone": "812-191-1171",
+      "external_key": "1",
+      "lat": 25.6689279,
+      "lon": -100.3203777,
+      "date_modified": "2025-05-02T23:19:12+00:00",
+      "date_created": "2025-02-06T04:45:10+00:00",
+      "time_zone": "America/Monterrey",
+      "company": {
+        "id": 7406,
+        "name": "El Pollo Loco México",
+        "features": [
+          {
+            "id": "advanced_formula"
+          },
+          {
+            "id": "announcement_summary"
+          },
+          {
+            "id": "custm_quest_ordering"
+          },
+          {
+            "id": "dash_default_tasks"
+          },
+          {
+            "id": "location_detail_page_calendar_events"
+          },
+          {
+            "id": "prioritized_anns"
+          },
+          {
+            "id": "public_submissions"
+          },
+          {
+            "id": "read_only_sharing_fbc_audits"
+          },
+          {
+            "id": "scheduled_ann"
+          },
+          {
+            "id": "sensor_chart_3M_of_readings"
+          },
+          {
+            "id": "show_acceptance_crit"
+          },
+          {
+            "id": "temperature"
+          }
+        ]
+      },
+      "tags": [
+        {
+          "id": 56930,
+          "name": "All Locations",
+          "is_editable": false
+        },
+        {
+          "id": 59266,
+          "name": "EPL CAS",
+          "is_editable": true
+        },
+        {
+          "id": 59775,
+          "name": "Tepeyac",
+          "is_editable": true
+        }
+      ],
+      "owners": [
+        {
+          "id": 356902,
+          "username": "pinosuarez@epl.mx",
+          "display_name": "Sucursal Pino Suarez",
+          "user_role": {
+            "id": 15139,
+            "name": "Sucursal"
+          },
+          "groups": [
+            {
+              "id": 3,
+              "name": "Submitter"
+            }
+          ],
+          "email": "pinosuarez@epl.mx"
+        },
+        {
+          "id": 356988,
+          "username": "kayla.montalvo@hotmail.com",
+          "display_name": "Kayla Montalvo",
+          "user_role": {
+            "id": 15140,
+            "name": "Gerente"
+          },
+          "groups": [
+            {
+              "id": 2,
+              "name": "Manager"
+            }
+          ],
+          "email": "kayla.montalvo@hotmail.com"
+        }
+      ],
+      "teams": [
+        {
+          "id": 115117,
+          "name": "Carlos Gamez"
+        }
+      ],
+      "fbc_users": []
+    },
+    {
+      "id": 2247009,
+      "name": "10 - Barragan",
+      "address": "Av. Manuel I. Barragán #1401",
+      "city": "San Nicolas de los Garza",
+      "state": "NL",
+      "region": null,
+      "zipcode": "66428",
+      "country": "MX",
+      "email": "barragan@epl.mx",
+      "phone": null,
+      "external_key": "10",
+      "lat": 25.7637861,
+      "lon": -100.3051638,
+      "date_modified": "2025-02-06T04:45:15+00:00",
+      "date_created": "2025-02-06T04:45:11+00:00",
+      "time_zone": "America/Monterrey",
+      "company": {
+        "id": 7406,
+        "name": "El Pollo Loco México",
+        "features": [
+          {
+            "id": "advanced_formula"
+          },
+          {
+            "id": "announcement_summary"
+          },
+          {
+            "id": "custm_quest_ordering"
+          },
+          {
+            "id": "dash_default_tasks"
+          },
+          {
+            "id": "location_detail_page_calendar_events"
+          },
+          {
+            "id": "prioritized_anns"
+          },
+          {
+            "id": "public_submissions"
+          },
+          {
+            "id": "read_only_sharing_fbc_audits"
+          },
+          {
+            "id": "scheduled_ann"
+          },
+          {
+            "id": "sensor_chart_3M_of_readings"
+          },
+          {
+            "id": "show_acceptance_crit"
+          },
+          {
+            "id": "temperature"
+          }
+        ]
+      },
+      "tags": [
+        {
+          "id": 56930,
+          "name": "All Locations",
+          "is_editable": false
+        },
+        {
+          "id": 59266,
+          "name": "EPL CAS",
+          "is_editable": true
+        }
+      ],
+      "owners": [
+        {
+          "id": 356911,
+          "username": "barragan@epl.mx",
+          "display_name": "Sucursal Barragan",
+          "user_role": {
+            "id": 15139,
+            "name": "Sucursal"
+          },
+          "groups": [
+            {
+              "id": 3,
+              "name": "Submitter"
+            }
+          ],
+          "email": "barragan@epl.mx"
+        }
+      ],
+      "teams": [
+        {
+          "id": 115120,
+          "name": "Arturo Farfan"
+        }
+      ],
+      "fbc_users": []
+    },
+    {
+      "id": 2247010,
+      "name": "11 - Lincoln",
+      "address": "Av. Paseo de Cumbres #1001-C",
+      "city": "Monterrey",
+      "state": "NL",
+      "region": null,
+      "zipcode": "64346",
+      "country": "MX",
+      "email": "lincoln@epl.mx",
+      "phone": null,
+      "external_key": "11",
+      "lat": 25.7616998,
+      "lon": -100.4061423,
+      "date_modified": "2025-02-06T04:45:15+00:00",
+      "date_created": "2025-02-06T04:45:11+00:00",
+      "time_zone": "America/Monterrey",
+      "company": {
+        "id": 7406,
+        "name": "El Pollo Loco México",
+        "features": [
+          {
+            "id": "advanced_formula"
+          },
+          {
+            "id": "announcement_summary"
+          },
+          {
+            "id": "custm_quest_ordering"
+          },
+          {
+            "id": "dash_default_tasks"
+          },
+          {
+            "id": "location_detail_page_calendar_events"
+          },
+          {
+            "id": "prioritized_anns"
+          },
+          {
+            "id": "public_submissions"
+          },
+          {
+            "id": "read_only_sharing_fbc_audits"
+          },
+          {
+            "id": "scheduled_ann"
+          },
+          {
+            "id": "sensor_chart_3M_of_readings"
+          },
+          {
+            "id": "show_acceptance_crit"
+          },
+          {
+            "id": "temperature"
+          }
+        ]
+      },
+      "tags": [
+        {
+          "id": 56930,
+          "name": "All Locations",
+          "is_editable": false
+        },
+        {
+          "id": 59266,
+          "name": "EPL CAS",
+          "is_editable": true
+        }
+      ],
+      "owners": [
+        {
+          "id": 356912,
+          "username": "lincoln@epl.mx",
+          "display_name": "Sucursal Lincoln",
+          "user_role": {
+            "id": 15139,
+            "name": "Sucursal"
+          },
+          "groups": [
+            {
+              "id": 3,
+              "name": "Submitter"
+            }
+          ],
+          "email": "lincoln@epl.mx"
+        }
+      ],
+      "teams": [
+        {
+          "id": 115120,
+          "name": "Arturo Farfan"
+        }
+      ],
+      "fbc_users": []
+    }
+  ]
+}

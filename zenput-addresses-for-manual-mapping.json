@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-19T19:49:18.895Z",
+    "total_locations": 3,
+    "source": "zenput_validated_addresses"
+  },
+  "addresses": [
+    {
+      "id": 2247000,
+      "name": "1 - Pino Suarez",
+      "address": "Av. Pino Suarez #500 sur Col. Centro, Monterrey, NL, 64000, México",
+      "searchQuery": "1 - Pino Suarez Av. Pino Suarez #500 sur Col. Centro, Monterrey, NL, 64000, México",
+      "googleMapsUrl": "https://www.google.com/maps/search/Av.%20Pino%20Suarez%20%23500%20sur%20Col.%20Centro%2C%20Monterrey%2C%20NL%2C%2064000%2C%20M%C3%A9xico",
+      "zenputSearchUrl": "https://www.google.com/maps/search/1%20-%20Pino%20Suarez%20Av.%20Pino%20Suarez%20%23500%20sur%20Col.%20Centro%2C%20Monterrey%2C%20NL%2C%2064000%2C%20M%C3%A9xico",
+      "city": "Monterrey",
+      "state": "NL",
+      "zipcode": "64000"
+    },
+    {
+      "id": 2247009,
+      "name": "10 - Barragan",
+      "address": "Av. Manuel I. Barragán #1401, San Nicolas de los Garza, NL, 66428, México",
+      "searchQuery": "10 - Barragan Av. Manuel I. Barragán #1401, San Nicolas de los Garza, NL, 66428, México",
+      "googleMapsUrl": "https://www.google.com/maps/search/Av.%20Manuel%20I.%20Barraga%CC%81n%20%231401%2C%20San%20Nicolas%20de%20los%20Garza%2C%20NL%2C%2066428%2C%20M%C3%A9xico",
+      "zenputSearchUrl": "https://www.google.com/maps/search/10%20-%20Barragan%20Av.%20Manuel%20I.%20Barraga%CC%81n%20%231401%2C%20San%20Nicolas%20de%20los%20Garza%2C%20NL%2C%2066428%2C%20M%C3%A9xico",
+      "city": "San Nicolas de los Garza",
+      "state": "NL",
+      "zipcode": "66428"
+    },
+    {
+      "id": 2247010,
+      "name": "11 - Lincoln",
+      "address": "Av. Paseo de Cumbres #1001-C, Monterrey, NL, 64346, México",
+      "searchQuery": "11 - Lincoln Av. Paseo de Cumbres #1001-C, Monterrey, NL, 64346, México",
+      "googleMapsUrl": "https://www.google.com/maps/search/Av.%20Paseo%20de%20Cumbres%20%231001-C%2C%20Monterrey%2C%20NL%2C%2064346%2C%20M%C3%A9xico",
+      "zenputSearchUrl": "https://www.google.com/maps/search/11%20-%20Lincoln%20Av.%20Paseo%20de%20Cumbres%20%231001-C%2C%20Monterrey%2C%20NL%2C%2064346%2C%20M%C3%A9xico",
+      "city": "Monterrey",
+      "state": "NL",
+      "zipcode": "64346"
+    }
+  ],
+  "quick_urls": [
+    {
+      "id": 2247000,
+      "name": "1 - Pino Suarez",
+      "googleMapsUrl": "https://www.google.com/maps/search/Av.%20Pino%20Suarez%20%23500%20sur%20Col.%20Centro%2C%20Monterrey%2C%20NL%2C%2064000%2C%20M%C3%A9xico",
+      "zenputSearchUrl": "https://www.google.com/maps/search/1%20-%20Pino%20Suarez%20Av.%20Pino%20Suarez%20%23500%20sur%20Col.%20Centro%2C%20Monterrey%2C%20NL%2C%2064000%2C%20M%C3%A9xico"
+    },
+    {
+      "id": 2247009,
+      "name": "10 - Barragan",
+      "googleMapsUrl": "https://www.google.com/maps/search/Av.%20Manuel%20I.%20Barraga%CC%81n%20%231401%2C%20San%20Nicolas%20de%20los%20Garza%2C%20NL%2C%2066428%2C%20M%C3%A9xico",
+      "zenputSearchUrl": "https://www.google.com/maps/search/10%20-%20Barragan%20Av.%20Manuel%20I.%20Barraga%CC%81n%20%231401%2C%20San%20Nicolas%20de%20los%20Garza%2C%20NL%2C%2066428%2C%20M%C3%A9xico"
+    },
+    {
+      "id": 2247010,
+      "name": "11 - Lincoln",
+      "googleMapsUrl": "https://www.google.com/maps/search/Av.%20Paseo%20de%20Cumbres%20%231001-C%2C%20Monterrey%2C%20NL%2C%2064346%2C%20M%C3%A9xico",
+      "zenputSearchUrl": "https://www.google.com/maps/search/11%20-%20Lincoln%20Av.%20Paseo%20de%20Cumbres%20%231001-C%2C%20Monterrey%2C%20NL%2C%2064346%2C%20M%C3%A9xico"
+    }
+  ]
+}

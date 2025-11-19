@@ -7,11 +7,13 @@ const usuarios = require('./usuarios');
 const config = require('./config');
 const control = require('./control');
 const reportes = require('./reportes');
+const menu = require('./menu');
 
 module.exports = {
   ayuda,
   usuarios,
   config,
   control,
-  reportes
+  reportes,
+  menu
 };

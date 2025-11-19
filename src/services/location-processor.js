@@ -146,6 +146,15 @@ class LocationProcessor {
       if (geofenceEvents.length > 0) {
         console.log(`🎯 Geofence events detected: ${geofenceEvents.map(e => `${e.event_type} ${e.location_code}`).join(', ')}`);
         
+        // Enviar alertas Telegram para eventos geofence
+        const geofenceAlerts = require('./geofence-alerts');
+        await geofenceAlerts.checkGeofenceAlerts({
+          user_id: user.id,
+          latitude: lat,
+          longitude: lon,
+          gps_timestamp: gpsTimestamp
+        });
+        
         // Enviar eventos de geofencing a clientes WebSocket
         const websocketManager = require('./websocket-manager');
         geofenceEvents.forEach(event => {

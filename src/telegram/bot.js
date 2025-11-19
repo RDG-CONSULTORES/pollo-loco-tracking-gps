@@ -46,12 +46,16 @@ class PolloLocoBot {
     
     // Comandos básicos
     this.bot.onText(/^\/start$/, (msg) => {
-      commands.ayuda.bot = this.bot;
-      commands.ayuda.start(msg);
+      commands.menu.bot = this.bot;
+      commands.menu.main(msg);
     });
     this.bot.onText(/^\/help$/, (msg) => {
       commands.ayuda.bot = this.bot;
       commands.ayuda.help(msg);
+    });
+    this.bot.onText(/^\/menu$/, (msg) => {
+      commands.menu.bot = this.bot;
+      commands.menu.main(msg);
     });
     
     // Comandos de usuarios
@@ -172,10 +176,13 @@ class PolloLocoBot {
         await commands.usuarios.handleCallback.call(this, query);
       } else if (data.startsWith('config_')) {
         await commands.config.handleCallback.call(this, query);
-      } else if (data.startsWith('report_')) {
+      } else if (data.startsWith('report_') || data.startsWith('refresh_') || data === 'daily_report') {
         await commands.reportes.handleCallback.call(this, query);
+      } else if (data.startsWith('menu_') || data.startsWith('cmd_')) {
+        commands.menu.bot = this.bot;
+        await commands.menu.handleCallback.call(this, query);
       } else {
-        await this.sendMessage(chatId, '⚠️ Acción no reconocida');
+        await this.sendMessage(chatId, '⚠️ Acción no reconocida. Usa /menu para ver opciones.');
       }
       
     } catch (error) {

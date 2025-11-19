@@ -45,8 +45,11 @@ class ReportesCommands {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '📱 Ver en Panel Web', callback_data: 'open_webapp' },
-              { text: '🔄 Actualizar', callback_data: 'refresh_report' }
+              { text: '🔄 Actualizar Reporte', callback_data: 'refresh_report' }
+            ],
+            [
+              { text: '📊 Ver Dashboard Web', web_app: { url: `${process.env.WEB_APP_URL}/dashboard.html` } },
+              { text: '⚙️ Panel Admin', web_app: { url: `${process.env.WEB_APP_URL}/admin.html` } }
             ]
           ]
         }
@@ -126,15 +129,27 @@ class ReportesCommands {
         message += '\n💡 *Tip:* Configura OwnTracks en tu teléfono para enviar ubicaciones automáticamente.';
       }
       
+      // Construir URL del dashboard con validación
+      const config = require('../../config/telegram').config;
+      const dashboardUrl = config.webAppUrl ? `${config.webAppUrl}/dashboard.html` : null;
+      
+      const keyboard = [
+        [
+          { text: '🔄 Actualizar Ubicaciones', callback_data: 'refresh_locations' }
+        ]
+      ];
+      
+      // Solo agregar botón web si la URL es válida
+      if (dashboardUrl && dashboardUrl.includes('http')) {
+        keyboard.push([
+          { text: '🗺️ Ver en Mapa Web', web_app: { url: dashboardUrl } }
+        ]);
+      }
+      
       await this.bot.sendMessage(chatId, message, { 
         parse_mode: 'Markdown',
         reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '🗺️ Ver en Mapa (Web)', callback_data: 'open_webapp' },
-              { text: '🔄 Actualizar', callback_data: 'refresh_locations' }
-            ]
-          ]
+          inline_keyboard: keyboard
         }
       });
       
@@ -196,8 +211,11 @@ class ReportesCommands {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '📊 Reporte Completo', callback_data: 'daily_report' },
-              { text: '🔄 Actualizar', callback_data: 'refresh_visits' }
+              { text: '🔄 Actualizar Visitas', callback_data: 'refresh_visits' },
+              { text: '📊 Reporte Completo', callback_data: 'daily_report' }
+            ],
+            [
+              { text: '📈 Ver Métricas Web', web_app: { url: `${process.env.WEB_APP_URL}/route-metrics-dashboard.html` } }
             ]
           ]
         }
@@ -230,20 +248,8 @@ class ReportesCommands {
           await this.visitsToday({ chat: { id: chatId } });
           break;
           
-        case 'open_webapp':
-          const config = require('../../config/telegram').config;
-          const webAppUrl = `${config.webAppUrl}/webapp`;
-          
-          await this.bot.sendMessage(chatId, '🖥️ Abriendo panel web...', {
-            reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: '🚀 Abrir Panel Completo',
-                  web_app: { url: webAppUrl }
-                }
-              ]]
-            }
-          });
+        case 'daily_report':
+          await this.daily({ chat: { id: chatId } });
           break;
           
         default:

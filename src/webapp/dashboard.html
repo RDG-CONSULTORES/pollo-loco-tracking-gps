@@ -257,6 +257,38 @@
         .status-indicator.battery-low { background: #f59e0b; }
         .status-indicator.battery-critical { background: #ef4444; }
 
+        /* Location Info */
+        .location-info {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+
+        .location-info.in-geofence {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .location-info.near-geofence {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        /* Control buttons active state */
+        .control-btn.active {
+            background: #dc2626;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        .control-btn.active:hover {
+            background: #b91c1c;
+        }
+
         /* Map Container */
         .map-container {
             flex: 1;

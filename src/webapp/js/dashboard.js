@@ -357,6 +357,14 @@ class GPSDashboard {
                 this.addGeofenceToMap(geofence);
             }
         });
+        
+        // Actualizar botón de geofences
+        this.updateGeofencesButton();
+        
+        // Si es la primera carga y tenemos geofences, ajustar mapa
+        if (geofences.length > 0 && this.geofences.size === geofences.length) {
+            this.fitMapToGeofences();
+        }
     }
 
     /**
@@ -541,24 +549,125 @@ class GPSDashboard {
      * Agregar geofence al mapa
      */
     addGeofenceToMap(geofence) {
+        // Crear marcador de sucursal (ícono de tienda)
+        const storeIcon = L.divIcon({
+            html: `
+                <div style="
+                    background: #dc2626;
+                    color: white;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    border: 2px solid white;
+                ">🏪</div>
+            `,
+            className: 'custom-geofence-icon',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        // Crear marcador principal
+        const marker = L.marker([geofence.latitude, geofence.longitude], {
+            icon: storeIcon
+        }).addTo(this.map);
+
+        // Crear círculo de geofence
         const circle = L.circle([geofence.latitude, geofence.longitude], {
             color: '#dc2626',
             fillColor: '#dc2626',
             fillOpacity: 0.1,
             radius: geofence.radius_meters || 150,
-            weight: 2
-        }).bindPopup(`
-            <div>
-                <h4 style="margin: 0 0 8px 0;">${geofence.location_name}</h4>
-                <div style="font-size: 12px;">
-                    <div><strong>Código:</strong> ${geofence.location_code}</div>
-                    <div><strong>Grupo:</strong> ${geofence.grupo || 'N/A'}</div>
-                    <div><strong>Radio:</strong> ${geofence.radius_meters}m</div>
+            weight: 2,
+            dashArray: '5, 5'
+        }).addTo(this.map);
+
+        // Popup con información detallada
+        const popupContent = `
+            <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
+                <h4 style="margin: 0 0 8px 0; color: #dc2626; display: flex; align-items: center; gap: 5px;">
+                    🏪 ${geofence.location_name}
+                </h4>
+                <div style="font-size: 13px; line-height: 1.4;">
+                    <div style="margin-bottom: 4px;"><strong>Código:</strong> ${geofence.location_code}</div>
+                    <div style="margin-bottom: 4px;"><strong>Grupo:</strong> ${geofence.grupo || 'N/A'}</div>
+                    <div style="margin-bottom: 8px;"><strong>Radio:</strong> ${geofence.radius_meters}m</div>
+                    <div style="padding: 6px; background: #f8fafc; border-radius: 4px; font-size: 11px;">
+                        📍 ${geofence.latitude.toFixed(6)}, ${geofence.longitude.toFixed(6)}
+                    </div>
                 </div>
             </div>
-        `).addTo(this.map);
+        `;
+
+        marker.bindPopup(popupContent);
+        circle.bindPopup(popupContent);
+
+        // Guardar ambos elementos (marker y circle) en un grupo
+        const layerGroup = L.layerGroup([marker, circle]);
+        this.geofenceMarkers.set(geofence.id, layerGroup);
+    }
+
+    /**
+     * Calcular distancia entre dos puntos (Haversine formula)
+     */
+    calculateDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371000; // Radio de la Tierra en metros
+        const φ1 = lat1 * Math.PI/180;
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lng2-lng1) * Math.PI/180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return R * c; // Distancia en metros
+    }
+
+    /**
+     * Encontrar la sucursal más cercana a un usuario
+     */
+    findClosestBranch(userLat, userLng) {
+        let closestBranch = null;
+        let minDistance = Infinity;
+
+        this.geofences.forEach(geofence => {
+            const distance = this.calculateDistance(userLat, userLng, geofence.latitude, geofence.longitude);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestBranch = {
+                    ...geofence,
+                    distance: Math.round(distance)
+                };
+            }
+        });
+
+        return closestBranch;
+    }
+
+    /**
+     * Verificar si usuario está dentro de alguna sucursal
+     */
+    getUserGeofenceStatus(userLat, userLng) {
+        for (const geofence of this.geofences.values()) {
+            const distance = this.calculateDistance(userLat, userLng, geofence.latitude, geofence.longitude);
+            const radius = geofence.radius_meters || 150;
+            
+            if (distance <= radius) {
+                return {
+                    inGeofence: true,
+                    geofence: geofence,
+                    distance: Math.round(distance)
+                };
+            }
+        }
         
-        this.geofenceMarkers.set(geofence.id, circle);
+        return { inGeofence: false };
     }
 
     /**
@@ -622,6 +731,32 @@ class GPSDashboard {
             .toUpperCase()
             .substring(0, 2);
         
+        // Información de proximidad a sucursales
+        let locationInfo = '';
+        if (user.latitude && user.longitude && this.geofences.size > 0) {
+            const geofenceStatus = this.getUserGeofenceStatus(user.latitude, user.longitude);
+            
+            if (geofenceStatus.inGeofence) {
+                locationInfo = `
+                    <div class="location-info in-geofence">
+                        🏪 En ${geofenceStatus.geofence.location_name} (${geofenceStatus.distance}m)
+                    </div>
+                `;
+            } else {
+                const closestBranch = this.findClosestBranch(user.latitude, user.longitude);
+                if (closestBranch) {
+                    const distanceKm = closestBranch.distance > 1000 
+                        ? `${(closestBranch.distance/1000).toFixed(1)}km` 
+                        : `${closestBranch.distance}m`;
+                    locationInfo = `
+                        <div class="location-info near-geofence">
+                            📍 ${distanceKm} de ${closestBranch.location_name}
+                        </div>
+                    `;
+                }
+            }
+        }
+        
         return `
             <div class="user-item ${isSelected ? 'selected' : ''}" data-user-id="${user.id}">
                 <div class="user-avatar">${initials}</div>
@@ -632,6 +767,7 @@ class GPSDashboard {
                         <div class="status-indicator ${statusClass}"></div>
                         <span>Batería: ${batteryLevel}% • ${user.minutesAgo < 1 ? 'Ahora' : user.minutesAgo + ' min'}</span>
                     </div>
+                    ${locationInfo}
                 </div>
             </div>
         `;
@@ -679,13 +815,60 @@ class GPSDashboard {
         
         const totalUsers = users.length;
         const onlineUsers = users.filter(u => u.minutesAgo < 5).length;
-        const inGeofence = users.filter(u => this.isUserInGeofence(u)).length;
+        
+        // Usar nuevas funciones de geofence para cálculo preciso
+        let inGeofenceCount = 0;
+        users.forEach(user => {
+            if (user.latitude && user.longitude && this.geofences.size > 0) {
+                const status = this.getUserGeofenceStatus(user.latitude, user.longitude);
+                if (status.inGeofence) {
+                    inGeofenceCount++;
+                }
+            }
+        });
+        
         const batteryLow = users.filter(u => (u.battery || 0) < 20).length;
         
-        document.getElementById('totalUsers').textContent = totalUsers;
-        document.getElementById('onlineUsers').textContent = onlineUsers;
-        document.getElementById('inGeofence').textContent = inGeofence;
-        document.getElementById('batteryLow').textContent = batteryLow;
+        // Actualizar contadores con animación suave
+        this.updateCounterWithAnimation('totalUsers', totalUsers);
+        this.updateCounterWithAnimation('onlineUsers', onlineUsers);
+        this.updateCounterWithAnimation('inGeofence', inGeofenceCount);
+        this.updateCounterWithAnimation('batteryLow', batteryLow);
+        
+        console.log(`📊 Stats actualizadas: ${totalUsers} total, ${onlineUsers} online, ${inGeofenceCount} en sucursal, ${batteryLow} batería baja`);
+    }
+
+    /**
+     * Actualizar contador con animación
+     */
+    updateCounterWithAnimation(elementId, newValue) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        const currentValue = parseInt(element.textContent) || 0;
+        if (currentValue === newValue) return;
+        
+        // Animación simple de incremento/decremento
+        const isIncrement = newValue > currentValue;
+        const steps = Math.abs(newValue - currentValue);
+        const stepTime = Math.min(50, 200 / steps); // Max 200ms total
+        
+        let current = currentValue;
+        const interval = setInterval(() => {
+            current += isIncrement ? 1 : -1;
+            element.textContent = current;
+            
+            if (current === newValue) {
+                clearInterval(interval);
+                // Pequeña animación visual
+                element.style.transform = 'scale(1.1)';
+                element.style.color = isIncrement ? '#10b981' : '#ef4444';
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                    element.style.color = '';
+                }, 200);
+            }
+        }, stepTime);
     }
 
     /**
@@ -750,12 +933,14 @@ class GPSDashboard {
                 this.addGeofenceToMap(geofence);
             });
             btn.classList.add('active');
+            console.log(`🎯 Mostrando ${this.geofences.size} sucursales en el mapa`);
         } else {
-            this.geofenceMarkers.forEach(marker => {
-                this.map.removeLayer(marker);
+            this.geofenceMarkers.forEach(layerGroup => {
+                this.map.removeLayer(layerGroup);
             });
             this.geofenceMarkers.clear();
             btn.classList.remove('active');
+            console.log(`🎯 Ocultando sucursales del mapa`);
         }
     }
 
@@ -941,6 +1126,36 @@ class GPSDashboard {
      */
     getAuthToken() {
         return localStorage.getItem('auth_token') || null;
+    }
+
+    /**
+     * Actualizar botón de geofences
+     */
+    updateGeofencesButton() {
+        const btn = document.getElementById('showGeofences');
+        if (btn && this.showGeofences) {
+            btn.classList.add('active');
+        }
+    }
+
+    /**
+     * Ajustar mapa para mostrar todas las geofences
+     */
+    fitMapToGeofences() {
+        if (this.geofences.size === 0) return;
+        
+        const bounds = L.latLngBounds();
+        this.geofences.forEach(geofence => {
+            bounds.extend([geofence.latitude, geofence.longitude]);
+        });
+        
+        // Ajustar el mapa con padding
+        this.map.fitBounds(bounds, { 
+            padding: [20, 20],
+            maxZoom: 13
+        });
+        
+        console.log(`🗺️ Mapa ajustado para mostrar ${this.geofences.size} sucursales`);
     }
 
     /**

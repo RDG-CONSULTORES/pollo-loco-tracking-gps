@@ -3003,7 +3003,7 @@ router.delete('/users/:id', logAction('DELETE_USER', 'user'), async (req, res) =
  * GET /api/admin/directors
  * Obtener todos los directores
  */
-router.get('/directors', requireAuth, logAction('VIEW_DIRECTORS', 'directors'), async (req, res) => {
+router.get('/directors', requireAdmin, logAction('VIEW_DIRECTORS', 'directors'), async (req, res) => {
   try {
     // Primero intentar desde la tabla directors (si existe)
     let result;

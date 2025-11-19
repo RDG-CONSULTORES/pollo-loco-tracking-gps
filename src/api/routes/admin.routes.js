@@ -2481,6 +2481,86 @@ router.post('/actions/cleanup', async (req, res) => {
  */
 
 /**
+ * GET /api/admin/geofences
+ * Obtener lista de geofences (sucursales) para el dashboard
+ */
+router.get('/geofences', authenticate, logAction('VIEW_GEOFENCES', 'geofences'), async (req, res) => {
+  try {
+    console.log('🏪 Obteniendo geofences para dashboard...');
+    
+    // Intentar obtener de geofences primero
+    let result;
+    try {
+      result = await db.query(`
+        SELECT 
+          id,
+          location_code,
+          location_name,
+          grupo,
+          latitude,
+          longitude,
+          radius_meters,
+          active
+        FROM geofences 
+        WHERE active = true
+        ORDER BY location_name
+      `);
+      
+      if (result.rows.length > 0) {
+        console.log(`📊 ${result.rows.length} geofences encontradas en tabla geofences`);
+        return res.json({
+          success: true,
+          data: result.rows,
+          source: 'geofences'
+        });
+      }
+    } catch (geofenceError) {
+      console.log('⚠️ Error accediendo tabla geofences:', geofenceError.message);
+    }
+    
+    // Fallback a tracking_locations_cache
+    try {
+      result = await db.query(`
+        SELECT 
+          location_code as id,
+          location_code,
+          name as location_name,
+          group_name as grupo,
+          latitude,
+          longitude,
+          COALESCE(geofence_radius, 150) as radius_meters,
+          active
+        FROM tracking_locations_cache 
+        WHERE active = true 
+          AND latitude IS NOT NULL 
+          AND longitude IS NOT NULL
+        ORDER BY name
+      `);
+      
+      console.log(`📊 ${result.rows.length} geofences encontradas en tracking_locations_cache`);
+      
+      res.json({
+        success: true,
+        data: result.rows,
+        source: 'tracking_locations_cache'
+      });
+      
+    } catch (cacheError) {
+      console.error('❌ Error accediendo tracking_locations_cache:', cacheError.message);
+      throw cacheError;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo geofences:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo geofences',
+      details: error.message
+    });
+  }
+});
+
+/**
  * GET /api/admin/groups
  * Obtener todos los grupos operativos con sucursales
  */

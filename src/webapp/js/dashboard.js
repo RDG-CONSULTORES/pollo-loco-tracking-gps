@@ -239,13 +239,7 @@ class GPSDashboard {
             this.subscribeToEvents();
             this.startHeartbeat();
             
-            // Timeout para cargar datos de ejemplo si no llegan del servidor
-            setTimeout(() => {
-                if (this.geofences.size === 0) {
-                    console.log('⏰ Timeout del servidor, cargando sucursales de ejemplo...');
-                    this.loadSampleGeofences();
-                }
-            }, 3000); // 3 segundos de espera
+            // Las sucursales reales ya se cargan en loadDashboardData()
         };
         
         this.ws.onmessage = (event) => {
@@ -302,11 +296,14 @@ class GPSDashboard {
                 break;
                 
             case 'geofences':
-                if (message.data && message.data.length > 0) {
-                    this.updateGeofences(message.data);
+                // Solo usar WebSocket geofences si no hemos cargado ya las reales
+                if (this.geofences.size === 0) {
+                    if (message.data && message.data.length > 0) {
+                        this.updateGeofences(message.data);
+                        console.log('🏪 Geofences recibidas via WebSocket');
+                    }
                 } else {
-                    console.log('⚠️ No se recibieron geofences del servidor, cargando ejemplos...');
-                    this.loadSampleGeofences();
+                    console.log('🏪 Ignorando geofences de WebSocket, ya tenemos datos reales');
                 }
                 break;
                 
@@ -1365,6 +1362,9 @@ class GPSDashboard {
         try {
             console.log('📊 Cargando datos del dashboard...');
             
+            // Cargar sucursales reales primero
+            await this.loadRealGeofences();
+            
             // Cargar usuarios GPS
             await this.loadGPSUsers();
             
@@ -1374,6 +1374,43 @@ class GPSDashboard {
             console.log('✅ Datos del dashboard cargados');
         } catch (error) {
             console.error('❌ Error cargando datos del dashboard:', error);
+        }
+    }
+
+    /**
+     * Cargar geofences reales desde el servidor
+     */
+    async loadRealGeofences() {
+        try {
+            console.log('🏪 Cargando sucursales reales...');
+            
+            const response = await fetch('/api/admin/geofences', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.data && result.data.length > 0) {
+                this.updateGeofences(result.data);
+                console.log(`✅ ${result.data.length} sucursales reales cargadas desde ${result.source}`);
+                return true;
+            } else {
+                console.log('⚠️ No se encontraron sucursales en la base de datos');
+                this.loadSampleGeofences();
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error cargando sucursales reales:', error);
+            console.log('🔄 Cargando sucursales de ejemplo...');
+            this.loadSampleGeofences();
+            return false;
         }
     }
     

@@ -287,6 +287,7 @@ class LocationProcessor {
    */
   async saveLocation(data) {
     try {
+      // 1. Guardar ubicación GPS
       const result = await db.query(`
         INSERT INTO gps_locations 
         (user_id, zenput_email, latitude, longitude, accuracy, altitude, 
@@ -306,6 +307,22 @@ class LocationProcessor {
         data.gpsTimestamp,
         JSON.stringify(data.payload)
       ]);
+      
+      // 2. Actualizar estado del usuario en tracking_users
+      await db.query(`
+        UPDATE tracking_users 
+        SET 
+          last_location_time = $1,
+          last_battery_level = $2,
+          updated_at = NOW()
+        WHERE id = $3
+      `, [
+        data.gpsTimestamp,
+        data.batt || null,
+        data.user_id
+      ]);
+      
+      console.log(`📱 Usuario actualizado: last_location_time=${data.gpsTimestamp}, battery=${data.batt}%`);
       
       return result.rows[0];
     } catch (error) {

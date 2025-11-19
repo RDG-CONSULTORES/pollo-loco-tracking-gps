@@ -3323,4 +3323,137 @@ router.post('/system/sync-data', logAction('SYNC_SYSTEM_DATA', 'system'), async 
   }
 });
 
+// ======================================================
+// ENDPOINTS PARA DASHBOARD GPS
+// ======================================================
+
+/**
+ * GET /api/admin/dashboard/users
+ * Obtener usuarios GPS para dashboard en tiempo real
+ */
+router.get('/dashboard/users', logAction('VIEW_DASHBOARD_USERS', 'dashboard'), async (req, res) => {
+  try {
+    // Obtener usuarios GPS con ubicaciones recientes y estadísticas
+    const users = await db.query(`
+      SELECT 
+        u.id,
+        u.tracker_id,
+        u.display_name,
+        u.zenput_email,
+        u.phone,
+        u.rol,
+        u.grupo,
+        u.active,
+        u.last_location_time,
+        u.last_battery_level,
+        u.updated_at,
+        
+        -- Ubicación más reciente
+        l.latitude,
+        l.longitude,
+        l.accuracy,
+        l.velocity,
+        l.heading,
+        l.gps_timestamp as last_gps_time,
+        
+        -- Estadísticas del día
+        (
+          SELECT COUNT(*) 
+          FROM gps_locations gl 
+          WHERE gl.user_id = u.id 
+            AND DATE(gl.gps_timestamp) = CURRENT_DATE
+        ) as locations_today,
+        
+        -- Status online/offline (últimos 15 minutos)
+        CASE 
+          WHEN u.last_location_time > NOW() - INTERVAL '15 minutes' THEN 'online'
+          WHEN u.last_location_time > NOW() - INTERVAL '1 hour' THEN 'recent'
+          ELSE 'offline'
+        END as status
+        
+      FROM tracking_users u
+      LEFT JOIN LATERAL (
+        SELECT latitude, longitude, accuracy, velocity, heading, gps_timestamp
+        FROM gps_locations gl2
+        WHERE gl2.user_id = u.id
+        ORDER BY gl2.gps_timestamp DESC
+        LIMIT 1
+      ) l ON true
+      WHERE u.active = true
+      ORDER BY u.last_location_time DESC NULLS LAST, u.display_name
+    `);
+
+    // Calcular estadísticas generales
+    const stats = {
+      total: users.rows.length,
+      online: users.rows.filter(u => u.status === 'online').length,
+      recent: users.rows.filter(u => u.status === 'recent').length,
+      offline: users.rows.filter(u => u.status === 'offline').length,
+      battery_low: users.rows.filter(u => u.last_battery_level && u.last_battery_level < 20).length
+    };
+
+    res.json({
+      success: true,
+      data: {
+        users: users.rows,
+        stats: stats
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios dashboard:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/dashboard/locations
+ * Obtener ubicaciones recientes para mapa en tiempo real
+ */
+router.get('/dashboard/locations', logAction('VIEW_DASHBOARD_LOCATIONS', 'dashboard'), async (req, res) => {
+  try {
+    const { minutes = 60 } = req.query;
+    
+    // Ubicaciones recientes de todos los usuarios
+    const locations = await db.query(`
+      SELECT 
+        l.id,
+        l.user_id,
+        l.latitude,
+        l.longitude,
+        l.accuracy,
+        l.velocity,
+        l.heading,
+        l.battery,
+        l.gps_timestamp,
+        l.received_at,
+        u.tracker_id,
+        u.display_name,
+        u.grupo,
+        u.rol
+      FROM gps_locations l
+      JOIN tracking_users u ON l.user_id = u.id
+      WHERE u.active = true
+        AND l.gps_timestamp > NOW() - INTERVAL '${minutes} minutes'
+      ORDER BY l.gps_timestamp DESC
+      LIMIT 1000
+    `);
+
+    res.json({
+      success: true,
+      data: locations.rows,
+      filters: {
+        minutes: minutes,
+        total: locations.rows.length
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo ubicaciones dashboard:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -483,7 +483,7 @@ class WebSocketManager {
     try {
       // Primero intentar verificar como JWT del sistema de autenticación
       const jwt = require('jsonwebtoken');
-      const JWT_SECRET = process.env.JWT_SECRET || 'pollo-loco-secret-key';
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here-change-in-production';
       
       try {
         const decoded = jwt.verify(token, JWT_SECRET);

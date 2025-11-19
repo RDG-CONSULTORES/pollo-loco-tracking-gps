@@ -238,6 +238,14 @@ class GPSDashboard {
             this.updateConnectionStatus(true);
             this.subscribeToEvents();
             this.startHeartbeat();
+            
+            // Timeout para cargar datos de ejemplo si no llegan del servidor
+            setTimeout(() => {
+                if (this.geofences.size === 0) {
+                    console.log('⏰ Timeout del servidor, cargando sucursales de ejemplo...');
+                    this.loadSampleGeofences();
+                }
+            }, 3000); // 3 segundos de espera
         };
         
         this.ws.onmessage = (event) => {
@@ -294,7 +302,12 @@ class GPSDashboard {
                 break;
                 
             case 'geofences':
-                this.updateGeofences(message.data);
+                if (message.data && message.data.length > 0) {
+                    this.updateGeofences(message.data);
+                } else {
+                    console.log('⚠️ No se recibieron geofences del servidor, cargando ejemplos...');
+                    this.loadSampleGeofences();
+                }
                 break;
                 
             case 'location_update':
@@ -365,6 +378,153 @@ class GPSDashboard {
         if (geofences.length > 0 && this.geofences.size === geofences.length) {
             this.fitMapToGeofences();
         }
+    }
+
+    /**
+     * Cargar sucursales de ejemplo (fallback si no hay datos del servidor)
+     */
+    loadSampleGeofences() {
+        console.log('🏪 Cargando sucursales de ejemplo para Monterrey...');
+        
+        const sampleGeofences = [
+            {
+                id: 1,
+                location_code: 'MTY001',
+                location_name: 'Plaza Fiesta San Agustín',
+                grupo: 'Monterrey Centro',
+                latitude: 25.6760,
+                longitude: -100.3161,
+                radius_meters: 150
+            },
+            {
+                id: 2,
+                location_code: 'MTY002', 
+                location_name: 'Galerías Monterrey',
+                grupo: 'Monterrey Sur',
+                latitude: 25.6515,
+                longitude: -100.2834,
+                radius_meters: 200
+            },
+            {
+                id: 3,
+                location_code: 'MTY003',
+                location_name: 'Plaza la Silla',
+                grupo: 'Guadalupe',
+                latitude: 25.6736,
+                longitude: -100.2531,
+                radius_meters: 150
+            },
+            {
+                id: 4,
+                location_code: 'MTY004',
+                location_name: 'Centro Comercial Soriana Hiper',
+                grupo: 'San Nicolás',
+                latitude: 25.7304,
+                longitude: -100.3072,
+                radius_meters: 180
+            },
+            {
+                id: 5,
+                location_code: 'MTY005',
+                location_name: 'Plaza Cumbres',
+                grupo: 'García',
+                latitude: 25.8097,
+                longitude: -100.4747,
+                radius_meters: 160
+            },
+            {
+                id: 6,
+                location_code: 'MTY006',
+                location_name: 'Paseo Tec',
+                grupo: 'Monterrey Centro',
+                latitude: 25.6514,
+                longitude: -100.2895,
+                radius_meters: 140
+            }
+        ];
+
+        this.updateGeofences(sampleGeofences);
+        console.log(`✅ ${sampleGeofences.length} sucursales de ejemplo cargadas`);
+        
+        // También cargar algunos usuarios de ejemplo
+        this.loadSampleUsers();
+    }
+
+    /**
+     * Cargar usuarios de ejemplo (para demostración)
+     */
+    loadSampleUsers() {
+        console.log('👥 Cargando usuarios de ejemplo...');
+        
+        const sampleUsers = [
+            {
+                id: 1,
+                user_id: 1,
+                tracker_id: 'PLV001',
+                display_name: 'Juan Carlos Rodríguez',
+                grupo: 'Monterrey Centro',
+                latitude: 25.6790, // Cerca de Plaza Fiesta
+                longitude: -100.3181,
+                battery: 85,
+                velocity: 0,
+                accuracy: 10,
+                gps_timestamp: new Date(),
+                minutesAgo: 1
+            },
+            {
+                id: 2,
+                user_id: 2,
+                tracker_id: 'PLV002',
+                display_name: 'María Elena González',
+                grupo: 'Monterrey Sur',
+                latitude: 25.6545, // Cerca de Galerías
+                longitude: -100.2864,
+                battery: 92,
+                velocity: 15,
+                accuracy: 8,
+                gps_timestamp: new Date(),
+                minutesAgo: 0
+            },
+            {
+                id: 3,
+                user_id: 3,
+                tracker_id: 'PLV003',
+                display_name: 'Roberto Martínez',
+                grupo: 'Guadalupe',
+                latitude: 25.6720, // En ruta hacia Plaza la Silla
+                longitude: -100.2680,
+                battery: 45,
+                velocity: 25,
+                accuracy: 12,
+                gps_timestamp: new Date(),
+                minutesAgo: 2
+            },
+            {
+                id: 4,
+                user_id: 4,
+                tracker_id: 'PLV004',
+                display_name: 'Ana Patricia Herrera',
+                grupo: 'San Nicolás',
+                latitude: 25.7320, // Dentro del Centro Comercial Soriana
+                longitude: -100.3060,
+                battery: 78,
+                velocity: 0,
+                accuracy: 5,
+                gps_timestamp: new Date(),
+                minutesAgo: 0
+            }
+        ];
+
+        // Agregar usuarios al mapa y lista
+        sampleUsers.forEach(user => {
+            this.users.set(user.user_id, user);
+            this.updateUserLocation(user);
+        });
+        
+        this.updateUsersList();
+        this.updateStats();
+        
+        console.log(`✅ ${sampleUsers.length} usuarios de ejemplo cargados`);
     }
 
     /**

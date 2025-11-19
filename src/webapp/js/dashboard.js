@@ -955,6 +955,35 @@ class GPSDashboard {
     }
 
     /**
+     * Actualizar estadísticas del sistema desde WebSocket
+     */
+    updateSystemStats(stats) {
+        console.log('📊 Actualizando estadísticas del sistema:', stats);
+        
+        try {
+            // Actualizar contadores en la UI
+            const activeUsers = document.getElementById('active-users-count');
+            const locationsToday = document.getElementById('locations-today-count');
+            const activeLastHour = document.getElementById('active-last-hour-count');
+            
+            if (activeUsers && stats.active_users !== undefined) {
+                activeUsers.textContent = stats.active_users;
+            }
+            
+            if (locationsToday && stats.locations_today !== undefined) {
+                locationsToday.textContent = stats.locations_today;
+            }
+            
+            if (activeLastHour && stats.users_active_last_hour !== undefined) {
+                activeLastHour.textContent = stats.users_active_last_hour;
+            }
+            
+        } catch (error) {
+            console.error('❌ Error actualizando estadísticas:', error);
+        }
+    }
+
+    /**
      * Cargar datos iniciales del dashboard
      */
     async loadDashboardData() {

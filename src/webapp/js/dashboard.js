@@ -706,6 +706,17 @@ class GPSDashboard {
      * Agregar geofence al mapa
      */
     addGeofenceToMap(geofence) {
+        // Convertir coordenadas a números (pueden venir como strings de la BD)
+        const lat = parseFloat(geofence.latitude);
+        const lng = parseFloat(geofence.longitude);
+        const radius = parseInt(geofence.radius_meters) || 150;
+        
+        // Validar coordenadas
+        if (isNaN(lat) || isNaN(lng)) {
+            console.error('❌ Coordenadas inválidas para geofence:', geofence.location_name, lat, lng);
+            return;
+        }
+        
         // Crear marcador de sucursal (ícono de tienda)
         const storeIcon = L.divIcon({
             html: `
@@ -729,16 +740,16 @@ class GPSDashboard {
         });
 
         // Crear marcador principal
-        const marker = L.marker([geofence.latitude, geofence.longitude], {
+        const marker = L.marker([lat, lng], {
             icon: storeIcon
         }).addTo(this.map);
 
         // Crear círculo de geofence
-        const circle = L.circle([geofence.latitude, geofence.longitude], {
+        const circle = L.circle([lat, lng], {
             color: '#dc2626',
             fillColor: '#dc2626',
             fillOpacity: 0.1,
-            radius: geofence.radius_meters || 150,
+            radius: radius,
             weight: 2,
             dashArray: '5, 5'
         }).addTo(this.map);
@@ -754,7 +765,7 @@ class GPSDashboard {
                     <div style="margin-bottom: 4px;"><strong>Grupo:</strong> ${geofence.grupo || 'N/A'}</div>
                     <div style="margin-bottom: 8px;"><strong>Radio:</strong> ${geofence.radius_meters}m</div>
                     <div style="padding: 6px; background: #f8fafc; border-radius: 4px; font-size: 11px;">
-                        📍 ${geofence.latitude.toFixed(6)}, ${geofence.longitude.toFixed(6)}
+                        📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}
                     </div>
                 </div>
             </div>
@@ -794,13 +805,18 @@ class GPSDashboard {
         let minDistance = Infinity;
 
         this.geofences.forEach(geofence => {
-            const distance = this.calculateDistance(userLat, userLng, geofence.latitude, geofence.longitude);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestBranch = {
-                    ...geofence,
-                    distance: Math.round(distance)
-                };
+            const geoLat = parseFloat(geofence.latitude);
+            const geoLng = parseFloat(geofence.longitude);
+            
+            if (!isNaN(geoLat) && !isNaN(geoLng)) {
+                const distance = this.calculateDistance(userLat, userLng, geoLat, geoLng);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestBranch = {
+                        ...geofence,
+                        distance: Math.round(distance)
+                    };
+                }
             }
         });
 
@@ -812,15 +828,20 @@ class GPSDashboard {
      */
     getUserGeofenceStatus(userLat, userLng) {
         for (const geofence of this.geofences.values()) {
-            const distance = this.calculateDistance(userLat, userLng, geofence.latitude, geofence.longitude);
-            const radius = geofence.radius_meters || 150;
+            const geoLat = parseFloat(geofence.latitude);
+            const geoLng = parseFloat(geofence.longitude);
             
-            if (distance <= radius) {
-                return {
-                    inGeofence: true,
-                    geofence: geofence,
-                    distance: Math.round(distance)
-                };
+            if (!isNaN(geoLat) && !isNaN(geoLng)) {
+                const distance = this.calculateDistance(userLat, userLng, geoLat, geoLng);
+                const radius = parseInt(geofence.radius_meters) || 150;
+                
+                if (distance <= radius) {
+                    return {
+                        inGeofence: true,
+                        geofence: geofence,
+                        distance: Math.round(distance)
+                    };
+                }
             }
         }
         
@@ -1303,7 +1324,11 @@ class GPSDashboard {
         
         const bounds = L.latLngBounds();
         this.geofences.forEach(geofence => {
-            bounds.extend([geofence.latitude, geofence.longitude]);
+            const lat = parseFloat(geofence.latitude);
+            const lng = parseFloat(geofence.longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                bounds.extend([lat, lng]);
+            }
         });
         
         // Ajustar el mapa con padding

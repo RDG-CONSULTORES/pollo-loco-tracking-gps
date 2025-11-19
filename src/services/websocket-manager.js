@@ -477,32 +477,62 @@ class WebSocketManager {
   }
 
   /**
-   * Verificar token de autenticación
+   * Verificar token de autenticación JWT
    */
   async verifyToken(token) {
     try {
-      // Implementación simple - en producción usar JWT real
-      const result = await db.query(`
-        SELECT id, tracker_id, display_name, zenput_email, grupo, rol, active
-        FROM tracking_users 
-        WHERE tracker_id = $1 AND active = true
-      `, [token]);
-
-      if (result.rows.length === 0) {
-        throw new Error('Invalid token');
-      }
-
-      const user = result.rows[0];
+      // Primero intentar verificar como JWT del sistema de autenticación
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'pollo-loco-secret-key';
       
-      return {
-        id: user.id,
-        tracker_id: user.tracker_id,
-        display_name: user.display_name,
-        grupo: user.grupo,
-        roles: [user.rol || 'usuario']
-      };
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Es un JWT válido del sistema de administración
+        if (decoded.userType === 'admin') {
+          return {
+            id: decoded.userId,
+            display_name: decoded.email,
+            userType: decoded.userType,
+            roles: ['admin', 'dashboard']
+          };
+        }
+        
+        // Si es otro tipo de usuario JWT
+        return {
+          id: decoded.userId,
+          display_name: decoded.email || 'Usuario',
+          userType: decoded.userType || 'user',
+          roles: [decoded.userType || 'user']
+        };
+        
+      } catch (jwtError) {
+        // Si no es JWT válido, intentar como tracker_id (backward compatibility)
+        console.log(`📱 Intentando autenticación legacy con tracker_id: ${token}`);
+        
+        const result = await db.query(`
+          SELECT id, tracker_id, display_name, zenput_email, grupo, rol, active
+          FROM tracking_users 
+          WHERE tracker_id = $1 AND active = true
+        `, [token]);
+
+        if (result.rows.length === 0) {
+          throw new Error('Invalid token or tracker_id');
+        }
+
+        const user = result.rows[0];
+        
+        return {
+          id: user.id,
+          tracker_id: user.tracker_id,
+          display_name: user.display_name,
+          grupo: user.grupo,
+          roles: [user.rol || 'usuario']
+        };
+      }
       
     } catch (error) {
+      console.error('❌ Token verification error:', error.message);
       throw new Error('Token verification failed');
     }
   }

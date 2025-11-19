@@ -3003,26 +3003,55 @@ router.delete('/users/:id', logAction('DELETE_USER', 'user'), async (req, res) =
  * GET /api/admin/directors
  * Obtener todos los directores
  */
-router.get('/directors', logAction('VIEW_DIRECTORS', 'directors'), async (req, res) => {
+router.get('/directors', requireAuth, logAction('VIEW_DIRECTORS', 'directors'), async (req, res) => {
   try {
-    // Obtener directores de la tabla directors con grupos operativos
-    const result = await db.query(`
-      SELECT 
-        d.id,
-        d.director_code,
-        d.full_name as name,
-        d.email,
-        d.phone,
-        d.position,
-        d.region,
-        d.operational_groups as grupos_asignados,
-        array_length(d.operational_groups, 1) as total_grupos,
-        d.active,
-        d.created_at as fecha_asignacion
-      FROM directors d
-      WHERE d.active = true
-      ORDER BY d.full_name
-    `);
+    // Primero intentar desde la tabla directors (si existe)
+    let result;
+    
+    try {
+      result = await db.query(`
+        SELECT 
+          d.id,
+          d.director_code,
+          d.full_name as name,
+          d.email,
+          d.phone,
+          d.position,
+          d.region,
+          d.operational_groups as grupos_asignados,
+          array_length(d.operational_groups, 1) as total_grupos,
+          d.active,
+          d.created_at as fecha_asignacion
+        FROM directors d
+        WHERE d.active = true
+        ORDER BY d.full_name
+      `);
+      
+      // Si la tabla existe pero no hay datos, usar datos de tracking_locations_cache
+      if (result.rows.length === 0) {
+        throw new Error('No directors found in directors table');
+      }
+      
+    } catch (directorsError) {
+      // Fallback: usar datos desde tracking_locations_cache
+      console.log('📋 Usando directores desde tracking_locations_cache...');
+      
+      result = await db.query(`
+        SELECT DISTINCT
+          director_name as name,
+          string_agg(DISTINCT group_name, ', ' ORDER BY group_name) as grupos_asignados,
+          COUNT(DISTINCT group_name) as total_grupos,
+          COUNT(*) as total_sucursales,
+          MIN(synced_at) as fecha_asignacion,
+          'tracking_cache' as source
+        FROM tracking_locations_cache 
+        WHERE director_name IS NOT NULL 
+          AND director_name != 'Director TBD'
+          AND director_name != ''
+        GROUP BY director_name
+        ORDER BY director_name
+      `);
+    }
     
     res.json({
       success: true,
@@ -3031,7 +3060,11 @@ router.get('/directors', logAction('VIEW_DIRECTORS', 'directors'), async (req, r
     
   } catch (error) {
     console.error('❌ Error obteniendo directores:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      code: 'DIRECTORS_FETCH_ERROR'
+    });
   }
 });
 

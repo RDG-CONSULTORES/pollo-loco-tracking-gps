@@ -50,6 +50,10 @@ class GPSDashboard {
             this.initializeUI();
             this.connectWebSocket();
             this.updateUserInfo();
+            
+            // Cargar datos iniciales del dashboard
+            await this.loadDashboardData();
+            
             this.hideLoading();
             
             console.log('✅ Dashboard inicializado correctamente');
@@ -212,8 +216,20 @@ class GPSDashboard {
         console.log('🔌 Conectando WebSocket...');
         
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const token = this.getAuthToken();
+        let token = this.getAuthToken();
+        
+        // Limpiar token si viene con formato Bearer
+        if (token && token.startsWith('Bearer ')) {
+            token = token.substring(7);
+        }
+        
+        if (!token) {
+            console.error('❌ No hay token de autenticación para WebSocket');
+            return;
+        }
+        
         const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+        console.log('🔌 Conectando a:', wsUrl.replace(/token=[^&]+/, 'token=***'));
         
         this.ws = new WebSocket(wsUrl);
         
@@ -936,6 +952,175 @@ class GPSDashboard {
                 this.ws.send(JSON.stringify({ type: 'ping' }));
             }
         }, this.config.heartbeatInterval);
+    }
+
+    /**
+     * Cargar datos iniciales del dashboard
+     */
+    async loadDashboardData() {
+        try {
+            console.log('📊 Cargando datos del dashboard...');
+            
+            // Cargar usuarios GPS
+            await this.loadGPSUsers();
+            
+            // Cargar estadísticas del sistema
+            await this.loadSystemStats();
+            
+            console.log('✅ Datos del dashboard cargados');
+        } catch (error) {
+            console.error('❌ Error cargando datos del dashboard:', error);
+        }
+    }
+    
+    /**
+     * Cargar usuarios GPS
+     */
+    async loadGPSUsers() {
+        try {
+            const response = await fetch('/api/admin/dashboard/users', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.updateUsersDisplay(result.data.users);
+                this.updateStatsDisplay(result.data.stats);
+                console.log(`📱 ${result.data.users.length} usuarios GPS cargados`);
+            }
+        } catch (error) {
+            console.error('❌ Error cargando usuarios GPS:', error);
+        }
+    }
+    
+    /**
+     * Actualizar display de usuarios
+     */
+    updateUsersDisplay(users) {
+        const usersList = document.getElementById('usersList');
+        if (!usersList) return;
+        
+        // Limpiar lista actual
+        usersList.innerHTML = '';
+        
+        // Agregar cada usuario
+        users.forEach(user => {
+            const userElement = this.createUserElement(user);
+            usersList.appendChild(userElement);
+            
+            // Agregar marcador al mapa si tiene ubicación
+            if (user.latitude && user.longitude) {
+                this.addUserMarker(user);
+            }
+        });
+    }
+    
+    /**
+     * Crear elemento HTML para un usuario
+     */
+    createUserElement(user) {
+        const div = document.createElement('div');
+        div.className = `user-item ${user.status}`;
+        div.innerHTML = `
+            <div class="user-info">
+                <div class="user-name">${user.display_name}</div>
+                <div class="user-details">
+                    ${user.grupo} | ${user.rol}
+                </div>
+            </div>
+            <div class="user-status">
+                <div class="status-indicator ${user.status}"></div>
+                ${user.last_battery_level ? `<span class="battery">${user.last_battery_level}%</span>` : ''}
+            </div>
+        `;
+        
+        return div;
+    }
+    
+    /**
+     * Agregar marcador de usuario al mapa
+     */
+    addUserMarker(user) {
+        if (!this.map || !user.latitude || !user.longitude) return;
+        
+        const marker = L.marker([user.latitude, user.longitude], {
+            title: user.display_name
+        }).addTo(this.map);
+        
+        const popupContent = `
+            <b>${user.display_name}</b><br>
+            Grupo: ${user.grupo}<br>
+            Estado: ${user.status}<br>
+            ${user.last_battery_level ? `Batería: ${user.last_battery_level}%<br>` : ''}
+            Última ubicación: ${user.last_location_time ? new Date(user.last_location_time).toLocaleString() : 'N/A'}
+        `;
+        
+        marker.bindPopup(popupContent);
+        
+        // Guardar referencia del marcador
+        this.markers.set(user.id, marker);
+    }
+    
+    /**
+     * Actualizar estadísticas del dashboard
+     */
+    updateStatsDisplay(stats) {
+        // Actualizar contadores
+        this.updateElement('totalUsers', stats.total || 0);
+        this.updateElement('onlineUsers', stats.online || 0);
+        this.updateElement('inGeofence', 0); // Por implementar
+        this.updateElement('batteryLow', stats.battery_low || 0);
+    }
+    
+    /**
+     * Actualizar elemento del DOM
+     */
+    updateElement(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+    
+    /**
+     * Cargar estadísticas del sistema
+     */
+    async loadSystemStats() {
+        try {
+            const response = await fetch('/api/admin/system/status', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                this.updateSystemStatus(result);
+            }
+        } catch (error) {
+            console.error('❌ Error cargando estadísticas del sistema:', error);
+        }
+    }
+    
+    /**
+     * Actualizar estado del sistema
+     */
+    updateSystemStatus(systemData) {
+        // Actualizar indicador de estado del sistema
+        const statusElement = document.querySelector('.system-status');
+        if (statusElement) {
+            statusElement.textContent = systemData.health?.api === 'Healthy' ? 'Sistema Online' : 'Sistema Offline';
+            statusElement.className = `system-status ${systemData.health?.api === 'Healthy' ? 'online' : 'offline'}`;
+        }
     }
 
     /**

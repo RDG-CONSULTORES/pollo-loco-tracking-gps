@@ -48,8 +48,8 @@ class ReportesCommands {
               { text: '🔄 Actualizar Reporte', callback_data: 'refresh_report' }
             ],
             [
-              { text: '📊 Ver Dashboard Web', web_app: { url: `${process.env.WEB_APP_URL}/dashboard.html` } },
-              { text: '⚙️ Panel Admin', web_app: { url: `${process.env.WEB_APP_URL}/admin.html` } }
+              { text: '📊 Ver Dashboard Web', web_app: { url: `${process.env.WEB_APP_URL}/webapp/dashboard.html` } },
+              { text: '⚙️ Panel Admin', web_app: { url: `${process.env.WEB_APP_URL}/webapp/admin.html` } }
             ]
           ]
         }
@@ -131,7 +131,7 @@ class ReportesCommands {
       
       // Construir URL del dashboard con validación
       const config = require('../../config/telegram').config;
-      const dashboardUrl = config.webAppUrl ? `${config.webAppUrl}/dashboard.html` : null;
+      const dashboardUrl = config.webAppUrl ? `${config.webAppUrl}/webapp/dashboard.html` : null;
       
       const keyboard = [
         [
@@ -215,7 +215,7 @@ class ReportesCommands {
               { text: '📊 Reporte Completo', callback_data: 'daily_report' }
             ],
             [
-              { text: '📈 Ver Métricas Web', web_app: { url: `${process.env.WEB_APP_URL}/route-metrics-dashboard.html` } }
+              { text: '📈 Ver Métricas Web', web_app: { url: `${process.env.WEB_APP_URL}/webapp/route-metrics-dashboard.html` } }
             ]
           ]
         }

@@ -40,10 +40,10 @@ class MenuCommands {
               { text: '🚨 Alertas', callback_data: 'menu_alertas' }
             ],
             [
-              { text: '🗺️ Dashboard Web', web_app: { url: `${process.env.WEB_APP_URL}/dashboard.html` } }
+              { text: '🗺️ Dashboard Web', web_app: { url: `${process.env.WEB_APP_URL}/webapp/dashboard.html` } }
             ],
             [
-              { text: '⚙️ Panel Admin', web_app: { url: `${process.env.WEB_APP_URL}/admin.html` } }
+              { text: '⚙️ Panel Admin', web_app: { url: `${process.env.WEB_APP_URL}/webapp/admin.html` } }
             ],
             [
               { text: '❓ Ayuda', callback_data: 'menu_ayuda' }
@@ -83,7 +83,7 @@ Administra los supervisores que usan GPS tracking:
               { text: '📍 Ubicaciones Actuales', callback_data: 'cmd_ubicaciones' }
             ],
             [
-              { text: '⚙️ Admin Panel', web_app: { url: `${process.env.WEB_APP_URL}/admin.html` } }
+              { text: '⚙️ Admin Panel', web_app: { url: `${process.env.WEB_APP_URL}/webapp/admin.html` } }
             ],
             [
               { text: '🔙 Menú Principal', callback_data: 'menu_main' }
@@ -119,10 +119,10 @@ Consulta métricas y reportes del sistema:
               { text: '🏢 Visitas Hoy', callback_data: 'cmd_visitas_hoy' }
             ],
             [
-              { text: '📈 Métricas Web', web_app: { url: `${process.env.WEB_APP_URL}/route-metrics-dashboard.html` } }
+              { text: '📈 Métricas Web', web_app: { url: `${process.env.WEB_APP_URL}/webapp/route-metrics-dashboard.html` } }
             ],
             [
-              { text: '🗺️ Dashboard Completo', web_app: { url: `${process.env.WEB_APP_URL}/dashboard.html` } }
+              { text: '🗺️ Dashboard Completo', web_app: { url: `${process.env.WEB_APP_URL}/webapp/dashboard.html` } }
             ],
             [
               { text: '🔙 Menú Principal', callback_data: 'menu_main' }
@@ -162,7 +162,7 @@ Administra el sistema de tracking GPS:
               { text: '▶️ Activar Sistema', callback_data: 'cmd_activar_sistema' }
             ],
             [
-              { text: '⚙️ Panel Admin Completo', web_app: { url: `${process.env.WEB_APP_URL}/admin.html` } }
+              { text: '⚙️ Panel Admin Completo', web_app: { url: `${process.env.WEB_APP_URL}/webapp/admin.html` } }
             ],
             [
               { text: '🔙 Menú Principal', callback_data: 'menu_main' }
@@ -201,7 +201,7 @@ Configuración de notificaciones automáticas:
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '🗺️ Ver Dashboard', web_app: { url: `${process.env.WEB_APP_URL}/dashboard.html` } }
+              { text: '🗺️ Ver Dashboard', web_app: { url: `${process.env.WEB_APP_URL}/webapp/dashboard.html` } }
             ],
             [
               { text: '🔙 Menú Principal', callback_data: 'menu_main' }

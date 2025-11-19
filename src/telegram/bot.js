@@ -138,7 +138,7 @@ class PolloLocoBot {
   async openWebApp(msg) {
     try {
       const chatId = msg.chat.id;
-      const webAppUrl = `${config.webAppUrl}/webapp`;
+      const webAppUrl = `${config.webAppUrl}/webapp/admin.html`;
       
       await this.bot.sendMessage(chatId, '🖥️ *Panel de Administración*\n\nAbre el panel web para gestionar el sistema de tracking.', {
         parse_mode: 'Markdown',

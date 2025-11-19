@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Configuración de Alertas - Pollo Loco</title>
+    
+    <!-- Telegram Web App específico -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #dc2626;
+            --primary-dark: #b91c1c;
+            --secondary: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --telegram-bg: var(--tg-theme-bg-color, #ffffff);
+            --telegram-text: var(--tg-theme-text-color, #000000);
+            --telegram-button: var(--tg-theme-button-color, #dc2626);
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--telegram-bg);
+            color: var(--telegram-text);
+            line-height: 1.5;
+            font-size: 16px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, var(--primary), #f87171);
+            color: white;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-save {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-save:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .container {
+            padding: 16px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .director-info {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+        }
+
+        .director-info h3 {
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .director-meta {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Category Sections */
+        .category-section {
+            margin-bottom: 24px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px 0;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Alert Cards */
+        .alert-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+
+        .alert-card.enabled {
+            border-color: var(--success);
+            background: linear-gradient(135deg, #f0fdf4, #ffffff);
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .alert-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--background);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .alert-icon.enabled {
+            background: var(--success);
+            color: white;
+        }
+
+        .alert-info {
+            flex: 1;
+        }
+
+        .alert-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .alert-description {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .alert-toggle {
+            position: relative;
+            width: 56px;
+            height: 32px;
+            background: #cbd5e1;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .alert-toggle.enabled {
+            background: var(--success);
+        }
+
+        .alert-toggle::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .alert-toggle.enabled::after {
+            left: 28px;
+        }
+
+        /* Alert Settings */
+        .alert-settings {
+            display: none;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        .alert-settings.visible {
+            display: block;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mini-toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #cbd5e1;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mini-toggle.enabled {
+            background: var(--success);
+        }
+
+        .mini-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .mini-toggle.enabled::after {
+            left: 22px;
+        }
+
+        .setting-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            width: 80px;
+            text-align: center;
+        }
+
+        .setting-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        /* Channel Toggles */
+        .channels {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .channel-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .channel-toggle.enabled {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .channel-icon {
+            font-size: 16px;
+        }
+
+        .channel-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Test Button */
+        .test-button {
+            background: var(--warning);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .test-button:hover {
+            background: #d97706;
+        }
+
+        /* Save Button */
+        .save-section {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--radius);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        .save-section.visible {
+            display: block;
+        }
+
+        .save-button {
+            width: 100%;
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .save-button:hover {
+            background: #059669;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 320px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .alert-card {
+                padding: 16px;
+            }
+            
+            .channels {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body class="telegram-theme">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-title">
+                🚨 Configuración de Alertas
+            </div>
+            <button class="header-save" onclick="saveAllSettings()">
+                💾 Guardar
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Director Info -->
+        <div class="director-info" id="directorInfo">
+            <div class="loading">
+                <div class="spinner"></div>
+                Cargando configuración...
+            </div>
+        </div>
+
+        <!-- Alerts Configuration -->
+        <div id="alertsContainer">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Save Section -->
+    <div class="save-section" id="saveSection">
+        <button class="save-button" onclick="saveAllSettings()">
+            ✅ Guardar Configuración de Alertas
+        </button>
+    </div>
+
+    <script>
+        // Telegram Web App integration
+        const tg = window.Telegram?.WebApp;
+        let directorId = 1; // Simulado - en producción vendría del auth
+        let alertTypes = {};
+        let currentConfig = {};
+        let hasChanges = false;
+        
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.MainButton.setParams({
+                text: 'Guardar Configuración',
+                color: '#10b981'
+            });
+            tg.MainButton.onClick(saveAllSettings);
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAlertTypes();
+            loadDirectorConfig();
+        });
+
+        // Cargar tipos de alertas disponibles
+        async function loadAlertTypes() {
+            try {
+                const response = await fetch('/api/alerts-config/types');
+                const data = await response.json();
+                alertTypes = data;
+                
+            } catch (error) {
+                console.error('Error loading alert types:', error);
+            }
+        }
+
+        // Cargar configuración del director
+        async function loadDirectorConfig() {
+            try {
+                const response = await fetch(`/api/alerts-config/director/${directorId}`);
+                const data = await response.json();
+                
+                currentConfig = data;
+                updateDirectorInfo(data.director);
+                renderAlerts(data.alerts);
+                
+            } catch (error) {
+                console.error('Error loading director config:', error);
+                document.getElementById('directorInfo').innerHTML = `
+                    <div style="text-align: center; color: var(--error);">
+                        ❌ Error cargando configuración
+                    </div>
+                `;
+            }
+        }
+
+        // Actualizar información del director
+        function updateDirectorInfo(director) {
+            document.getElementById('directorInfo').innerHTML = `
+                <h3>👔 ${director.name}</h3>
+                <div class="director-meta">
+                    Región: ${director.region} • Configuración de alertas personalizadas
+                </div>
+            `;
+        }
+
+        // Renderizar alertas por categoría
+        function renderAlerts(alerts) {
+            if (!alertTypes.alertTypes || !alertTypes.categories) {
+                setTimeout(() => renderAlerts(alerts), 500);
+                return;
+            }
+
+            const container = document.getElementById('alertsContainer');
+            const alertsByCategory = {};
+            
+            // Agrupar por categoría
+            alertTypes.categories.forEach(cat => {
+                alertsByCategory[cat.id] = {
+                    info: cat,
+                    alerts: []
+                };
+            });
+            
+            alertTypes.alertTypes.forEach(alertType => {
+                const config = alerts.find(a => a.alert_type === alertType.type);
+                alertsByCategory[alertType.category].alerts.push({
+                    type: alertType,
+                    config: config || {
+                        alert_type: alertType.type,
+                        enabled: alertType.defaultEnabled,
+                        telegram_enabled: true,
+                        email_enabled: false,
+                        settings: alertType.settings
+                    }
+                });
+            });
+            
+            // Renderizar HTML
+            container.innerHTML = '';
+            Object.values(alertsByCategory).forEach(category => {
+                if (category.alerts.length === 0) return;
+                
+                const categoryEl = document.createElement('div');
+                categoryEl.className = 'category-section';
+                categoryEl.innerHTML = `
+                    <div class="category-header">
+                        <div class="category-icon">${category.info.icon}</div>
+                        <div class="category-title">${category.info.name}</div>
+                    </div>
+                `;
+                
+                category.alerts.forEach(alert => {
+                    categoryEl.appendChild(createAlertCard(alert));
+                });
+                
+                container.appendChild(categoryEl);
+            });
+        }
+
+        // Crear card de alerta
+        function createAlertCard(alert) {
+            const card = document.createElement('div');
+            card.className = `alert-card ${alert.config.enabled ? 'enabled' : ''}`;
+            card.dataset.alertType = alert.config.alert_type;
+            
+            card.innerHTML = `
+                <div class="alert-header">
+                    <div class="alert-icon ${alert.config.enabled ? 'enabled' : ''}">
+                        ${alert.type.icon}
+                    </div>
+                    <div class="alert-info">
+                        <div class="alert-name">${alert.type.name}</div>
+                        <div class="alert-description">${alert.type.description}</div>
+                    </div>
+                    <div class="alert-toggle ${alert.config.enabled ? 'enabled' : ''}"
+                         onclick="toggleAlert('${alert.config.alert_type}')">
+                    </div>
+                </div>
+                
+                <div class="alert-settings ${alert.config.enabled ? 'visible' : ''}"
+                     id="settings-${alert.config.alert_type}">
+                    ${createAlertSettings(alert)}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Crear configuraciones específicas de la alerta
+        function createAlertSettings(alert) {
+            let html = '';
+            
+            // Canales de notificación
+            html += `
+                <div class="channels">
+                    <div class="channel-toggle ${alert.config.telegram_enabled ? 'enabled' : ''}"
+                         onclick="toggleChannel('${alert.config.alert_type}', 'telegram')">
+                        <span class="channel-icon">📱</span>
+                        <span class="channel-label">Telegram</span>
+                    </div>
+                    <div class="channel-toggle ${alert.config.email_enabled ? 'enabled' : ''}"
+                         onclick="toggleChannel('${alert.config.alert_type}', 'email')">
+                        <span class="channel-icon">📧</span>
+                        <span class="channel-label">Email</span>
+                    </div>
+                </div>
+            `;
+            
+            // Configuraciones específicas por tipo
+            const settings = alert.config.settings || {};
+            
+            if (alert.type.type === 'geofence_entry' || alert.type.type === 'geofence_exit') {
+                html += `
+                    <div class="setting-row">
+                        <div class="setting-label">⏰ Solo en horario laboral</div>
+                        <div class="setting-control">
+                            <div class="mini-toggle ${settings.workingHoursOnly ? 'enabled' : ''}"
+                                 onclick="toggleSetting('${alert.config.alert_type}', 'workingHoursOnly')"></div>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">🔄 Intervalo mínimo (min)</div>
+                        <div class="setting-control">
+                            <input type="number" class="setting-input" value="${settings.minInterval || 60}"
+                                   onchange="updateSetting('${alert.config.alert_type}', 'minInterval', this.value)">
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (alert.type.type === 'user_offline') {
+                html += `
+                    <div class="setting-row">
+                        <div class="setting-label">⏰ Tiempo límite (min)</div>
+                        <div class="setting-control">
+                            <input type="number" class="setting-input" value="${settings.timeoutMinutes || 30}"
+                                   onchange="updateSetting('${alert.config.alert_type}', 'timeoutMinutes', this.value)">
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">🚫 Excluir fines de semana</div>
+                        <div class="setting-control">
+                            <div class="mini-toggle ${settings.excludeWeekends ? 'enabled' : ''}"
+                                 onclick="toggleSetting('${alert.config.alert_type}', 'excludeWeekends')"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (alert.type.type === 'low_battery') {
+                html += `
+                    <div class="setting-row">
+                        <div class="setting-label">🔋 Umbral de batería (%)</div>
+                        <div class="setting-control">
+                            <input type="number" class="setting-input" value="${settings.batteryThreshold || 20}"
+                                   min="5" max="50"
+                                   onchange="updateSetting('${alert.config.alert_type}', 'batteryThreshold', this.value)">
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">📊 Máx. alertas por día</div>
+                        <div class="setting-control">
+                            <input type="number" class="setting-input" value="${settings.maxAlertsPerDay || 3}"
+                                   min="1" max="10"
+                                   onchange="updateSetting('${alert.config.alert_type}', 'maxAlertsPerDay', this.value)">
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (alert.type.type === 'daily_summary' || alert.type.type === 'weekly_summary') {
+                html += `
+                    <div class="setting-row">
+                        <div class="setting-label">🕐 Hora de envío</div>
+                        <div class="setting-control">
+                            <input type="time" class="setting-input" value="${settings.sendTime || '18:00'}"
+                                   onchange="updateSetting('${alert.config.alert_type}', 'sendTime', this.value)">
+                        </div>
+                    </div>
+                `;
+                
+                if (alert.type.type === 'weekly_summary') {
+                    html += `
+                        <div class="setting-row">
+                            <div class="setting-label">📅 Día de la semana</div>
+                            <div class="setting-control">
+                                <select class="setting-select"
+                                        onchange="updateSetting('${alert.config.alert_type}', 'sendDay', this.value)">
+                                    <option value="monday" ${settings.sendDay === 'monday' ? 'selected' : ''}>Lunes</option>
+                                    <option value="friday" ${settings.sendDay === 'friday' ? 'selected' : ''}>Viernes</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Botón de prueba
+            html += `
+                <div class="setting-row">
+                    <div class="setting-label">🧪 Probar alerta</div>
+                    <div class="setting-control">
+                        <button class="test-button" onclick="testAlert('${alert.config.alert_type}')">
+                            Enviar Prueba
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+
+        // Toggle alert on/off
+        function toggleAlert(alertType) {
+            const card = document.querySelector(`[data-alert-type="${alertType}"]`);
+            const toggle = card.querySelector('.alert-toggle');
+            const icon = card.querySelector('.alert-icon');
+            const settings = card.querySelector('.alert-settings');
+            
+            const isEnabled = toggle.classList.toggle('enabled');
+            icon.classList.toggle('enabled', isEnabled);
+            card.classList.toggle('enabled', isEnabled);
+            settings.classList.toggle('visible', isEnabled);
+            
+            // Update config
+            updateAlertConfig(alertType, 'enabled', isEnabled);
+            
+            markAsChanged();
+        }
+
+        // Toggle notification channel
+        function toggleChannel(alertType, channel) {
+            const channelEl = event.target.closest('.channel-toggle');
+            const isEnabled = channelEl.classList.toggle('enabled');
+            
+            const field = channel === 'telegram' ? 'telegram_enabled' : 'email_enabled';
+            updateAlertConfig(alertType, field, isEnabled);
+            
+            markAsChanged();
+        }
+
+        // Toggle setting
+        function toggleSetting(alertType, setting) {
+            const toggle = event.target;
+            const isEnabled = toggle.classList.toggle('enabled');
+            
+            updateAlertConfig(alertType, `settings.${setting}`, isEnabled);
+            markAsChanged();
+        }
+
+        // Update setting value
+        function updateSetting(alertType, setting, value) {
+            updateAlertConfig(alertType, `settings.${setting}`, value);
+            markAsChanged();
+        }
+
+        // Update alert configuration
+        function updateAlertConfig(alertType, field, value) {
+            let alert = currentConfig.alerts.find(a => a.alert_type === alertType);
+            if (!alert) {
+                alert = {
+                    alert_type: alertType,
+                    enabled: false,
+                    telegram_enabled: true,
+                    email_enabled: false,
+                    settings: {}
+                };
+                currentConfig.alerts.push(alert);
+            }
+            
+            if (field.includes('.')) {
+                const [parent, child] = field.split('.');
+                if (!alert[parent]) alert[parent] = {};
+                alert[parent][child] = value;
+            } else {
+                alert[field] = value;
+            }
+        }
+
+        // Mark as changed
+        function markAsChanged() {
+            hasChanges = true;
+            document.getElementById('saveSection').classList.add('visible');
+            
+            if (tg) {
+                tg.MainButton.show();
+            }
+        }
+
+        // Test alert
+        async function testAlert(alertType) {
+            try {
+                const response = await fetch(`/api/alerts-config/test/${directorId}/${alertType}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (tg) {
+                    tg.showPopup({
+                        title: 'Alerta de Prueba',
+                        message: result.success ? '✅ Alerta enviada exitosamente' : '❌ Error enviando alerta',
+                        buttons: [{text: 'OK', type: 'default'}]
+                    });
+                } else {
+                    alert(result.success ? 'Alerta enviada!' : 'Error enviando alerta');
+                }
+                
+            } catch (error) {
+                console.error('Error testing alert:', error);
+            }
+        }
+
+        // Save all settings
+        async function saveAllSettings() {
+            if (!hasChanges) return;
+            
+            try {
+                const response = await fetch(`/api/alerts-config/director/${directorId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        alerts: currentConfig.alerts
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    hasChanges = false;
+                    document.getElementById('saveSection').classList.remove('visible');
+                    
+                    if (tg) {
+                        tg.MainButton.hide();
+                        tg.showPopup({
+                            title: 'Configuración Guardada',
+                            message: '✅ Tus alertas han sido configuradas correctamente.',
+                            buttons: [{text: 'OK', type: 'default'}]
+                        });
+                    } else {
+                        alert('Configuración guardada exitosamente!');
+                    }
+                } else {
+                    throw new Error('Error saving configuration');
+                }
+                
+            } catch (error) {
+                console.error('Error saving configuration:', error);
+                
+                if (tg) {
+                    tg.showPopup({
+                        title: 'Error',
+                        message: 'No se pudo guardar la configuración. Intenta de nuevo.',
+                        buttons: [{text: 'OK', type: 'default'}]
+                    });
+                } else {
+                    alert('Error guardando configuración');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wizard GPS - Pollo Loco</title>
+    
+    <!-- Telegram Web App específico -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- QR Code generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --telegram-bg: var(--tg-theme-bg-color, #ffffff);
+            --telegram-text: var(--tg-theme-text-color, #000000);
+            --telegram-button: var(--tg-theme-button-color, #10b981);
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--telegram-bg);
+            color: var(--telegram-text);
+            line-height: 1.5;
+            font-size: 16px;
+            overflow-x: hidden;
+        }
+
+        .wizard-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, var(--primary), #34d399);
+            color: white;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .header-text h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .header-text p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Progress Steps */
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 0 10px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            right: -50%;
+            height: 2px;
+            background: var(--border);
+            z-index: 1;
+        }
+
+        .step:last-child::before {
+            display: none;
+        }
+
+        .step.active::before {
+            background: var(--primary);
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin: 0 auto 8px;
+            position: relative;
+            z-index: 2;
+            font-size: 14px;
+        }
+
+        .step.active .step-circle,
+        .step.completed .step-circle {
+            background: var(--primary);
+            color: white;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .step.active .step-label,
+        .step.completed .step-label {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* Wizard Steps */
+        .wizard-step {
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .step-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .step-description {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 16px;
+            background: var(--surface);
+            color: var(--text);
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* QR Code Section */
+        .qr-section {
+            text-align: center;
+            padding: 24px;
+            background: var(--background);
+            border-radius: var(--radius);
+            margin: 20px 0;
+        }
+
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 16px;
+            border: 4px solid white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .qr-instructions {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 20px 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        .qr-instructions h4 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .qr-instructions ol {
+            text-align: left;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-left: 20px;
+        }
+
+        .qr-instructions li {
+            margin-bottom: 8px;
+        }
+
+        /* Success/Error States */
+        .status-card {
+            padding: 20px;
+            border-radius: var(--radius);
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .status-card.success {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+
+        .status-card.error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .status-card.waiting {
+            background: #fffbeb;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .status-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .status-message {
+            margin-bottom: 16px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            min-height: 48px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-group.single {
+            grid-template-columns: 1fr;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Credentials Display */
+        .credentials-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .credential-item:last-child {
+            border-bottom: none;
+        }
+
+        .credential-label {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .credential-value {
+            font-family: monospace;
+            background: var(--background);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 320px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .step-card {
+                padding: 20px;
+            }
+            
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="telegram-theme">
+    <!-- Header -->
+    <div class="wizard-header">
+        <div class="header-content">
+            <div class="header-icon">🧙‍♂️</div>
+            <div class="header-text">
+                <h1>Wizard GPS</h1>
+                <p>Configuración fácil para usuarios GPS</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step active" data-step="1">
+                <div class="step-circle">1</div>
+                <div class="step-label">Datos</div>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-circle">2</div>
+                <div class="step-label">Crear</div>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-circle">3</div>
+                <div class="step-label">QR Code</div>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-circle">4</div>
+                <div class="step-label">Listo</div>
+            </div>
+        </div>
+
+        <!-- Step 1: Datos del Usuario -->
+        <div id="step1" class="wizard-step active">
+            <div class="step-card">
+                <div class="step-title">
+                    📝 Datos del Usuario
+                </div>
+                <div class="step-description">
+                    Ingresa la información básica del usuario que tendrá acceso GPS.
+                </div>
+                
+                <form id="userForm">
+                    <div class="form-group">
+                        <label class="form-label">Nombre Completo *</label>
+                        <input type="text" name="displayName" class="form-input" 
+                               placeholder="Ej: Roberto Dávila González" required>
+                        <div class="form-help">Nombre que aparecerá en el sistema</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Email *</label>
+                        <input type="email" name="email" class="form-input" 
+                               placeholder="usuario@polloloco.com" required>
+                        <div class="form-help">Email corporativo del usuario</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <input type="tel" name="phone" class="form-input" 
+                               placeholder="+52 1234567890">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Rol del Usuario *</label>
+                        <select name="role" class="form-select" required>
+                            <option value="">Seleccionar rol...</option>
+                            <option value="director">Director</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="auditor">Auditor</option>
+                            <option value="operador">Operador</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Región</label>
+                        <select name="region" class="form-select">
+                            <option value="">Seleccionar región...</option>
+                            <option value="Norte">Norte</option>
+                            <option value="Sur">Sur</option>
+                            <option value="Centro">Centro</option>
+                            <option value="Oriente">Oriente</option>
+                            <option value="Poniente">Poniente</option>
+                            <option value="Nacional">Nacional</option>
+                        </select>
+                    </div>
+                </form>
+                
+                <div class="btn-group single">
+                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn1">
+                        Continuar
+                        <span>→</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Creando Usuario -->
+        <div id="step2" class="wizard-step">
+            <div class="step-card">
+                <div class="step-title">
+                    ⚙️ Creando Usuario GPS
+                </div>
+                <div class="step-description">
+                    Estamos configurando el usuario y generando las credenciales automáticamente...
+                </div>
+                
+                <div id="creationStatus" class="status-card waiting">
+                    <div class="status-icon">
+                        <div class="spinner"></div>
+                    </div>
+                    <div class="status-title">Procesando...</div>
+                    <div class="status-message">Generando configuración GPS</div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="prevStep()">
+                        ← Atrás
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn2" disabled>
+                        Continuar →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: QR Code y Configuración -->
+        <div id="step3" class="wizard-step">
+            <div class="step-card">
+                <div class="step-title">
+                    📱 Código QR y Configuración
+                </div>
+                <div class="step-description">
+                    Escanea el código QR con OwnTracks para configuración automática.
+                </div>
+                
+                <div class="qr-section">
+                    <canvas id="qrCode" class="qr-code"></canvas>
+                    <div><strong>Código QR para OwnTracks</strong></div>
+                    <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">
+                        ID: <span id="userTrackerId">---</span>
+                    </div>
+                </div>
+                
+                <div class="qr-instructions">
+                    <h4>📲 Instrucciones de Configuración</h4>
+                    <ol>
+                        <li>Descarga <strong>OwnTracks</strong> desde App Store o Google Play</li>
+                        <li>Abre la aplicación OwnTracks</li>
+                        <li>Ve a <strong>Configuración → Importar</strong></li>
+                        <li>Escanea este código QR</li>
+                        <li>Acepta los permisos de ubicación</li>
+                        <li>¡Listo! Tu GPS estará funcionando</li>
+                    </ol>
+                </div>
+                
+                <div class="credentials-card">
+                    <h4 style="margin-bottom: 12px;">🔑 Credenciales Generadas</h4>
+                    <div class="credential-item">
+                        <span class="credential-label">Usuario:</span>
+                        <span class="credential-value" id="generatedUsername">---</span>
+                    </div>
+                    <div class="credential-item">
+                        <span class="credential-label">Contraseña:</span>
+                        <span class="credential-value" id="generatedPassword">---</span>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="downloadConfig()">
+                        📥 Descargar Config
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep()">
+                        Probar GPS →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Verificación y Finalización -->
+        <div id="step4" class="wizard-step">
+            <div class="step-card">
+                <div class="step-title">
+                    ✅ Verificación GPS
+                </div>
+                <div class="step-description">
+                    Verificando que el GPS esté enviando ubicaciones correctamente.
+                </div>
+                
+                <div id="gpsStatus" class="status-card waiting">
+                    <div class="status-icon">🔍</div>
+                    <div class="status-title">Esperando primera ubicación...</div>
+                    <div class="status-message">
+                        Asegúrate de que el usuario haya configurado OwnTracks y habilitado los permisos de ubicación.
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="checkGPSStatus()" id="checkBtn">
+                        🔄 Verificar Ahora
+                    </button>
+                    <button class="btn btn-primary" onclick="finishWizard()" id="finishBtn">
+                        ✅ Finalizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Telegram Web App integration
+        const tg = window.Telegram?.WebApp;
+        let currentStep = 1;
+        let userData = {};
+        let createdUser = null;
+        
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.MainButton.hide();
+        }
+
+        // Step navigation
+        function nextStep() {
+            if (currentStep === 1) {
+                if (validateStep1()) {
+                    showStep(2);
+                    createUser();
+                }
+            } else if (currentStep === 2) {
+                if (createdUser) {
+                    showStep(3);
+                    generateQRCode();
+                }
+            } else if (currentStep === 3) {
+                showStep(4);
+                startGPSCheck();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                showStep(currentStep - 1);
+            }
+        }
+
+        function showStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active', 'completed'));
+            
+            // Show current step
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Update progress
+            for (let i = 1; i <= step; i++) {
+                if (i < step) {
+                    document.querySelector(`[data-step="${i}"]`).classList.add('completed');
+                } else if (i === step) {
+                    document.querySelector(`[data-step="${i}"]`).classList.add('active');
+                }
+            }
+            
+            currentStep = step;
+        }
+
+        // Step 1: Validate form
+        function validateStep1() {
+            const form = document.getElementById('userForm');
+            const formData = new FormData(form);
+            
+            userData = {
+                displayName: formData.get('displayName'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                role: formData.get('role'),
+                region: formData.get('region')
+            };
+            
+            if (!userData.displayName || !userData.email || !userData.role) {
+                if (tg) {
+                    tg.showPopup({
+                        title: 'Error',
+                        message: 'Por favor completa todos los campos requeridos.',
+                        buttons: [{text: 'OK', type: 'default'}]
+                    });
+                } else {
+                    alert('Por favor completa todos los campos requeridos.');
+                }
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Step 2: Create user
+        async function createUser() {
+            const statusEl = document.getElementById('creationStatus');
+            const nextBtn = document.getElementById('nextBtn2');
+            
+            try {
+                statusEl.innerHTML = `
+                    <div class="status-icon"><div class="spinner"></div></div>
+                    <div class="status-title">Creando usuario...</div>
+                    <div class="status-message">Generando credenciales y configuración</div>
+                `;
+                
+                const response = await fetch('/api/gps-wizard/create-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error creating user');
+                }
+                
+                const result = await response.json();
+                createdUser = result;
+                
+                statusEl.innerHTML = `
+                    <div class="status-icon">✅</div>
+                    <div class="status-title">¡Usuario creado exitosamente!</div>
+                    <div class="status-message">
+                        <strong>ID:</strong> ${result.user.trackerId}<br>
+                        <strong>Configuración:</strong> Lista para usar
+                    </div>
+                `;
+                statusEl.className = 'status-card success';
+                
+                nextBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Error creating user:', error);
+                
+                statusEl.innerHTML = `
+                    <div class="status-icon">❌</div>
+                    <div class="status-title">Error al crear usuario</div>
+                    <div class="status-message">Por favor intenta de nuevo.</div>
+                `;
+                statusEl.className = 'status-card error';
+            }
+        }
+
+        // Step 3: Generate QR code
+        async function generateQRCode() {
+            if (!createdUser) return;
+            
+            // Update user info
+            document.getElementById('userTrackerId').textContent = createdUser.user.trackerId;
+            document.getElementById('generatedUsername').textContent = createdUser.credentials.username;
+            document.getElementById('generatedPassword').textContent = createdUser.credentials.password;
+            
+            // Generate QR code
+            try {
+                const canvas = document.getElementById('qrCode');
+                const configJson = JSON.stringify(createdUser.ownTracksConfig);
+                
+                await QRCode.toCanvas(canvas, configJson, {
+                    width: 200,
+                    margin: 1,
+                    color: {
+                        dark: '#1e293b',
+                        light: '#ffffff'
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+            }
+        }
+
+        // Download configuration
+        function downloadConfig() {
+            if (!createdUser) return;
+            
+            const configJson = JSON.stringify(createdUser.ownTracksConfig, null, 2);
+            const blob = new Blob([configJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${createdUser.user.trackerId}-config.otrc`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Step 4: GPS verification
+        let gpsCheckInterval;
+        
+        function startGPSCheck() {
+            checkGPSStatus();
+            
+            // Check every 10 seconds
+            gpsCheckInterval = setInterval(checkGPSStatus, 10000);
+        }
+
+        async function checkGPSStatus() {
+            if (!createdUser) return;
+            
+            const statusEl = document.getElementById('gpsStatus');
+            const checkBtn = document.getElementById('checkBtn');
+            const finishBtn = document.getElementById('finishBtn');
+            
+            try {
+                checkBtn.innerHTML = '🔄 Verificando...';
+                checkBtn.disabled = true;
+                
+                const response = await fetch(`/api/gps-wizard/test-connection/${createdUser.user.trackerId}`);
+                const result = await response.json();
+                
+                if (result.connectionStatus === 'connected') {
+                    statusEl.innerHTML = `
+                        <div class="status-icon">🎉</div>
+                        <div class="status-title">¡GPS Conectado!</div>
+                        <div class="status-message">
+                            Última ubicación: ${new Date(result.lastLocation.timestamp).toLocaleString()}<br>
+                            Precisión: ${result.lastLocation.accuracy}m | Batería: ${result.lastLocation.battery}%
+                        </div>
+                    `;
+                    statusEl.className = 'status-card success';
+                    
+                    // Stop checking
+                    if (gpsCheckInterval) {
+                        clearInterval(gpsCheckInterval);
+                    }
+                    
+                    finishBtn.innerHTML = '🎉 ¡Completado!';
+                    
+                } else {
+                    statusEl.innerHTML = `
+                        <div class="status-icon">⏳</div>
+                        <div class="status-title">Esperando GPS...</div>
+                        <div class="status-message">
+                            El usuario debe abrir OwnTracks y permitir los permisos de ubicación.
+                        </div>
+                    `;
+                    statusEl.className = 'status-card waiting';
+                }
+                
+            } catch (error) {
+                console.error('Error checking GPS:', error);
+                
+                statusEl.innerHTML = `
+                    <div class="status-icon">⚠️</div>
+                    <div class="status-title">No se pudo verificar</div>
+                    <div class="status-message">Intenta verificar manualmente más tarde.</div>
+                `;
+                statusEl.className = 'status-card error';
+                
+            } finally {
+                checkBtn.innerHTML = '🔄 Verificar Ahora';
+                checkBtn.disabled = false;
+            }
+        }
+
+        function finishWizard() {
+            if (gpsCheckInterval) {
+                clearInterval(gpsCheckInterval);
+            }
+            
+            if (tg) {
+                tg.showPopup({
+                    title: 'Wizard Completado',
+                    message: `Usuario ${createdUser?.user.trackerId} configurado exitosamente.`,
+                    buttons: [{text: 'Cerrar', type: 'default'}]
+                });
+                
+                setTimeout(() => {
+                    tg.close();
+                }, 2000);
+            } else {
+                alert('Usuario GPS configurado exitosamente!');
+                window.close();
+            }
+        }
+    </script>
+</body>
+</html>

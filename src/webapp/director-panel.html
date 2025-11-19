@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Panel Director - Pollo Loco GPS</title>
+    
+    <!-- Telegram Web App específico -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <style>
+        /* Reset y base mobile-first */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #7c3aed;  /* Purple for director theme */
+            --primary-dark: #6d28d9;
+            --secondary: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #059669;
+            --warning: #d97706;
+            --error: #dc2626;
+            --telegram-bg: var(--tg-theme-bg-color, #ffffff);
+            --telegram-text: var(--tg-theme-text-color, #000000);
+            --telegram-button: var(--tg-theme-button-color, #7c3aed);
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--telegram-bg);
+            color: var(--telegram-text);
+            line-height: 1.5;
+            font-size: 16px;
+            overflow-x: hidden;
+        }
+
+        /* Header específico para director */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .region-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        .header-stats {
+            text-align: right;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* Container móvil */
+        .container {
+            padding: 16px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Director scope indicator */
+        .scope-header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+            box-shadow: var(--shadow);
+        }
+
+        .scope-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .scope-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .scope-stat {
+            text-align: center;
+            padding: 8px;
+            background: var(--background);
+            border-radius: 8px;
+        }
+
+        .scope-stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .scope-stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Director actions - específicas para su rol */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .action-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 16px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-height: 60px;
+            box-shadow: var(--shadow);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .action-card:active {
+            transform: scale(0.98);
+            background: var(--background);
+        }
+
+        .action-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: var(--background);
+        }
+
+        .action-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .action-icon.my-users { background: #2563eb; }
+        .action-icon.alerts { background: #dc2626; }
+        .action-icon.reports { background: #059669; }
+        .action-icon.tracking { background: #7c3aed; }
+        .action-icon.config { background: #64748b; }
+
+        .action-content {
+            flex: 1;
+        }
+
+        .action-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .action-description {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .action-arrow {
+            color: var(--text-muted);
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Current status section */
+        .status-section {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .status-header {
+            padding: 16px;
+            background: var(--background);
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+
+        .status-icon.online { background: #10b981; }
+        .status-icon.warning { background: #f59e0b; }
+        .status-icon.offline { background: #ef4444; }
+
+        .status-content {
+            flex: 1;
+        }
+
+        .status-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .status-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Restrictions notice */
+        .restrictions-notice {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .restrictions-notice .icon {
+            color: #92400e;
+            font-size: 18px;
+        }
+
+        .restrictions-notice .text {
+            flex: 1;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        /* Modales mobile-first */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--surface);
+            border-radius: 20px 20px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            margin-top: 10vh;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px 16px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--background);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .modal-body {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        /* User list specific for director */
+        .user-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-content {
+            flex: 1;
+        }
+
+        .user-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .user-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .user-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.online {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge.offline {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        @media (max-width: 320px) {
+            .scope-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 12px;
+            }
+            
+            .action-card {
+                padding: 16px 12px;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="telegram-theme">
+    <!-- Header Específico para Director -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-title">
+                👔 Panel Director
+                <span class="region-badge" id="directorRegion">Cargando...</span>
+            </div>
+            <div class="header-stats" id="headerStats">
+                <div>Cargando...</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Scope de Director -->
+        <div class="scope-header">
+            <div class="scope-title">📍 Tu Área de Gestión</div>
+            <div>Solo tienes acceso a la información y usuarios de tu región asignada</div>
+            <div class="scope-details">
+                <div class="scope-stat">
+                    <span class="scope-stat-number" id="myUsers">-</span>
+                    <div class="scope-stat-label">Mis Usuarios</div>
+                </div>
+                <div class="scope-stat">
+                    <span class="scope-stat-number" id="myGroups">-</span>
+                    <div class="scope-stat-label">Mis Grupos</div>
+                </div>
+                <div class="scope-stat">
+                    <span class="scope-stat-number" id="todayVisits">-</span>
+                    <div class="scope-stat-label">Visitas Hoy</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restrictions Notice -->
+        <div class="restrictions-notice">
+            <div class="icon">ℹ️</div>
+            <div class="text">
+                Como Director, puedes gestionar únicamente los usuarios y configuraciones de tu región asignada.
+            </div>
+        </div>
+
+        <!-- Director Actions -->
+        <div class="actions-grid">
+            <div class="action-card" onclick="openMyUsers()">
+                <div class="action-icon my-users">👥</div>
+                <div class="action-content">
+                    <div class="action-title">Mis Usuarios GPS</div>
+                    <div class="action-description">Gestionar usuarios de mi región</div>
+                </div>
+                <div class="action-arrow">›</div>
+            </div>
+
+            <div class="action-card" onclick="openMyAlerts()">
+                <div class="action-icon alerts">🚨</div>
+                <div class="action-content">
+                    <div class="action-title">Mis Alertas</div>
+                    <div class="action-description">Configurar notificaciones de mi región</div>
+                </div>
+                <div class="action-arrow">›</div>
+            </div>
+
+            <div class="action-card" onclick="openMyReports()">
+                <div class="action-icon reports">📊</div>
+                <div class="action-content">
+                    <div class="action-title">Reportes Regionales</div>
+                    <div class="action-description">Métricas y análisis de mi equipo</div>
+                </div>
+                <div class="action-arrow">›</div>
+            </div>
+
+            <div class="action-card" onclick="openMyTracking()">
+                <div class="action-icon tracking">🗺️</div>
+                <div class="action-content">
+                    <div class="action-title">Tracking en Tiempo Real</div>
+                    <div class="action-description">Ubicaciones de mi equipo</div>
+                </div>
+                <div class="action-arrow">›</div>
+            </div>
+        </div>
+
+        <!-- Current Status de la región -->
+        <div class="status-section">
+            <div class="status-header">
+                <span>Estado Actual - Mi Región</span>
+                <span id="lastUpdate">Actualizando...</span>
+            </div>
+            <div id="regionStatus">
+                <div class="status-item">
+                    <div class="status-icon online">⚡</div>
+                    <div class="status-content">
+                        <div class="status-title">Cargando estado...</div>
+                        <div class="status-subtitle">Por favor espera</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Mis Usuarios -->
+    <div id="myUsersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeModal('myUsersModal')">✕</button>
+                <div class="modal-title">Mis Usuarios GPS</div>
+            </div>
+            <div class="modal-body">
+                <div id="myUsersList">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        🔄 Cargando usuarios de tu región...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Telegram Web App integration
+        const tg = window.Telegram?.WebApp;
+        let directorData = null;
+        
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.MainButton.setParams({
+                text: 'Ir al Mapa Completo',
+                color: '#7c3aed'
+            });
+            tg.MainButton.onClick(() => {
+                window.open('/webapp/dashboard.html', '_blank');
+            });
+            tg.MainButton.show();
+        }
+
+        // Simulación de ID del director (en producción vendría del auth)
+        const DIRECTOR_ID = 1; // Roberto Davila - Sur (simulado)
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDirectorData();
+            
+            // Auto-refresh cada 30 segundos
+            setInterval(() => {
+                if (!document.hidden) {
+                    loadDirectorData();
+                }
+            }, 30000);
+        });
+
+        // Cargar datos específicos del director
+        async function loadDirectorData() {
+            try {
+                const response = await fetch(`/api/directors/${DIRECTOR_ID}/dashboard`);
+                if (!response.ok) throw new Error('Error loading director data');
+                
+                const data = await response.json();
+                directorData = data;
+                
+                // Actualizar UI
+                updateDirectorUI(data);
+                
+            } catch (error) {
+                console.error('Error loading director data:', error);
+                showErrorState();
+            }
+        }
+
+        // Actualizar interfaz con datos del director
+        function updateDirectorUI(data) {
+            // Header
+            document.getElementById('directorRegion').textContent = data.region || 'Sin región';
+            document.getElementById('headerStats').innerHTML = `
+                <div>${data.stats.activeUsers} usuarios activos</div>
+            `;
+            
+            // Scope stats
+            document.getElementById('myUsers').textContent = data.stats.totalUsers || '0';
+            document.getElementById('myGroups').textContent = data.stats.totalGroups || '0';
+            document.getElementById('todayVisits').textContent = data.stats.visitsToday || '0';
+            
+            // Status section
+            updateRegionStatus(data);
+            
+            // Update timestamp
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('es-MX', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Actualizar estado de la región
+        function updateRegionStatus(data) {
+            const statusEl = document.getElementById('regionStatus');
+            const lastActivity = data.lastActivity;
+            
+            let statusHTML = '';
+            
+            // Estado de usuarios activos
+            const activePercentage = data.stats.totalUsers > 0 ? 
+                Math.round((data.stats.activeUsers / data.stats.totalUsers) * 100) : 0;
+            
+            statusHTML += `
+                <div class="status-item">
+                    <div class="status-icon ${activePercentage >= 70 ? 'online' : activePercentage >= 30 ? 'warning' : 'offline'}">
+                        👥
+                    </div>
+                    <div class="status-content">
+                        <div class="status-title">Usuarios Activos</div>
+                        <div class="status-subtitle">${data.stats.activeUsers} de ${data.stats.totalUsers} conectados</div>
+                    </div>
+                    <div class="status-value">${activePercentage}%</div>
+                </div>
+            `;
+            
+            // Última actividad GPS
+            if (lastActivity) {
+                const timeAgo = getTimeAgo(lastActivity.time);
+                statusHTML += `
+                    <div class="status-item">
+                        <div class="status-icon online">📍</div>
+                        <div class="status-content">
+                            <div class="status-title">Última Ubicación</div>
+                            <div class="status-subtitle">${lastActivity.user} - ${timeAgo}</div>
+                        </div>
+                        <div class="status-value">${lastActivity.trackerId}</div>
+                    </div>
+                `;
+            } else {
+                statusHTML += `
+                    <div class="status-item">
+                        <div class="status-icon offline">📍</div>
+                        <div class="status-content">
+                            <div class="status-title">Sin Actividad GPS</div>
+                            <div class="status-subtitle">No hay ubicaciones recientes</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Visitas del día
+            statusHTML += `
+                <div class="status-item">
+                    <div class="status-icon ${data.stats.visitsToday > 0 ? 'online' : 'offline'}">🏢</div>
+                    <div class="status-content">
+                        <div class="status-title">Visitas Hoy</div>
+                        <div class="status-subtitle">Sucursales visitadas</div>
+                    </div>
+                    <div class="status-value">${data.stats.visitsToday}</div>
+                </div>
+            `;
+            
+            statusEl.innerHTML = statusHTML;
+        }
+
+        // Panel functions - específicas para director
+        function openMyUsers() {
+            openModal('myUsersModal');
+            loadMyUsers();
+        }
+
+        function openMyAlerts() {
+            if (tg) {
+                tg.showPopup({
+                    title: 'Configuración de Alertas',
+                    message: 'Esta función estará disponible próximamente. Podrás configurar qué alertas recibir para tu región.',
+                    buttons: [{text: 'OK', type: 'default'}]
+                });
+            }
+        }
+
+        function openMyReports() {
+            if (tg) {
+                tg.showPopup({
+                    title: 'Reportes Regionales',
+                    message: 'Esta función estará disponible próximamente. Podrás generar reportes específicos de tu región.',
+                    buttons: [{text: 'OK', type: 'default'}]
+                });
+            }
+        }
+
+        function openMyTracking() {
+            // Abrir dashboard filtrado por región del director
+            window.open(`/webapp/dashboard.html?region=${encodeURIComponent(directorData?.region || '')}`, '_blank');
+        }
+
+        // Cargar usuarios del director
+        async function loadMyUsers() {
+            const usersListEl = document.getElementById('myUsersList');
+            
+            try {
+                // Simular carga (en producción sería una API filtrada por director)
+                const response = await fetch('/api/admin/users');
+                if (!response.ok) throw new Error('Error loading users');
+                
+                const allUsers = await response.json();
+                
+                // Filtrar por región del director (simulado)
+                const myUsers = allUsers.filter(user => {
+                    // En producción, esto se haría en el backend
+                    return user.group_name && user.group_name.toLowerCase().includes('sur');
+                });
+                
+                if (myUsers.length === 0) {
+                    usersListEl.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+                            <div><strong>No hay usuarios en tu región</strong></div>
+                            <div>Los usuarios aparecerán aquí cuando sean asignados a tu región.</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                usersListEl.innerHTML = myUsers.map(user => `
+                    <div class="user-item">
+                        <div class="user-avatar">${user.display_name.charAt(0).toUpperCase()}</div>
+                        <div class="user-content">
+                            <div class="user-title">${user.display_name}</div>
+                            <div class="user-subtitle">${user.tracker_id} • ${user.zenput_email}</div>
+                        </div>
+                        <div class="user-status">
+                            <span class="badge ${user.active ? 'active' : 'inactive'}">
+                                ${user.active ? 'Activo' : 'Pausado'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading my users:', error);
+                usersListEl.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--error);">
+                        <div>❌ Error cargando usuarios</div>
+                        <div style="font-size: 14px; margin-top: 8px;">Intenta de nuevo más tarde</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Utility functions
+        function getTimeAgo(dateString) {
+            if (!dateString) return 'Nunca';
+            
+            const now = new Date();
+            const date = new Date(dateString);
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Ahora';
+            if (diffMins < 60) return `${diffMins}m`;
+            if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h`;
+            return `${Math.floor(diffMins / 1440)}d`;
+        }
+
+        function showErrorState() {
+            document.getElementById('directorRegion').textContent = 'Error';
+            document.getElementById('headerStats').innerHTML = '<div>Error cargando</div>';
+            document.getElementById('myUsers').textContent = '!';
+            document.getElementById('myGroups').textContent = '!';
+            document.getElementById('todayVisits').textContent = '!';
+        }
+
+        // Close modals when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -213,22 +213,30 @@ router.post('/users', async (req, res) => {
 
 /**
  * GET /api/admin/directors
- * Lista de directores (placeholder)
+ * Lista de directores desde sistema de permisos
  */
 router.get('/directors', async (req, res) => {
   try {
-    // Por ahora devolvemos datos simulados
-    // TODO: Implementar tabla de directores real
-    const directors = [
-      {
-        id: 1,
-        name: 'Director Ejemplo',
-        email: 'director@polloloco.com',
-        groups_count: 3,
-        users_count: 12,
-        telegram_chat_id: null
-      }
-    ];
+    const result = await db.query(`
+      SELECT 
+        d.*,
+        COUNT(DISTINCT og.id) as groups_count,
+        COUNT(DISTINCT tu.id) as users_count,
+        COUNT(DISTINCT tu.id) FILTER (WHERE tu.active = true) as active_users_count
+      FROM directors d
+      LEFT JOIN operational_groups og ON d.id = og.director_id AND og.active = true
+      LEFT JOIN tracking_users tu ON d.id = tu.director_id
+      WHERE d.active = true
+      GROUP BY d.id
+      ORDER BY d.created_at DESC
+    `);
+
+    const directors = result.rows.map(director => ({
+      ...director,
+      groups_count: parseInt(director.groups_count) || 0,
+      users_count: parseInt(director.users_count) || 0,
+      active_users_count: parseInt(director.active_users_count) || 0
+    }));
 
     res.json(directors);
 

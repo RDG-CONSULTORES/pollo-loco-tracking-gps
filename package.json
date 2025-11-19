@@ -37,7 +37,10 @@
     "fix-tracking-locations": "node scripts/fix-tracking-locations-schema.js",
     "create-tracking-locations": "node scripts/create-tracking-locations-table.js",
     "setup-complete": "node scripts/fix-users-table.js && node scripts/create-test-user.js",
-    "setup-user-mgmt": "node scripts/setup-user-management.js"
+    "setup-user-mgmt": "node scripts/setup-user-management.js",
+    "db:migrate": "node src/database/migrate.js all",
+    "db:migrate:permissions": "node src/database/migrate.js permissions",
+    "db:verify": "node src/database/migrate.js verify"
   },
   "keywords": [
     "gps",

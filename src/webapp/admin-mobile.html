@@ -596,7 +596,16 @@
                 <div class="action-arrow">›</div>
             </div>
 
-            <div class="action-card" onclick="openAlertsPanel()">
+            <div class="action-card" onclick="openGPSWizard()">
+                <div class="action-icon users" style="background: #10b981;">🧙‍♂️</div>
+                <div class="action-content">
+                    <div class="action-title">Wizard GPS Fácil</div>
+                    <div class="action-description">Configurar usuarios GPS con QR codes</div>
+                </div>
+                <div class="action-arrow">›</div>
+            </div>
+
+            <div class="action-card" onclick="openAlertsConfig()">
                 <div class="action-icon alerts">🚨</div>
                 <div class="action-content">
                     <div class="action-title">Configurar Alertas</div>
@@ -619,6 +628,15 @@
                 <div class="action-content">
                     <div class="action-title">Configuración Sistema</div>
                     <div class="action-description">Ajustes globales y mantenimiento</div>
+                </div>
+                <div class="action-arrow">›</div>
+            </div>
+
+            <div class="action-card" onclick="openDirectorPreview()">
+                <div class="action-icon directors" style="background: #7c3aed;">🎯</div>
+                <div class="action-content">
+                    <div class="action-title">Vista Director (Demo)</div>
+                    <div class="action-description">Ver panel director con permisos limitados</div>
                 </div>
                 <div class="action-arrow">›</div>
             </div>
@@ -871,7 +889,15 @@
             loadDirectorsList();
         }
 
-        function openAlertsPanel() {
+        function openGPSWizard() {
+            // Abrir wizard GPS para configuración fácil
+            if (tg) {
+                tg.close();
+            }
+            window.open('/webapp/gps-wizard.html', '_blank');
+        }
+
+        function openAlertsConfig() {
             // Redirect to alerts configuration
             if (tg) {
                 tg.close();
@@ -1072,6 +1098,14 @@
                     buttons: [{text: 'OK', type: 'default'}]
                 });
             }
+        }
+
+        function openDirectorPreview() {
+            // Abrir panel específico de director
+            if (tg) {
+                tg.close();
+            }
+            window.open('/webapp/director.html', '_blank');
         }
 
         // Close modals when clicking outside

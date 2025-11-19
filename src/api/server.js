@@ -19,6 +19,15 @@ const authRoutes = require('./routes/auth.routes');
 // NEW: Mobile Admin Routes
 const mobileAdminRoutes = require('./routes/mobile-admin.routes');
 
+// NEW: Directors Management Routes
+const directorsRoutes = require('./routes/directors.routes');
+
+// NEW: GPS Wizard Routes
+const gpsWizardRoutes = require('./routes/gps-wizard.routes');
+
+// NEW: Alerts Configuration Routes
+const alertsConfigRoutes = require('./routes/alerts-config.routes');
+
 /**
  * Configurar servidor Express
  */
@@ -56,6 +65,21 @@ function createServer() {
     } else {
       res.sendFile(path.join(__dirname, '../webapp/admin.html'));
     }
+  });
+  
+  // Director panel - específico para directores
+  app.get('/webapp/director.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/director-panel.html'));
+  });
+  
+  // GPS Wizard - configuración fácil usuarios
+  app.get('/webapp/gps-wizard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/gps-wizard.html'));
+  });
+  
+  // Alerts Configuration - configuración de alertas
+  app.get('/webapp/alerts-config.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/alerts-config.html'));
   });
   
   // Versión móvil específica
@@ -113,6 +137,9 @@ function createServer() {
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
+  app.use('/api/directors', directorsRoutes); // Directors management routes
+  app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
+  app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

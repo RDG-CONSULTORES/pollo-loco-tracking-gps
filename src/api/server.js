@@ -16,6 +16,9 @@ const routesRoutes = require('./routes/routes.routes');
 // NEW: User Management Routes
 const authRoutes = require('./routes/auth.routes');
 
+// NEW: Mobile Admin Routes
+const mobileAdminRoutes = require('./routes/mobile-admin.routes');
+
 /**
  * Configurar servidor Express
  */
@@ -43,8 +46,21 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/dashboard.html'));
   });
   
+  // Admin panel - redirigir a versión móvil para Telegram
   app.get('/webapp/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../webapp/admin.html'));
+    const userAgent = req.get('User-Agent') || '';
+    const isTelegram = userAgent.includes('Telegram') || userAgent.includes('TelegramBot');
+    
+    if (isTelegram) {
+      res.sendFile(path.join(__dirname, '../webapp/admin-mobile.html'));
+    } else {
+      res.sendFile(path.join(__dirname, '../webapp/admin.html'));
+    }
+  });
+  
+  // Versión móvil específica
+  app.get('/webapp/admin-mobile.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/admin-mobile.html'));
   });
   
   app.get('/webapp/login.html', (req, res) => {
@@ -96,6 +112,7 @@ function createServer() {
   app.use('/api/owntracks', ownTracksConfigRoutes);
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

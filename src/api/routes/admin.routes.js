@@ -2443,36 +2443,7 @@ router.post('/directors', logAction('CREATE_DIRECTOR', 'director'), async (req, 
   }
 });
 
-/**
- * GET /api/admin/directors
- * Obtener lista de directores
- */
-router.get('/directors', async (req, res) => {
-  try {
-    const result = await db.query(`
-      SELECT 
-        d.id,
-        d.director_code,
-        d.full_name,
-        d.telegram_chat_id,
-        d.active,
-        d.created_at,
-        su.email,
-        array_agg(dg.group_name) FILTER (WHERE dg.group_name IS NOT NULL) as groups
-      FROM directors d
-      LEFT JOIN system_users su ON d.user_id = su.id
-      LEFT JOIN director_groups dg ON d.id = dg.director_id
-      GROUP BY d.id, d.director_code, d.full_name, d.telegram_chat_id, d.active, d.created_at, su.email
-      ORDER BY d.full_name
-    `);
-    
-    res.json(result.rows);
-    
-  } catch (error) {
-    console.error('❌ Error obteniendo directores:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
+// ENDPOINT ELIMINADO - DUPLICADO
 
 /**
  * POST /api/admin/actions/cleanup
@@ -3034,18 +3005,23 @@ router.delete('/users/:id', logAction('DELETE_USER', 'user'), async (req, res) =
  */
 router.get('/directors', logAction('VIEW_DIRECTORS', 'directors'), async (req, res) => {
   try {
-    // Obtener directores únicos de tracking_locations_cache
+    // Obtener directores de la tabla directors con grupos operativos
     const result = await db.query(`
       SELECT 
-        director_name as name,
-        STRING_AGG(DISTINCT group_name, ', ' ORDER BY group_name) as grupos_asignados,
-        COUNT(DISTINCT group_name) as total_grupos,
-        COUNT(*) as total_sucursales,
-        MIN(synced_at) as fecha_asignacion
-      FROM tracking_locations_cache
-      WHERE director_name IS NOT NULL AND director_name != 'Director TBD'
-      GROUP BY director_name
-      ORDER BY director_name
+        d.id,
+        d.director_code,
+        d.full_name as name,
+        d.email,
+        d.phone,
+        d.position,
+        d.region,
+        d.operational_groups as grupos_asignados,
+        array_length(d.operational_groups, 1) as total_grupos,
+        d.active,
+        d.created_at as fecha_asignacion
+      FROM directors d
+      WHERE d.active = true
+      ORDER BY d.full_name
     `);
     
     res.json({

@@ -1409,12 +1409,29 @@ class GPSDashboard {
         try {
             console.log('🏪 Cargando sucursales reales...');
             
-            const response = await fetch('/api/admin/geofences', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                    'Content-Type': 'application/json'
+            // Intentar endpoint público primero, luego admin con auth
+            let response;
+            try {
+                response = await fetch('/api/dashboard/geofences');
+                
+                if (!response.ok) {
+                    // Si falla, intentar el endpoint admin con auth
+                    response = await fetch('/api/admin/geofences', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
                 }
-            });
+            } catch (error) {
+                // Fallback al endpoint admin
+                response = await fetch('/api/admin/geofences', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
             
             if (!response.ok) {
                 throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -1422,9 +1439,16 @@ class GPSDashboard {
             
             const result = await response.json();
             
-            if (result.success && result.data && result.data.length > 0) {
+            // Manejar respuesta del endpoint público (/api/dashboard/geofences)
+            if (result.geofences && result.geofences.length > 0) {
+                this.updateGeofences(result.geofences);
+                console.log(`✅ ${result.geofences.length} sucursales cargadas desde dashboard endpoint`);
+                return true;
+            }
+            // Manejar respuesta del endpoint admin (/api/admin/geofences)
+            else if (result.success && result.data && result.data.length > 0) {
                 this.updateGeofences(result.data);
-                console.log(`✅ ${result.data.length} sucursales reales cargadas desde ${result.source}`);
+                console.log(`✅ ${result.data.length} sucursales cargadas desde admin endpoint`);
                 return true;
             } else {
                 console.log('⚠️ No se encontraron sucursales en la base de datos');

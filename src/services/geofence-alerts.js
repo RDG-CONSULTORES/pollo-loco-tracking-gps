@@ -76,7 +76,7 @@ class GeofenceAlerts {
    * Manejar entrada a sucursal
    */
   async handleGeofenceEntry(user, store, location, distance, eventId = null) {
-    const time = new Date().toLocaleTimeString('es-MX');
+    const time = new Date().toLocaleTimeString('es-MX', { timeZone: 'America/Monterrey' });
     
     const message = `
 🟢 *ENTRADA DETECTADA*
@@ -100,7 +100,7 @@ class GeofenceAlerts {
    * Manejar salida de sucursal
    */
   async handleGeofenceExit(user, store, location, distance, entryTime, eventId = null) {
-    const time = new Date().toLocaleTimeString('es-MX');
+    const time = new Date().toLocaleTimeString('es-MX', { timeZone: 'America/Monterrey' });
     const visitDuration = entryTime ? this.calculateVisitDuration(entryTime, new Date()) : 'Desconocido';
     
     const message = `

@@ -7,9 +7,9 @@ const config = {
   adminIds: process.env.TELEGRAM_ADMIN_IDS ? 
     process.env.TELEGRAM_ADMIN_IDS.split(',').map(id => parseInt(id.trim())) : [],
   
-  // Configuración del bot
+  // Configuración del bot - SIN polling para Railway (evita conflicto 409)
   botOptions: {
-    polling: true,
+    polling: false,
     request: {
       agentOptions: {
         keepAlive: true,

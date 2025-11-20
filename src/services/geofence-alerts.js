@@ -54,13 +54,13 @@ class GeofenceAlerts {
         
         if (isInside && !lastState.wasInside) {
           // ENTRADA a la sucursal
-          await this.handleGeofenceEntry(user, store, currentLocation, distance);
-          await this.saveGeofenceEvent(user_id, store.id, 'entry', gps_timestamp, distance);
+          const entryEventId = await this.saveGeofenceEvent(user_id, store.id, 'enter', gps_timestamp, distance, currentLocation);
+          await this.handleGeofenceEntry(user, store, currentLocation, distance, entryEventId);
           
         } else if (!isInside && lastState.wasInside) {
           // SALIDA de la sucursal
-          await this.handleGeofenceExit(user, store, currentLocation, distance, lastState.entryTime);
-          await this.saveGeofenceEvent(user_id, store.id, 'exit', gps_timestamp, distance);
+          const exitEventId = await this.saveGeofenceEvent(user_id, store.id, 'exit', gps_timestamp, distance, currentLocation);
+          await this.handleGeofenceExit(user, store, currentLocation, distance, lastState.entryTime, exitEventId);
         }
         
         // Actualizar estado en cache
@@ -75,7 +75,7 @@ class GeofenceAlerts {
   /**
    * Manejar entrada a sucursal
    */
-  async handleGeofenceEntry(user, store, location, distance) {
+  async handleGeofenceEntry(user, store, location, distance, eventId = null) {
     const time = new Date().toLocaleTimeString('es-MX');
     
     const message = `
@@ -92,14 +92,14 @@ class GeofenceAlerts {
     
     console.log(`🟢 ENTRADA: ${user.display_name} → ${store.name} (${Math.round(distance)}m)`);
     
-    // Enviar notificación a Telegram
-    await this.sendTelegramAlert(message);
+    // Enviar notificación a Telegram con eventId para verificar envío
+    await this.sendTelegramAlert(message, eventId);
   }
   
   /**
    * Manejar salida de sucursal
    */
-  async handleGeofenceExit(user, store, location, distance, entryTime) {
+  async handleGeofenceExit(user, store, location, distance, entryTime, eventId = null) {
     const time = new Date().toLocaleTimeString('es-MX');
     const visitDuration = entryTime ? this.calculateVisitDuration(entryTime, new Date()) : 'Desconocido';
     
@@ -118,22 +118,45 @@ class GeofenceAlerts {
     
     console.log(`🔴 SALIDA: ${user.display_name} ← ${store.name} (${visitDuration})`);
     
-    // Enviar notificación a Telegram
-    await this.sendTelegramAlert(message);
+    // Enviar notificación a Telegram con eventId para verificar envío
+    await this.sendTelegramAlert(message, eventId);
   }
   
   /**
-   * Enviar alerta a Telegram
+   * Enviar alerta a Telegram y marcar en BD según resultado real
    */
-  async sendTelegramAlert(message) {
+  async sendTelegramAlert(message, eventId = null) {
     try {
       const bot = getBot();
       if (bot && bot.bot) {
         // Enviar a todos los admins configurados
-        await bot.broadcastToAdmins(message, { parse_mode: 'Markdown' });
+        const result = await bot.broadcastToAdmins(message, { parse_mode: 'Markdown' });
+        
+        // Solo marcar como enviado si fue exitoso
+        if (result.successful > 0 && eventId) {
+          await this.markTelegramSent(eventId);
+          console.log(`✅ Telegram enviado exitosamente (${result.successful} admins), marcado en BD`);
+          return true;
+        } else if (eventId) {
+          await this.markTelegramError(eventId, `Broadcast failed: ${result.failed} failed, ${result.successful} successful`);
+          console.log(`❌ Telegram falló (${result.failed} fallidos), marcado error en BD`);
+          return false;
+        }
+        
+        return result.successful > 0;
+      } else {
+        console.log('❌ Bot no disponible');
+        if (eventId) {
+          await this.markTelegramError(eventId, 'Bot no disponible o no inicializado');
+        }
+        return false;
       }
     } catch (error) {
       console.error('❌ Error enviando alerta Telegram:', error.message);
+      if (eventId) {
+        await this.markTelegramError(eventId, error.message);
+      }
+      return false;
     }
   }
   
@@ -167,7 +190,7 @@ class GeofenceAlerts {
   /**
    * Guardar evento de geofence en base de datos
    */
-  async saveGeofenceEvent(userId, storeId, eventType, timestamp, distance) {
+  async saveGeofenceEvent(userId, storeId, eventType, timestamp, distance, location = null) {
     try {
       // Obtener location_code del store
       const storeResult = await db.query(
@@ -179,17 +202,55 @@ class GeofenceAlerts {
       
       const locationCode = storeResult.rows[0].location_code;
       
-      await db.query(`
+      const result = await db.query(`
         INSERT INTO geofence_events (
           user_id, location_code, event_type, event_timestamp, 
-          distance_from_center, telegram_sent, telegram_sent_at
+          latitude, longitude, distance_from_center, telegram_sent, telegram_sent_at
         )
-        VALUES ($1, $2, $3, $4, $5, true, NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, false, NULL)
         ON CONFLICT DO NOTHING
-      `, [userId, locationCode, eventType, timestamp, Math.round(distance)]);
+        RETURNING id
+      `, [userId, locationCode, eventType, timestamp, location?.lat || null, location?.lng || null, Math.round(distance)]);
+      
+      return result.rows.length > 0 ? result.rows[0].id : null;
       
     } catch (error) {
       console.error('❌ Error guardando evento geofence:', error.message);
+      return null;
+    }
+  }
+  
+  /**
+   * Marcar evento como enviado exitosamente por Telegram
+   */
+  async markTelegramSent(eventId) {
+    try {
+      const db = require('../config/database');
+      await db.query(`
+        UPDATE geofence_events 
+        SET telegram_sent = true, telegram_sent_at = NOW()
+        WHERE id = $1
+      `, [eventId]);
+      console.log(`📝 Evento ${eventId} marcado como enviado exitosamente`);
+    } catch (error) {
+      console.error('❌ Error marcando telegram enviado:', error.message);
+    }
+  }
+  
+  /**
+   * Marcar error en envío de Telegram
+   */
+  async markTelegramError(eventId, errorMessage) {
+    try {
+      const db = require('../config/database');
+      await db.query(`
+        UPDATE geofence_events 
+        SET telegram_sent = false, telegram_error = $2, telegram_sent_at = NULL
+        WHERE id = $1
+      `, [eventId, errorMessage]);
+      console.log(`📝 Evento ${eventId} marcado con error: ${errorMessage}`);
+    } catch (error) {
+      console.error('❌ Error marcando error telegram:', error.message);
     }
   }
   

@@ -110,7 +110,7 @@ class GeofenceEngine {
         distance_from_center: distance,
         accuracy_meters: locationData.accuracy,
         battery_percentage: locationData.battery,
-        raw_location_id: locationData.id
+        raw_location_id: null // Set to null to avoid foreign key issues
       });
       
       // Actualizar estado del usuario

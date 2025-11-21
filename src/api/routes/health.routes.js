@@ -128,8 +128,7 @@ router.get('/live', (req, res) => {
  */
 async function performDatabaseTests() {
   const results = {
-    railway_db: { status: 'unknown', error: null },
-    zenput_db: { status: 'unknown', error: null }
+    railway_db: { status: 'unknown', error: null }
   };
   
   // Test Railway DB
@@ -143,20 +142,6 @@ async function performDatabaseTests() {
     };
   } catch (error) {
     results.railway_db = {
-      status: 'error',
-      error: error.message
-    };
-  }
-  
-  // Test Zenput DB
-  try {
-        await zenputDB.query('SELECT 1');
-    results.zenput_db = {
-      status: 'connected',
-      error: null
-    };
-  } catch (error) {
-    results.zenput_db = {
       status: 'error',
       error: error.message
     };

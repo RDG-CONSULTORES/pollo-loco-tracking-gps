@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Pollo Loco GPS</title>
+    <style>
+        /* Foundation Phase - Modern Admin Dashboard */
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+            color: var(--gray-900);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-outline:hover {
+            background: var(--gray-50);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--gray-200);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-change.positive { color: var(--success-color); }
+        .stat-change.neutral { color: var(--gray-500); }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        /* Map Container */
+        .map-container {
+            height: 400px;
+            background: var(--gray-100);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            position: relative;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            color: white;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            color: var(--gray-900);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-description {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            color: var(--gray-400);
+            font-size: 0.75rem;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--gray-500);
+        }
+
+        .loading-spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 2px solid var(--gray-200);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Users Table */
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .users-table th {
+            font-weight: 600;
+            color: var(--gray-700);
+            background: var(--gray-50);
+        }
+
+        .user-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .user-status.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .user-status.inactive {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Status Indicators */
+        .status-online { background: var(--success-color); }
+        .status-warning { background: var(--warning-color); }
+        .status-offline { background: var(--gray-400); }
+        .status-error { background: var(--danger-color); }
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>🐔 Admin Dashboard - Pollo Loco GPS</h1>
+            <div class="header-actions">
+                <a href="/webapp/admin.html" class="btn btn-outline">
+                    📊 Admin Panel Clásico
+                </a>
+                <a href="/webapp/dashboard.html" class="btn btn-outline">
+                    🗺️ Dashboard Tracking
+                </a>
+                <button class="btn btn-primary" onclick="refreshDashboard()">
+                    🔄 Actualizar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            Cargando dashboard...
+        </div>
+
+        <!-- Dashboard Content (hidden initially) -->
+        <div id="dashboard-content" style="display: none;">
+            <!-- Stats Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Usuarios Totales</span>
+                        <div class="stat-icon status-online">👥</div>
+                    </div>
+                    <div class="stat-value" id="total-users">-</div>
+                    <div class="stat-change neutral">
+                        <span id="active-users">-</span> activos
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Geofences</span>
+                        <div class="stat-icon status-warning">🎯</div>
+                    </div>
+                    <div class="stat-value" id="total-geofences">-</div>
+                    <div class="stat-change neutral">
+                        <span id="active-geofences">-</span> activos
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Alertas Hoy</span>
+                        <div class="stat-icon status-error">🚨</div>
+                    </div>
+                    <div class="stat-value" id="alerts-today">-</div>
+                    <div class="stat-change neutral">
+                        <span id="events-today">-</span> eventos
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Sistema</span>
+                        <div class="stat-icon status-online">⚡</div>
+                    </div>
+                    <div class="stat-value" id="system-status">OK</div>
+                    <div class="stat-change positive">
+                        <span id="system-uptime">-</span> uptime
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="content-grid">
+                <!-- Map View -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3 class="card-title">🗺️ Usuarios en Tiempo Real</h3>
+                        <button class="btn btn-outline" onclick="refreshMap()">
+                            🔄 Actualizar Mapa
+                        </button>
+                    </div>
+                    <div class="card-content">
+                        <div class="map-container" id="map-container">
+                            <div>
+                                🗺️ Mapa interactivo con usuarios y geofences<br>
+                                <small style="color: var(--gray-400);">Cargando datos...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Actividad Reciente</h3>
+                        <button class="btn btn-outline" onclick="refreshActivity()">
+                            🔄
+                        </button>
+                    </div>
+                    <div class="card-content">
+                        <div class="activity-feed" id="activity-feed">
+                            <div class="loading">
+                                <div class="loading-spinner"></div>
+                                Cargando actividad...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Overview -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h3 class="card-title">👥 Usuarios Activos Recientes</h3>
+                    <a href="/webapp/admin.html" class="btn btn-outline">
+                        Ver Todos
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="table-container" id="users-container">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Cargando usuarios...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Dashboard Foundation JavaScript
+        let dashboardData = null;
+        let refreshInterval = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Iniciando Admin Dashboard Foundation...');
+            loadDashboardData();
+            
+            // Auto-refresh every 30 seconds
+            refreshInterval = setInterval(loadDashboardData, 30000);
+        });
+
+        // Load dashboard data from API
+        async function loadDashboardData() {
+            try {
+                console.log('📊 Cargando datos del dashboard...');
+                const response = await fetch('/api/admin/dashboard-data');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+                
+                dashboardData = result.data;
+                console.log('✅ Datos cargados:', dashboardData);
+                
+                updateUI();
+                hideLoading();
+                
+            } catch (error) {
+                console.error('❌ Error cargando dashboard:', error);
+                showError(`Error cargando dashboard: ${error.message}`);
+                hideLoading();
+            }
+        }
+
+        // Update UI with data
+        function updateUI() {
+            if (!dashboardData) return;
+            
+            try {
+                // Update stats
+                updateStats();
+                updateActivity();
+                updateUsersTable();
+                updateMap();
+                
+                console.log('✅ UI actualizada correctamente');
+            } catch (error) {
+                console.error('❌ Error actualizando UI:', error);
+            }
+        }
+
+        // Update stats cards
+        function updateStats() {
+            const { users, geofences, activity, system } = dashboardData;
+            
+            // Users stats
+            document.getElementById('total-users').textContent = users.overview.total_users || 0;
+            document.getElementById('active-users').textContent = users.overview.active_users || 0;
+            
+            // Geofences stats
+            document.getElementById('total-geofences').textContent = geofences.overview.total_geofences || 0;
+            document.getElementById('active-geofences').textContent = geofences.overview.active_geofences || 0;
+            
+            // Activity stats
+            document.getElementById('alerts-today').textContent = activity.today_summary.alerts_sent_today || 0;
+            document.getElementById('events-today').textContent = activity.today_summary.events_today || 0;
+            
+            // System stats
+            const uptimeHours = Math.round((system.uptime || 0) / 3600);
+            document.getElementById('system-uptime').textContent = `${uptimeHours}h`;
+        }
+
+        // Update activity feed
+        function updateActivity() {
+            const activityFeed = document.getElementById('activity-feed');
+            const events = dashboardData.activity.recent_events || [];
+            
+            if (events.length === 0) {
+                activityFeed.innerHTML = '<div class="loading">No hay actividad reciente</div>';
+                return;
+            }
+            
+            const html = events.map(event => {
+                const isEntry = event.event_type === 'entry';
+                const iconClass = isEntry ? 'status-online' : 'status-warning';
+                const icon = isEntry ? '🟢' : '🔴';
+                const timeAgo = formatTimeAgo(new Date(event.event_time));
+                const telegramStatus = event.telegram_sent ? '✅ Enviado' : '⚠️ Pendiente';
+                
+                return `
+                    <div class="activity-item">
+                        <div class="activity-icon ${iconClass}">${icon}</div>
+                        <div class="activity-content">
+                            <div class="activity-title">
+                                ${event.display_name || event.user_tracker_id} - ${isEntry ? 'Entrada' : 'Salida'}
+                            </div>
+                            <div class="activity-description">
+                                ${event.location_name || 'Ubicación'} | ${telegramStatus}
+                            </div>
+                            <div class="activity-time">${timeAgo}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            activityFeed.innerHTML = html;
+        }
+
+        // Update users table
+        function updateUsersTable() {
+            const container = document.getElementById('users-container');
+            const users = dashboardData.users.recent_active || [];
+            
+            if (users.length === 0) {
+                container.innerHTML = '<div class="loading">No hay usuarios activos recientes</div>';
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Última Actividad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => `
+                            <tr>
+                                <td>
+                                    <strong>${user.display_name || user.tracker_id}</strong><br>
+                                    <small style="color: var(--gray-500);">${user.tracker_id}</small>
+                                </td>
+                                <td>${user.role || 'Sin rol'}</td>
+                                <td>
+                                    <span class="user-status ${user.active ? 'active' : 'inactive'}">
+                                        ${user.active ? 'Activo' : 'Inactivo'}
+                                    </span>
+                                </td>
+                                <td>
+                                    ${user.last_location_time 
+                                        ? formatTimeAgo(new Date(user.last_location_time))
+                                        : 'Sin actividad'
+                                    }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+
+        // Update map (placeholder for now)
+        function updateMap() {
+            const mapContainer = document.getElementById('map-container');
+            const users = dashboardData.map.users || [];
+            const geofences = dashboardData.map.geofences || [];
+            
+            mapContainer.innerHTML = `
+                <div>
+                    🗺️ Mapa con ${users.length} usuarios y ${geofences.length} geofences<br>
+                    <small style="color: var(--gray-400);">
+                        Última actualización: ${formatTime(new Date())}
+                    </small><br>
+                    <small style="color: var(--gray-600);">
+                        📍 ${users.filter(u => u.seconds_ago < 3600).length} usuarios activos última hora
+                    </small>
+                </div>
+            `;
+        }
+
+        // Utility functions
+        function formatTimeAgo(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return 'Ahora mismo';
+            if (minutes < 60) return `Hace ${minutes} min`;
+            if (hours < 24) return `Hace ${hours}h`;
+            return `Hace ${days}d`;
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('es-MX', {
+                timeZone: 'America/Monterrey',
+                hour12: true,
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+        }
+
+        function showError(message) {
+            const loading = document.getElementById('loading');
+            loading.innerHTML = `
+                <div style="color: var(--danger-color); text-align: center;">
+                    <div>❌ ${message}</div>
+                    <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1rem;">
+                        🔄 Recargar
+                    </button>
+                </div>
+            `;
+        }
+
+        // Manual refresh functions
+        function refreshDashboard() {
+            console.log('🔄 Refresh manual dashboard...');
+            loadDashboardData();
+        }
+
+        function refreshMap() {
+            console.log('🔄 Refresh manual mapa...');
+            if (dashboardData) updateMap();
+        }
+
+        function refreshActivity() {
+            console.log('🔄 Refresh manual actividad...');
+            loadDashboardData();
+        }
+
+        // Cleanup
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

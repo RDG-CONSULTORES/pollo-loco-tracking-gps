@@ -28,6 +28,9 @@ const gpsWizardRoutes = require('./routes/gps-wizard.routes');
 // NEW: Alerts Configuration Routes
 const alertsConfigRoutes = require('./routes/alerts-config.routes');
 
+// NEW: Admin Dashboard Routes (Foundation Phase)
+const adminDashboardRoutes = require('./routes/admin-dashboard.routes');
+
 // NEW: QR System Routes (temporalmente comentado para fix deployment)
 // const qrRoutes = require('./routes/qr-system');
 
@@ -99,6 +102,11 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/qr-management.html'));
   });
   
+  // Admin Dashboard - Foundation Phase
+  app.get('/webapp/admin-dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/admin-dashboard.html'));
+  });
+  
   // Setup Instructions redirect
   app.get('/setup-instructions', (req, res) => {
     res.redirect('/api/qr/instructions');
@@ -160,6 +168,7 @@ function createServer() {
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
+  app.use('/api/admin', adminDashboardRoutes); // Admin Dashboard Foundation Phase
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes

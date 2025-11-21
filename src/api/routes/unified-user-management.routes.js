@@ -76,10 +76,10 @@ router.post('/create-unified', async (req, res) => {
       });
     }
     
-    // Generar tracker_id único
-    const nameBase = full_name.replace(/[^a-zA-Z]/g, '').substring(0, 8).toUpperCase();
-    const timestamp = Date.now().toString().slice(-4);
-    const tracker_id = `${nameBase}_${timestamp}`;
+    // Generar tracker_id único (max 6 chars)
+    const nameBase = full_name.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase();
+    const randomId = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+    const tracker_id = `${nameBase}${randomId}`;
     
     // Generar username para sistema
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -103,55 +103,67 @@ router.post('/create-unified', async (req, res) => {
     const defaultPermissions = getDefaultPermissionsByRole(role);
     const finalPermissions = { ...defaultPermissions, ...permissions };
     
-    // Insertar usuario principal
+    // Debug lengths before insert
+    console.log('🔍 Debug lengths:', {
+      tracker_id: tracker_id.length + ' chars: ' + tracker_id,
+      email: email.length + ' chars: ' + email.substring(0, 30),
+      username: username.length + ' chars: ' + username,
+      role: role.length + ' chars: ' + role
+    });
+
+    // Insertar usuario principal (solo columnas básicas)
     const userResult = await db.query(`
       INSERT INTO tracking_users (
         tracker_id,
         display_name,
-        email,
-        phone,
-        position,
         role,
-        username,
-        password_hash,
-        permissions,
-        telegram_required,
-        owntracks_required,
         active,
-        created_at,
-        detection_status,
-        detection_method
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13, $14)
+        created_at
+      ) VALUES ($1, $2, $3, $4, NOW())
       RETURNING *
     `, [
       tracker_id,
       full_name,
+      role,
+      true
+    ]);
+    
+    // Update with additional fields
+    await db.query(`
+      UPDATE tracking_users SET
+        email = $1,
+        phone = $2,
+        position = $3,
+        username = $4,
+        password_hash = $5,
+        permissions = $6,
+        telegram_required = $7,
+        owntracks_required = $8
+      WHERE id = $9
+    `, [
       email.toLowerCase().trim(),
       phone,
       position,
-      role,
       username,
       passwordHash,
       JSON.stringify(finalPermissions),
       telegram_required,
       owntracks_required,
-      true,
-      telegram_required ? 'pending_telegram' : 'not_required',
-      'unified_creation'
+      userResult.rows[0].id
     ]);
     
     const newUser = userResult.rows[0];
     
-    // Asignar grupos operativos (si es director)
-    if (operational_groups.length > 0) {
-      for (const groupId of operational_groups) {
-        await db.query(`
-          INSERT INTO user_group_permissions (user_id, operational_group_id, granted_at)
-          VALUES ($1, $2, NOW())
-          ON CONFLICT (user_id, operational_group_id) DO NOTHING
-        `, [newUser.id, groupId]);
-      }
-    }
+    // Asignar grupos operativos (si es director) - TODO: Create table
+    // if (operational_groups.length > 0) {
+    //   for (const groupId of operational_groups) {
+    //     await db.query(`
+    //       INSERT INTO user_group_permissions (user_id, operational_group_id, granted_at)
+    //       VALUES ($1, $2, NOW())
+    //       ON CONFLICT (user_id, operational_group_id) DO NOTHING
+    //     `, [newUser.id, groupId]);
+    //   }
+    // }
     
     // Crear entrada en system_users para login web
     await db.query(`

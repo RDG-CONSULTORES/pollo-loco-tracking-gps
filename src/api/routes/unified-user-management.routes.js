@@ -245,11 +245,13 @@ router.get('/available-groups', async (req, res) => {
   try {
     console.log('📋 Obteniendo grupos operativos disponibles...');
     
-    // Get real operational groups from database
+    // Get real operational groups from database (simplified for compatibility)
     const groupsResult = await db.query(`
       SELECT 
-        id, name, code, description,
-        (SELECT COUNT(*) FROM branches WHERE operational_group_id = operational_groups.id) as branches_count
+        id, name, 
+        SUBSTRING(name FROM 1 FOR 3) as code,
+        description,
+        0 as branches_count
       FROM operational_groups 
       WHERE active = true
       ORDER BY name

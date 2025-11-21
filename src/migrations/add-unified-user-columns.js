@@ -72,6 +72,17 @@ async function addUnifiedUserColumns() {
       )
     `);
     
+    // Add code column if it doesn't exist (for existing tables)
+    try {
+      await db.query(`
+        ALTER TABLE operational_groups 
+        ADD COLUMN IF NOT EXISTS code VARCHAR(10) UNIQUE
+      `);
+      console.log('✅ Code column added to operational_groups');
+    } catch (codeError) {
+      console.warn('⚠️ Code column already exists or error adding it:', codeError.message);
+    }
+    
     // Create branches table if it doesn't exist
     await db.query(`
       CREATE TABLE IF NOT EXISTS branches (

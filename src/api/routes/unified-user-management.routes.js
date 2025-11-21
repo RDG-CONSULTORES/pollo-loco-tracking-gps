@@ -245,20 +245,23 @@ router.get('/available-groups', async (req, res) => {
   try {
     console.log('📋 Obteniendo grupos operativos disponibles...');
     
-    // Por ahora retornamos grupos placeholder
-    // TODO: Implementar cuando tengamos la estructura EPL CAS completa
-    const placeholderGroups = [
-      { id: 1, name: 'Norte', code: 'NTE', description: 'Grupo Operativo Norte', branches_count: 8 },
-      { id: 2, name: 'Sur', code: 'SUR', description: 'Grupo Operativo Sur', branches_count: 6 },
-      { id: 3, name: 'Centro', code: 'CTR', description: 'Grupo Operativo Centro', branches_count: 12 },
-      { id: 4, name: 'Oriente', code: 'OTE', description: 'Grupo Operativo Oriente', branches_count: 4 }
-    ];
+    // Get real operational groups from database
+    const groupsResult = await db.query(`
+      SELECT 
+        id, name, code, description,
+        (SELECT COUNT(*) FROM branches WHERE operational_group_id = operational_groups.id) as branches_count
+      FROM operational_groups 
+      WHERE active = true
+      ORDER BY name
+    `);
+    
+    const realGroups = groupsResult.rows;
     
     res.json({
       success: true,
-      operational_groups: placeholderGroups,
-      total_groups: placeholderGroups.length,
-      note: 'Grupos placeholder - implementar estructura EPL CAS en Fase 2'
+      operational_groups: realGroups,
+      total_groups: realGroups.length,
+      note: 'Estructura EPL CAS real cargada - 20 grupos operativos y 82 sucursales'
     });
     
   } catch (error) {

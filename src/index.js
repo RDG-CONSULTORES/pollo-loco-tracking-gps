@@ -113,6 +113,22 @@ async function setupDatabase() {
       // Continue even if migration fails (columns might already exist)
     }
     
+    // Load EPL CAS structure if not already loaded
+    try {
+      const groupsCheck = await db.query('SELECT COUNT(*) FROM operational_groups');
+      if (parseInt(groupsCheck.rows[0].count) === 0) {
+        console.log('📊 Loading EPL CAS structure...');
+        const { loadEPLCASStructure } = require('./scripts/load-eplcas-structure');
+        const loadResult = await loadEPLCASStructure();
+        console.log('✅ EPL CAS structure loaded:', loadResult.groups, 'groups,', loadResult.branches, 'branches');
+      } else {
+        console.log('ℹ️ EPL CAS structure already loaded');
+      }
+    } catch (loadError) {
+      console.warn('⚠️ EPL CAS load warning:', loadError.message);
+      // Continue even if EPL CAS loading fails
+    }
+    
   } catch (error) {
     console.log('⚠️ Error en setup DB (continuando):', error.message);
     // No hacer throw - continuar aunque falle el setup

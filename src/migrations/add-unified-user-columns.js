@@ -62,7 +62,7 @@ async function addUnifiedUserColumns() {
     // Create operational_groups table if it doesn't exist
     await db.query(`
       CREATE TABLE IF NOT EXISTS operational_groups (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         code VARCHAR(10) NOT NULL UNIQUE,
         description TEXT,
@@ -75,10 +75,14 @@ async function addUnifiedUserColumns() {
     // Create branches table if it doesn't exist
     await db.query(`
       CREATE TABLE IF NOT EXISTS branches (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
         operational_group_id INT REFERENCES operational_groups(id),
         name VARCHAR(100) NOT NULL,
-        address TEXT,
+        description TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        municipality VARCHAR(100),
+        country VARCHAR(100) DEFAULT 'México',
         latitude DECIMAL(10, 8),
         longitude DECIMAL(11, 8),
         geofence_radius INTEGER DEFAULT 50,
@@ -133,28 +137,14 @@ async function addUnifiedUserColumns() {
     
     console.log('✅ Performance indexes created');
     
-    // Insert placeholder operational groups if table is empty
+    // Check if we should load real EPL CAS structure
     const existingGroups = await db.query('SELECT COUNT(*) FROM operational_groups');
     
     if (parseInt(existingGroups.rows[0].count) === 0) {
-      console.log('📋 Inserting placeholder operational groups...');
-      
-      const placeholderGroups = [
-        { name: 'Norte', code: 'NTE', description: 'Grupo Operativo Norte - Zona Metropolitana Norte' },
-        { name: 'Sur', code: 'SUR', description: 'Grupo Operativo Sur - Zona Metropolitana Sur' },
-        { name: 'Centro', code: 'CTR', description: 'Grupo Operativo Centro - Zona Metropolitana Centro' },
-        { name: 'Oriente', code: 'OTE', description: 'Grupo Operativo Oriente - Zona Metropolitana Oriente' }
-      ];
-      
-      for (const group of placeholderGroups) {
-        await db.query(`
-          INSERT INTO operational_groups (name, code, description)
-          VALUES ($1, $2, $3)
-          ON CONFLICT (code) DO NOTHING
-        `, [group.name, group.code, group.description]);
-      }
-      
-      console.log('✅ Placeholder groups inserted');
+      console.log('📋 Tables created, ready for EPL CAS structure load...');
+      console.log('ℹ️ Run EPL CAS loader to populate with real data');
+    } else {
+      console.log(`ℹ️ Found ${existingGroups.rows[0].count} existing operational groups`);
     }
     
     // Add system_users table foreign key if it doesn't exist

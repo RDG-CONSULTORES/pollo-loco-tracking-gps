@@ -6,8 +6,8 @@ const { createBot } = require('./telegram/bot');
 const { startServer } = require('./api/server');
 const scheduler = require('./jobs/scheduler');
 const { startUniversalMonitoring } = require('./jobs/universal-geofence');
-const { aiDetectionJob } = require('./jobs/ai-detection-engine');
-const { gapFillJob } = require('./jobs/gap-fill-engine');
+// const { aiDetectionJob } = require('./jobs/ai-detection-engine');
+// const { gapFillJob } = require('./jobs/gap-fill-engine');
 
 /**
  * Aplicación principal - Pollo Loco Tracking GPS

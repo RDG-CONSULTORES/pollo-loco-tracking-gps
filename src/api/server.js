@@ -28,6 +28,12 @@ const gpsWizardRoutes = require('./routes/gps-wizard.routes');
 // NEW: Alerts Configuration Routes
 const alertsConfigRoutes = require('./routes/alerts-config.routes');
 
+// NEW: Detection Management Routes
+const detectionManagementRoutes = require('./routes/detection-management');
+
+// NEW: Real-time processing middleware
+const { processLocationMiddleware } = require('../middleware/realtime-processor');
+
 /**
  * Configurar servidor Express
  */
@@ -131,8 +137,8 @@ function createServer() {
     });
   });
   
-  // Routes
-  app.use('/api/owntracks', ownTracksRoutes);
+  // Routes (middleware de tiempo real en OwnTracks)
+  app.use('/api/owntracks', processLocationMiddleware, ownTracksRoutes);
   app.use('/api/owntracks', ownTracksConfigRoutes);
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
@@ -140,6 +146,7 @@ function createServer() {
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
+  app.use('/api', detectionManagementRoutes); // Detection management endpoints
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

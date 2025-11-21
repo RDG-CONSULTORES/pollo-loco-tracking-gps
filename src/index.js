@@ -5,6 +5,7 @@ const zenputDB = require('./config/zenput-database');
 const { createBot } = require('./telegram/bot');
 const { startServer } = require('./api/server');
 const scheduler = require('./jobs/scheduler');
+const { startUniversalMonitoring } = require('./jobs/universal-geofence');
 
 /**
  * Aplicación principal - Pollo Loco Tracking GPS
@@ -41,6 +42,10 @@ async function main() {
     // 6. Inicializar scheduler de trabajos
     console.log('\n⏰ Inicializando trabajos programados...');
     scheduler.start();
+    
+    // 7. Inicializar monitoreo universal de geofence
+    console.log('\n⚡ Iniciando monitoreo universal geofence...');
+    startUniversalMonitoring();
     
     console.log('\n✅ Sistema iniciado exitosamente');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

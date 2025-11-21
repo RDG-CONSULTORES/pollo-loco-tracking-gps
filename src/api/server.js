@@ -29,13 +29,13 @@ const gpsWizardRoutes = require('./routes/gps-wizard.routes');
 const alertsConfigRoutes = require('./routes/alerts-config.routes');
 
 // NEW: Detection Management Routes
-const detectionManagementRoutes = require('./routes/detection-management');
+// const detectionManagementRoutes = require('./routes/detection-management');
 
 // NEW: OwnTracks Remote Configuration
 // const ownTracksRemoteConfig = require('./routes/owntracks-remote-config');
 
 // NEW: Real-time processing middleware
-const { processLocationMiddleware } = require('../middleware/realtime-processor');
+// const { processLocationMiddleware } = require('../middleware/realtime-processor');
 
 /**
  * Configurar servidor Express
@@ -141,7 +141,7 @@ function createServer() {
   });
   
   // Routes (middleware de tiempo real en OwnTracks)
-  app.use('/api/owntracks', processLocationMiddleware, ownTracksRoutes);
+  app.use('/api/owntracks', ownTracksRoutes);
   app.use('/api/owntracks', ownTracksConfigRoutes);
   // app.use('/api/owntracks', ownTracksRemoteConfig); // Configuración remota optimizada
   app.use('/api/tracking', trackingRoutes);
@@ -150,7 +150,7 @@ function createServer() {
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
-  app.use('/api', detectionManagementRoutes); // Detection management endpoints
+  // app.use('/api', detectionManagementRoutes); // Detection management endpoints
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

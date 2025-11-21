@@ -5,7 +5,7 @@ const zenputDB = require('./config/zenput-database');
 const { createBot } = require('./telegram/bot');
 const { startServer } = require('./api/server');
 const scheduler = require('./jobs/scheduler');
-const { startUniversalMonitoring } = require('./jobs/universal-geofence');
+// const { startUniversalMonitoring } = require('./jobs/universal-geofence');
 // const { aiDetectionJob } = require('./jobs/ai-detection-engine');
 // const { gapFillJob } = require('./jobs/gap-fill-engine');
 
@@ -46,8 +46,8 @@ async function main() {
     scheduler.start();
     
     // 7. Inicializar monitoreo universal de geofence
-    console.log('\n⚡ Iniciando monitoreo universal geofence...');
-    startUniversalMonitoring();
+    // console.log('\n⚡ Iniciando monitoreo universal geofence...');
+    // startUniversalMonitoring();
     
     // 8. Inicializar motor de IA y gap-fill para producción
     console.log('\n🧠 Activando IA y motores avanzados...');

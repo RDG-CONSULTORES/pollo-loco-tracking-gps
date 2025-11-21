@@ -150,8 +150,7 @@ async function performDatabaseTests() {
   
   // Test Zenput DB
   try {
-    const zenputDB = require('../../config/zenput-database');
-    await zenputDB.query('SELECT 1');
+        await zenputDB.query('SELECT 1');
     results.zenput_db = {
       status: 'connected',
       error: null

@@ -28,6 +28,9 @@ const gpsWizardRoutes = require('./routes/gps-wizard.routes');
 // NEW: Alerts Configuration Routes
 const alertsConfigRoutes = require('./routes/alerts-config.routes');
 
+// NEW: QR System Routes  
+const qrRoutes = require('./routes/qr-system');
+
 // NEW: Detection Management Routes
 // const detectionManagementRoutes = require('./routes/detection-management');
 
@@ -91,6 +94,16 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/alerts-config.html'));
   });
   
+  // QR Management - sistema QR automático OwnTracks
+  app.get('/webapp/qr-management.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/qr-management.html'));
+  });
+  
+  // Setup Instructions redirect
+  app.get('/setup-instructions', (req, res) => {
+    res.redirect('/api/qr/instructions');
+  });
+  
   // Versión móvil específica
   app.get('/webapp/admin-mobile.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../webapp/admin-mobile.html'));
@@ -150,6 +163,7 @@ function createServer() {
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
+  app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup
   // app.use('/api', detectionManagementRoutes); // Detection management endpoints
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);

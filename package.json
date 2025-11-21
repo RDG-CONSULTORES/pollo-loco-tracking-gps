@@ -63,6 +63,7 @@
     "node-fetch": "^3.3.2",
     "node-telegram-bot-api": "^0.64.0",
     "pg": "^8.11.3",
+    "qrcode": "^1.5.4",
     "ws": "^8.18.3"
   },
   "devDependencies": {

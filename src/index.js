@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const db = require('./config/database');
-const zenputDB = require('./config/zenput-database');
 const { createBot } = require('./telegram/bot');
 const { startServer } = require('./api/server');
 const scheduler = require('./jobs/scheduler');

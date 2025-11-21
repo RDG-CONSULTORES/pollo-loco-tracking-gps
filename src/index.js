@@ -103,6 +103,16 @@ async function setupDatabase() {
       // Continue even if migration fails (columns might already exist)
     }
     
+    // Run Unified User Management migration (Panel EPL CAS)
+    try {
+      const { addUnifiedUserColumns } = require('./migrations/add-unified-user-columns');
+      await addUnifiedUserColumns();
+      console.log('✅ Unified user management migration completed');
+    } catch (migrationError) {
+      console.warn('⚠️ Unified user migration warning:', migrationError.message);
+      // Continue even if migration fails (columns might already exist)
+    }
+    
   } catch (error) {
     console.log('⚠️ Error en setup DB (continuando):', error.message);
     // No hacer throw - continuar aunque falle el setup

@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👥 Panel Unificado EPL CAS - Gestión de Usuarios</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --error-color: #dc3545;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --eplcas-primary: #1e3d59;
+            --eplcas-secondary: #f39c12;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, var(--eplcas-primary) 0%, #2c5aa0 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--eplcas-primary);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .company-badge {
+            background: var(--eplcas-secondary);
+            color: var(--dark-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        .content {
+            padding: 40px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .form-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        .section {
+            background: var(--light-color);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            font-size: 1.6rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-color);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .role-option {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .role-option:hover {
+            border-color: var(--primary-color);
+            background: #f0f8ff;
+        }
+
+        .role-option.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .role-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .role-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .role-desc {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .group-option {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group-option:hover {
+            border-color: var(--success-color);
+            background: #f0fff4;
+        }
+
+        .group-option.selected {
+            border-color: var(--success-color);
+            background: var(--success-color);
+            color: white;
+        }
+
+        .group-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        .permissions-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .permission-group {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .permission-group-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+            font-size: 1.1rem;
+            border-bottom: 2px solid var(--light-color);
+            padding-bottom: 8px;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 5px;
+            transition: background 0.2s ease;
+        }
+
+        .permission-item:hover {
+            background: var(--light-color);
+        }
+
+        .permission-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .permission-label {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .permission-name {
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .permission-desc {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .qr-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .qr-section {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .qr-section.required {
+            border-color: var(--primary-color);
+        }
+
+        .qr-section.optional {
+            border-color: var(--warning-color);
+            opacity: 0.7;
+        }
+
+        .qr-placeholder {
+            width: 150px;
+            height: 150px;
+            background: var(--light-color);
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px auto;
+            font-size: 3rem;
+            color: #999;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: var(--dark-color);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-large {
+            padding: 15px 35px;
+            font-size: 1.1rem;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: var(--success-color);
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: var(--error-color);
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #cce7ff;
+            border-color: var(--primary-color);
+            color: #004085;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--light-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-container {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-container.active {
+            display: block;
+        }
+
+        .user-card {
+            background: white;
+            border: 2px solid var(--success-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: var(--light-color);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: var(--dark-color);
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .navigation {
+            background: var(--light-color);
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+                max-height: none;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .role-selector {
+                grid-template-columns: 1fr;
+            }
+            
+            .permissions-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>👥 Panel Unificado de Usuarios</h1>
+                <p class="subtitle">Gestión Completa de Usuarios con Permisos Granulares</p>
+                <div class="company-badge">🏢 EPL CAS - Sistema Corporativo</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <form id="unified-user-form">
+                <!-- 1. Datos Básicos -->
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-icon">📝</span>
+                        1. Datos Básicos del Usuario
+                    </h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="full_name">Nombre Completo *</label>
+                            <input type="text" id="full_name" class="form-input" 
+                                   placeholder="Juan Pérez García" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="email">Email Corporativo *</label>
+                            <input type="email" id="email" class="form-input" 
+                                   placeholder="juan.perez@eplcas.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="phone">Teléfono</label>
+                            <input type="tel" id="phone" class="form-input" 
+                                   placeholder="+52 555 123 4567">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="position">Puesto/Cargo</label>
+                            <input type="text" id="position" class="form-input" 
+                                   placeholder="Director Regional Norte">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Jerarquía Organizacional -->
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-icon">🏢</span>
+                        2. Jerarquía Organizacional EPL CAS
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Rol del Usuario *</label>
+                        <div class="role-selector" id="role-selector">
+                            <div class="role-option" data-role="director">
+                                <div class="role-icon">🎯</div>
+                                <div class="role-name">Director</div>
+                                <div class="role-desc">Acceso completo + ChatBot</div>
+                            </div>
+                            <div class="role-option" data-role="manager">
+                                <div class="role-icon">📊</div>
+                                <div class="role-name">Manager</div>
+                                <div class="role-desc">Gestión operativa</div>
+                            </div>
+                            <div class="role-option" data-role="supervisor">
+                                <div class="role-icon">👥</div>
+                                <div class="role-name">Supervisor</div>
+                                <div class="role-desc">GPS obligatorio</div>
+                            </div>
+                            <div class="role-option" data-role="employee">
+                                <div class="role-icon">👤</div>
+                                <div class="role-name">Empleado</div>
+                                <div class="role-desc">Solo tracking</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="groups-section" style="display: none;">
+                        <label class="form-label">Grupos Operativos <small>(mínimo 1 para Directors)</small></label>
+                        <div class="groups-grid" id="groups-grid">
+                            <!-- Grupos se cargan dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Permisos del Sistema -->
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-icon">🔐</span>
+                        3. Permisos del Sistema
+                    </h3>
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Permisos Automáticos:</strong> Los permisos se configuran automáticamente según el rol seleccionado. Puedes personalizar según necesidades específicas.
+                    </div>
+                    <div class="permissions-container" id="permissions-container">
+                        <!-- Permisos se cargan dinámicamente según rol -->
+                    </div>
+                </div>
+
+                <!-- 4. Conexiones Digitales -->
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-icon">📱</span>
+                        4. Conexiones Digitales
+                    </h3>
+                    <div class="qr-container">
+                        <div class="qr-section optional" id="telegram-qr-section">
+                            <h4>📱 Telegram ChatBot</h4>
+                            <div class="qr-placeholder">🔗</div>
+                            <p><strong>Estado:</strong> <span id="telegram-status">No requerido</span></p>
+                            <p class="text-small">Solo para Directors</p>
+                        </div>
+                        <div class="qr-section required" id="owntracks-qr-section">
+                            <h4>🗺️ OwnTracks GPS</h4>
+                            <div class="qr-placeholder">📍</div>
+                            <p><strong>Estado:</strong> <span id="owntracks-status">Requerido</span></p>
+                            <p class="text-small">Tracking GPS obligatorio</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Credenciales -->
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-icon">🔑</span>
+                        5. Credenciales del Sistema
+                    </h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Generación de Password</label>
+                            <div style="display: flex; gap: 15px; align-items: center;">
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="radio" name="password_method" value="auto" checked>
+                                    🎲 Auto-generada (segura)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="radio" name="password_method" value="custom">
+                                    ✏️ Personalizada
+                                </label>
+                            </div>
+                            <input type="password" id="custom_password" class="form-input" 
+                                   placeholder="Password personalizada" style="display: none; margin-top: 10px;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="credentials_method">Envío de Credenciales</label>
+                            <select id="credentials_method" class="form-select">
+                                <option value="email">📧 Email</option>
+                                <option value="whatsapp">📱 WhatsApp</option>
+                                <option value="manual">👤 Entrega Manual</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón de Creación -->
+                <div class="section">
+                    <button type="submit" class="btn btn-primary btn-large">
+                        💾 Crear Usuario EPL CAS Completo
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>🔄 Creando usuario con configuración completa...</p>
+            </div>
+
+            <!-- Result Container -->
+            <div class="result-container" id="result-container">
+                <!-- Resultado se muestra aquí -->
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <a href="/webapp/admin-dashboard.html" class="btn btn-primary">
+                📊 Dashboard Principal
+            </a>
+            <a href="/webapp/telegram-detection.html" class="btn btn-warning">
+                🔍 Telegram Detection
+            </a>
+            <a href="/webapp/gps-wizard.html" class="btn btn-success">
+                🧙‍♂️ GPS Wizard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedRole = null;
+        let selectedGroups = [];
+        let availableGroups = [];
+        let permissionTemplates = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('👥 Panel Unificado EPL CAS iniciado');
+            initializeRoleSelector();
+            loadAvailableGroups();
+            initializePasswordToggle();
+            initializeForm();
+        });
+
+        // Initialize role selector
+        function initializeRoleSelector() {
+            const roleOptions = document.querySelectorAll('.role-option');
+            
+            roleOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    // Clear previous selection
+                    roleOptions.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Select new role
+                    option.classList.add('selected');
+                    selectedRole = option.dataset.role;
+                    
+                    console.log('🎯 Rol seleccionado:', selectedRole);
+                    
+                    // Update UI based on role
+                    updateUIForRole(selectedRole);
+                    loadPermissionsForRole(selectedRole);
+                });
+            });
+        }
+
+        // Update UI based on selected role
+        function updateUIForRole(role) {
+            const groupsSection = document.getElementById('groups-section');
+            const telegramQR = document.getElementById('telegram-qr-section');
+            const ownTracksQR = document.getElementById('owntracks-qr-section');
+            const telegramStatus = document.getElementById('telegram-status');
+            const ownTracksStatus = document.getElementById('owntracks-status');
+
+            // Show/hide groups section
+            if (role === 'director') {
+                groupsSection.style.display = 'block';
+                telegramQR.className = 'qr-section required';
+                telegramStatus.textContent = 'Obligatorio';
+                ownTracksQR.className = 'qr-section optional';
+                ownTracksStatus.textContent = 'Opcional';
+            } else {
+                groupsSection.style.display = 'none';
+                selectedGroups = [];
+                telegramQR.className = 'qr-section optional';
+                telegramStatus.textContent = 'No requerido';
+                ownTracksQR.className = 'qr-section required';
+                ownTracksStatus.textContent = 'Obligatorio';
+            }
+        }
+
+        // Load available groups
+        async function loadAvailableGroups() {
+            try {
+                const response = await fetch('/api/users/available-groups');
+                const result = await response.json();
+                
+                if (result.success) {
+                    availableGroups = result.operational_groups;
+                    renderGroupsGrid();
+                } else {
+                    console.warn('⚠️ Error cargando grupos:', result.error);
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+            }
+        }
+
+        // Render groups grid
+        function renderGroupsGrid() {
+            const container = document.getElementById('groups-grid');
+            
+            const groupsHtml = availableGroups.map(group => `
+                <div class="group-option" data-group-id="${group.id}">
+                    <input type="checkbox" class="group-checkbox" id="group-${group.id}">
+                    <div>
+                        <div style="font-weight: 600;">${group.name}</div>
+                        <div style="font-size: 0.9rem; color: #666;">${group.branches_count} sucursales</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = groupsHtml;
+            
+            // Add click handlers
+            container.querySelectorAll('.group-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = option.querySelector('.group-checkbox');
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    
+                    updateSelectedGroups();
+                });
+            });
+        }
+
+        // Update selected groups
+        function updateSelectedGroups() {
+            selectedGroups = [];
+            document.querySelectorAll('.group-checkbox:checked').forEach(checkbox => {
+                const groupId = parseInt(checkbox.id.replace('group-', ''));
+                selectedGroups.push(groupId);
+                
+                // Visual feedback
+                checkbox.closest('.group-option').classList.add('selected');
+            });
+            
+            document.querySelectorAll('.group-checkbox:not(:checked)').forEach(checkbox => {
+                checkbox.closest('.group-option').classList.remove('selected');
+            });
+            
+            console.log('👥 Grupos seleccionados:', selectedGroups);
+        }
+
+        // Load permissions for role
+        async function loadPermissionsForRole(role) {
+            try {
+                const response = await fetch(`/api/users/permission-templates/${role}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    permissionTemplates[role] = result;
+                    renderPermissions(result.permission_groups, result.default_permissions);
+                } else {
+                    console.warn('⚠️ Error cargando permisos:', result.error);
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+            }
+        }
+
+        // Render permissions
+        function renderPermissions(permissionGroups, defaultPermissions) {
+            const container = document.getElementById('permissions-container');
+            
+            const groupsHtml = Object.entries(permissionGroups).map(([groupName, permissions]) => `
+                <div class="permission-group">
+                    <div class="permission-group-title">${groupName}</div>
+                    ${permissions.map(permission => `
+                        <div class="permission-item">
+                            <input type="checkbox" 
+                                   class="permission-checkbox" 
+                                   id="perm-${permission.key}"
+                                   ${defaultPermissions[permission.key] ? 'checked' : ''}>
+                            <label class="permission-label" for="perm-${permission.key}">
+                                <div class="permission-name">${permission.name}</div>
+                                <div class="permission-desc">${permission.description}</div>
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+            
+            container.innerHTML = groupsHtml;
+        }
+
+        // Initialize password toggle
+        function initializePasswordToggle() {
+            const radioButtons = document.querySelectorAll('input[name="password_method"]');
+            const customPasswordInput = document.getElementById('custom_password');
+            
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.value === 'custom') {
+                        customPasswordInput.style.display = 'block';
+                        customPasswordInput.required = true;
+                    } else {
+                        customPasswordInput.style.display = 'none';
+                        customPasswordInput.required = false;
+                    }
+                });
+            });
+        }
+
+        // Initialize form
+        function initializeForm() {
+            document.getElementById('unified-user-form').addEventListener('submit', handleFormSubmit);
+        }
+
+        // Handle form submit
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            const formData = collectFormData();
+            
+            showLoading();
+            
+            try {
+                console.log('📤 Enviando datos del usuario:', formData);
+                
+                const response = await fetch('/api/users/create-unified', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showUserCreated(result);
+                } else {
+                    showError(result.error || 'Error en la creación del usuario');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError('Error de conexión: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Validate form
+        function validateForm() {
+            if (!selectedRole) {
+                showError('Debes seleccionar un rol para el usuario');
+                return false;
+            }
+            
+            if (selectedRole === 'director' && selectedGroups.length === 0) {
+                showError('Directors deben tener al menos un grupo operativo asignado');
+                return false;
+            }
+            
+            const email = document.getElementById('email').value.trim();
+            if (!email.includes('@')) {
+                showError('Email debe tener formato válido');
+                return false;
+            }
+            
+            const customPassword = document.getElementById('custom_password');
+            if (document.querySelector('input[name="password_method"]:checked').value === 'custom' && 
+                customPassword.value.length < 8) {
+                showError('Password personalizada debe tener al menos 8 caracteres');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Collect form data
+        function collectFormData() {
+            // Basic data
+            const formData = {
+                full_name: document.getElementById('full_name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                position: document.getElementById('position').value.trim(),
+                role: selectedRole,
+                operational_groups: selectedGroups,
+                telegram_required: selectedRole === 'director',
+                owntracks_required: selectedRole !== 'director',
+                auto_generate_password: document.querySelector('input[name="password_method"]:checked').value === 'auto',
+                send_credentials_method: document.getElementById('credentials_method').value
+            };
+            
+            // Custom password if selected
+            if (!formData.auto_generate_password) {
+                formData.custom_password = document.getElementById('custom_password').value;
+            }
+            
+            // Collect permissions
+            const permissions = {};
+            document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+                const permKey = checkbox.id.replace('perm-', '');
+                permissions[permKey] = checkbox.checked;
+            });
+            formData.permissions = permissions;
+            
+            return formData;
+        }
+
+        // Show user created result
+        function showUserCreated(result) {
+            const container = document.getElementById('result-container');
+            const { user, credentials, qr_codes, next_steps } = result;
+            
+            container.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>✅ Usuario EPL CAS creado exitosamente</strong>
+                </div>
+                
+                <div class="user-card">
+                    <div class="user-header">
+                        <h4>👤 ${user.full_name}</h4>
+                        <span style="background: var(--success-color); color: white; padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">
+                            ${user.role.toUpperCase()}
+                        </span>
+                    </div>
+                    
+                    <div class="user-info">
+                        <div class="info-item">
+                            <div class="info-label">Tracker ID</div>
+                            <div class="info-value">${user.tracker_id}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Email</div>
+                            <div class="info-value">${user.email}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Usuario Sistema</div>
+                            <div class="info-value">${credentials.username}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Password</div>
+                            <div class="info-value" style="font-family: monospace; background: #f8f9fa; padding: 5px;">
+                                ${credentials.password}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Grupos Asignados</div>
+                            <div class="info-value">${user.operational_groups.length} grupos</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Permisos</div>
+                            <div class="info-value">${Object.keys(user.permissions).filter(k => user.permissions[k]).length} activos</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>📋 Próximos pasos:</strong><br>
+                        • ${next_steps.telegram_setup}<br>
+                        • ${next_steps.owntracks_setup}<br>
+                        • ${next_steps.credentials_delivery}<br>
+                        • ${next_steps.testing}
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="window.print()">
+                            🖨️ Imprimir Credenciales
+                        </button>
+                        <button class="btn btn-success" onclick="copyCredentials('${credentials.username}', '${credentials.password}')">
+                            📋 Copiar Credenciales
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetForm()">
+                            ➕ Crear Otro Usuario
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.classList.add('active');
+            
+            // Scroll to result
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Utility functions
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('result-container').classList.remove('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function showError(message) {
+            const container = document.getElementById('result-container');
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <strong>❌ Error:</strong> ${message}
+                </div>
+            `;
+            container.classList.add('active');
+        }
+
+        function copyCredentials(username, password) {
+            const text = `Usuario: ${username}\nPassword: ${password}`;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Credenciales copiadas al portapapeles');
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('unified-user-form').reset();
+            selectedRole = null;
+            selectedGroups = [];
+            document.querySelectorAll('.role-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelectorAll('.group-option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('result-container').classList.remove('active');
+            document.getElementById('groups-section').style.display = 'none';
+            document.getElementById('permissions-container').innerHTML = '';
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>

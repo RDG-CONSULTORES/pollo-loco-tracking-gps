@@ -51,23 +51,22 @@ async function setupRobertoOffice() {
     
     // Verificar configuración del usuario rd01
     const userCheck = await pool.query(`
-      SELECT user_id, telegram_id, full_name, user_role, active 
+      SELECT id, tracker_id, display_name, role, active 
       FROM tracking_users 
-      WHERE username = 'rd01'
+      WHERE tracker_id = 'rd01'
     `);
     
     if (userCheck.rows.length === 0) {
       console.log('⚠️ Usuario rd01 no encontrado, creando...');
       await pool.query(`
         INSERT INTO tracking_users (
-          username, password_hash, full_name, user_role, 
-          telegram_id, active, created_at
+          tracker_id, zenput_email, display_name, role, 
+          active, created_at
         ) VALUES (
           'rd01', 
-          '$2b$10$example.hash.for.testing', 
+          'roberto@pollolocogps.com', 
           'Roberto Davila', 
           'admin',
-          6932484342,
           true,
           NOW()
         )
@@ -75,17 +74,17 @@ async function setupRobertoOffice() {
       console.log('✅ Usuario rd01 creado');
     } else {
       console.log('✅ Usuario rd01 verificado:');
-      console.log(`   👤 ${userCheck.rows[0].full_name}`);
-      console.log(`   🔑 Rol: ${userCheck.rows[0].user_role}`);
-      console.log(`   📱 Telegram: ${userCheck.rows[0].telegram_id}`);
+      console.log(`   👤 ${userCheck.rows[0].display_name}`);
+      console.log(`   🔑 Rol: ${userCheck.rows[0].role}`);
+      console.log(`   📱 Tracker ID: ${userCheck.rows[0].tracker_id}`);
     }
     
     // Verificar configuración del sistema
     await pool.query(`
-      INSERT INTO system_config (config_key, config_value, updated_at)
-      VALUES ('system_active', 'true', NOW())
-      ON CONFLICT (config_key) 
-      DO UPDATE SET config_value = 'true', updated_at = NOW()
+      INSERT INTO tracking_config (key, value, description, data_type, updated_at)
+      VALUES ('system_active', 'true', 'Sistema GPS tracking activo', 'boolean', NOW())
+      ON CONFLICT (key) 
+      DO UPDATE SET value = 'true', updated_at = NOW()
     `);
     
     console.log('✅ Sistema activado para testing');

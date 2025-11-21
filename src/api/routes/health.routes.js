@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: '1.0.0',
+      version: '1.0.4',
       environment: process.env.NODE_ENV || 'development',
       response_time_ms: responseTime,
       memory: {
@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
     };
     
     // Determinar status general
-    const hasErrors = dbTests.railway_db.error || dbTests.zenput_db.error;
+    const hasErrors = dbTests.railway_db.error;
     
     if (hasErrors) {
       health.status = 'unhealthy';

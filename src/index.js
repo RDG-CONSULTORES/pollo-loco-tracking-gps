@@ -3,28 +3,25 @@ require('dotenv').config();
 const db = require('./config/database');
 const { createBot } = require('./telegram/bot');
 const { startServer } = require('./api/server');
-// const scheduler = require('./jobs/scheduler'); // Temporalmente deshabilitado para fix deployment
-// const { startUniversalMonitoring } = require('./jobs/universal-geofence');
-// const { aiDetectionJob } = require('./jobs/ai-detection-engine');
-// const { gapFillJob } = require('./jobs/gap-fill-engine');
 
 /**
  * Aplicación principal - Pollo Loco Tracking GPS
+ * Version estabilizada sin scheduler para fix deployment crítico
  */
 async function main() {
-  console.log('🐔 Iniciando Pollo Loco Tracking GPS v2.1...');
+  console.log('🐔 Iniciando Pollo Loco Tracking GPS v1.0.4-stable...');
   
   try {
-    // 1. Verificar variables de entorno
+    // 1. Verificar variables de entorno críticas
     validateEnvironment();
     
     // 2. Setup base de datos automáticamente
     console.log('\n🔧 Configurando base de datos...');
     await setupDatabase();
     
-    // 3. Test conexiones de BD
-    console.log('\n🔍 Verificando conexiones...');
-    await testDatabaseConnections();
+    // 3. Test conexión Railway DB únicamente
+    console.log('\n🔍 Verificando conexión Railway...');
+    await testRailwayConnection();
     
     // 4. Inicializar Telegram Bot
     console.log('\n🤖 Inicializando Telegram Bot...');
@@ -33,6 +30,8 @@ async function main() {
       const started = bot.start();
       if (!started) {
         console.warn('⚠️ Telegram Bot no se pudo iniciar');
+      } else {
+        console.log('✅ Telegram Bot iniciado correctamente');
       }
     }
     
@@ -40,25 +39,15 @@ async function main() {
     console.log('\n🚀 Iniciando servidor API...');
     startServer();
     
-    // 6. Inicializar scheduler de trabajos
-    console.log('\n⏰ Scheduler temporalmente deshabilitado...');
-    // scheduler.start(); // Temporalmente deshabilitado
-    
-    // 7. Inicializar monitoreo universal de geofence
-    // console.log('\n⚡ Iniciando monitoreo universal geofence...');
-    // startUniversalMonitoring();
-    
-    // 8. Inicializar motor de IA y gap-fill para producción
-    console.log('\n🧠 Activando IA y motores avanzados...');
-    console.log('   🤖 IA Detection: Análisis cada 10s');
-    console.log('   🕳️ Gap Fill: Relleno cada 2min');
-    console.log('   ✅ Sistema listo para producción sin tocar teléfonos');
-    
-    console.log('\n✅ Sistema iniciado exitosamente');
+    console.log('\n✅ Sistema estabilizado y funcionando');
+    console.log('📱 Dashboard: /webapp/dashboard.html');
+    console.log('🗺️ Admin: /webapp/admin.html');
+    console.log('💚 Health: /health');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
   } catch (error) {
     console.error('❌ Error fatal iniciando sistema:', error.message);
+    console.error('Stack:', error.stack);
     process.exit(1);
   }
 }
@@ -67,15 +56,8 @@ async function main() {
  * Validar variables de entorno requeridas
  */
 function validateEnvironment() {
-  const required = [
-    'DATABASE_URL'
-  ];
-  
-  const optional = [
-    'ZENPUT_DATABASE_URL',
-    'TELEGRAM_BOT_TOKEN', 
-    'TELEGRAM_ADMIN_IDS'
-  ];
+  const required = ['DATABASE_URL'];
+  const optional = ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_ADMIN_IDS'];
   
   const missing = required.filter(env => !process.env[env]);
   
@@ -101,7 +83,6 @@ async function setupDatabase() {
   try {
     const { execSync } = require('child_process');
     
-    // Ejecutar setup de base de datos
     console.log('📄 Ejecutando schema SQL...');
     execSync('node scripts/setup-database.js', { 
       stdio: 'inherit',
@@ -117,22 +98,19 @@ async function setupDatabase() {
 }
 
 /**
- * Test conexiones de base de datos
+ * Test conexión Railway DB únicamente
  */
-async function testDatabaseConnections() {
-  // Test Railway DB
-  const railwayOk = await db.testConnection();
-  if (!railwayOk) {
-    throw new Error('No se pudo conectar a Railway PostgreSQL');
+async function testRailwayConnection() {
+  try {
+    const railwayOk = await db.testConnection();
+    if (!railwayOk) {
+      throw new Error('No se pudo conectar a Railway PostgreSQL');
+    }
+    console.log('✅ Conexión Railway verificada');
+  } catch (error) {
+    console.error('❌ Error conexión Railway:', error.message);
+    throw error;
   }
-  
-  // Test Zenput DB
-  const zenputOk = await zenputDB.testConnection();
-  if (!zenputOk) {
-    console.warn('⚠️ No se pudo conectar a Zenput Database (continuando...)');
-  }
-  
-  console.log('✅ Conexiones de BD verificadas');
 }
 
 /**
@@ -145,10 +123,6 @@ async function gracefulShutdown(signal) {
   console.log(`\n📴 Recibida señal ${signal}, cerrando sistema...`);
   
   try {
-    // Detener scheduler
-    scheduler.stop();
-    console.log('✅ Scheduler detenido');
-    
     // Detener bot
     const bot = require('./telegram/bot').getBot();
     if (bot) {
@@ -156,15 +130,10 @@ async function gracefulShutdown(signal) {
       console.log('✅ Telegram Bot detenido');
     }
     
-    // Cerrar conexiones de BD
+    // Cerrar conexión Railway DB
     if (db.pool) {
       await db.pool.end();
       console.log('✅ Railway DB desconectada');
-    }
-    
-    if (zenputDB.pool) {
-      await zenputDB.pool.end();
-      console.log('✅ Zenput DB desconectada');
     }
     
     console.log('✅ Sistema cerrado correctamente');
@@ -186,7 +155,6 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Promise rechazada no manejada:', reason);
-  console.error('Promise:', promise);
   gracefulShutdown('UNHANDLED_REJECTION');
 });
 

@@ -3,7 +3,7 @@ require('dotenv').config();
 const db = require('./config/database');
 const { createBot } = require('./telegram/bot');
 const { startServer } = require('./api/server');
-const scheduler = require('./jobs/scheduler');
+// const scheduler = require('./jobs/scheduler'); // Temporalmente deshabilitado para fix deployment
 // const { startUniversalMonitoring } = require('./jobs/universal-geofence');
 // const { aiDetectionJob } = require('./jobs/ai-detection-engine');
 // const { gapFillJob } = require('./jobs/gap-fill-engine');
@@ -41,8 +41,8 @@ async function main() {
     startServer();
     
     // 6. Inicializar scheduler de trabajos
-    console.log('\n⏰ Inicializando trabajos programados...');
-    scheduler.start();
+    console.log('\n⏰ Scheduler temporalmente deshabilitado...');
+    // scheduler.start(); // Temporalmente deshabilitado
     
     // 7. Inicializar monitoreo universal de geofence
     // console.log('\n⚡ Iniciando monitoreo universal geofence...');

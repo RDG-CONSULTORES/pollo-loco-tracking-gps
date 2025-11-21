@@ -93,6 +93,16 @@ async function setupDatabase() {
     
     console.log('✅ Base de datos configurada');
     
+    // Run Telegram detection migration (Mini-Step 1B)
+    try {
+      const { addTelegramDetectionColumns } = require('./migrations/add-telegram-detection-columns');
+      await addTelegramDetectionColumns();
+      console.log('✅ Telegram detection migration completed');
+    } catch (migrationError) {
+      console.warn('⚠️ Telegram detection migration warning:', migrationError.message);
+      // Continue even if migration fails (columns might already exist)
+    }
+    
   } catch (error) {
     console.log('⚠️ Error en setup DB (continuando):', error.message);
     // No hacer throw - continuar aunque falle el setup

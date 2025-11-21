@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Telegram Detection - Pollo Loco GPS</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --error-color: #dc3545;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--dark-color);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: var(--light-color);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-color);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: var(--dark-color);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: var(--success-color);
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: var(--error-color);
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #cce7ff;
+            border-color: var(--primary-color);
+            color: #004085;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .result-card {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-detected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .user-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            background: var(--light-color);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: var(--dark-color);
+            font-weight: 600;
+        }
+
+        .pending-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .pending-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pending-item:last-child {
+            border-bottom: none;
+        }
+
+        .pending-user {
+            flex: 1;
+        }
+
+        .pending-username {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .pending-details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .pending-days {
+            background: var(--warning-color);
+            color: var(--dark-color);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Telegram Detection</h1>
+            <p>Auto-detección @username → Telegram ID</p>
+        </div>
+
+        <div class="content">
+            <!-- User Detection Form -->
+            <div class="section">
+                <div class="section-title">➕ Detectar Nuevo Usuario</div>
+                
+                <form id="detection-form">
+                    <div class="form-group">
+                        <label class="form-label" for="username">@ Username de Telegram</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            class="form-input" 
+                            placeholder="ejemplo: @juanperez o juanperez"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="display_name">Nombre para mostrar</label>
+                        <input 
+                            type="text" 
+                            id="display_name" 
+                            class="form-input" 
+                            placeholder="Juan Pérez"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="role">Rol del usuario</label>
+                        <select id="role" class="form-select">
+                            <option value="employee">👤 Empleado</option>
+                            <option value="supervisor">👥 Supervisor</option>
+                            <option value="manager">📊 Manager</option>
+                            <option value="director">🎯 Director</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="group_name">Grupo/Sucursal</label>
+                        <input 
+                            type="text" 
+                            id="group_name" 
+                            class="form-input" 
+                            placeholder="Centro, Norte, Sur, etc."
+                            value="general"
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        🔍 Detectar Usuario
+                    </button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <p>🔄 Detectando usuario en Telegram...</p>
+                </div>
+
+                <div id="result-container"></div>
+            </div>
+
+            <!-- Check Status Form -->
+            <div class="section">
+                <div class="section-title">📋 Verificar Status de Detección</div>
+                
+                <form id="status-form">
+                    <div class="form-group">
+                        <label class="form-label" for="tracker_id">Tracker ID</label>
+                        <input 
+                            type="text" 
+                            id="tracker_id" 
+                            class="form-input" 
+                            placeholder="JUANPERE_1234"
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        📋 Verificar Status
+                    </button>
+                </form>
+
+                <div id="status-result"></div>
+            </div>
+
+            <!-- Pending Detections -->
+            <div class="section">
+                <div class="section-title">⏳ Usuarios con Detección Pendiente</div>
+                
+                <button class="btn btn-warning" onclick="loadPendingUsers()">
+                    🔄 Actualizar Lista
+                </button>
+
+                <div id="pending-container">
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Información:</strong> Haz clic en "Actualizar Lista" para ver usuarios que necesitan vinculación manual con Telegram.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="section">
+                <div class="section-title">🔗 Enlaces Rápidos</div>
+                
+                <a href="/webapp/admin-dashboard.html" class="btn btn-primary">
+                    📊 Dashboard Principal
+                </a>
+                
+                <a href="/webapp/gps-wizard.html" class="btn btn-success">
+                    🧙‍♂️ GPS Wizard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Detection form handler
+        document.getElementById('detection-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('result-container');
+            
+            loading.classList.add('active');
+            resultContainer.innerHTML = '';
+            
+            const formData = {
+                username: document.getElementById('username').value.trim(),
+                display_name: document.getElementById('display_name').value.trim(),
+                role: document.getElementById('role').value,
+                group_name: document.getElementById('group_name').value.trim()
+            };
+            
+            try {
+                console.log('🔍 Enviando detección:', formData);
+                
+                const response = await fetch('/api/telegram/detect-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showDetectionResult(result);
+                } else {
+                    showError(result.error || 'Error en la detección');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError('Error de conexión: ' + error.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        });
+
+        // Status form handler
+        document.getElementById('status-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const trackerId = document.getElementById('tracker_id').value.trim();
+            const statusResult = document.getElementById('status-result');
+            
+            if (!trackerId) {
+                showErrorInContainer(statusResult, 'Tracker ID requerido');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/telegram/detection-status/${trackerId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showUserStatus(result.user, result.status, statusResult);
+                } else {
+                    showErrorInContainer(statusResult, result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showErrorInContainer(statusResult, 'Error de conexión: ' + error.message);
+            }
+        });
+
+        // Show detection result
+        function showDetectionResult(result) {
+            const container = document.getElementById('result-container');
+            const { user, action, next_steps } = result;
+            
+            const statusClass = user.detection_status === 'detected' ? 'status-detected' : 'status-pending';
+            const statusText = user.detection_status === 'detected' ? '✅ Detectado' : '⏳ Pendiente';
+            
+            container.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>✅ ${result.message}</strong>
+                </div>
+                
+                <div class="result-card">
+                    <div class="result-header">
+                        <h4>👤 ${user.display_name}</h4>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    
+                    <div class="user-info">
+                        <div class="info-item">
+                            <div class="info-label">Tracker ID</div>
+                            <div class="info-value">${user.tracker_id}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Username</div>
+                            <div class="info-value">@${user.telegram_username}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Telegram ID</div>
+                            <div class="info-value">${user.telegram_id || 'Pendiente'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Rol</div>
+                            <div class="info-value">${user.role}</div>
+                        </div>
+                    </div>
+                    
+                    ${next_steps ? `
+                        <div class="alert alert-info" style="margin-top: 15px;">
+                            <strong>📋 Próximos pasos:</strong><br>
+                            • ${next_steps.telegram_setup}<br>
+                            • ${next_steps.owntracks_config}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Clear form
+            document.getElementById('detection-form').reset();
+        }
+
+        // Show user status
+        function showUserStatus(user, status, container) {
+            const statusClass = status.telegram_detected ? 'status-detected' : 'status-pending';
+            const statusText = status.telegram_detected ? '✅ Detectado' : '⏳ Pendiente';
+            
+            container.innerHTML = `
+                <div class="result-card">
+                    <div class="result-header">
+                        <h4>👤 ${user.display_name}</h4>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    
+                    <div class="user-info">
+                        <div class="info-item">
+                            <div class="info-label">Tracker ID</div>
+                            <div class="info-value">${user.tracker_id}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Username</div>
+                            <div class="info-value">@${user.telegram_username || 'N/A'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Telegram ID</div>
+                            <div class="info-value">${user.telegram_id || 'Pendiente'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Estado</div>
+                            <div class="info-value">${user.active ? 'Activo' : 'Inactivo'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info" style="margin-top: 15px;">
+                        <strong>📊 Status del Sistema:</strong><br>
+                        • Telegram: ${status.telegram_detected ? '✅ Detectado' : '❌ Pendiente'}<br>
+                        • OwnTracks: ${status.owntracks_active ? '✅ Activo' : '❌ Sin actividad'}<br>
+                        • Configuración: ${status.fully_configured ? '✅ Completa' : '⚠️ Incompleta'}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load pending users
+        async function loadPendingUsers() {
+            const container = document.getElementById('pending-container');
+            
+            container.innerHTML = '<div class="loading active"><p>🔄 Cargando usuarios pendientes...</p></div>';
+            
+            try {
+                const response = await fetch('/api/telegram/pending-detections');
+                const result = await response.json();
+                
+                if (result.success) {
+                    showPendingUsers(result);
+                } else {
+                    showErrorInContainer(container, result.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showErrorInContainer(container, 'Error de conexión: ' + error.message);
+            }
+        }
+
+        // Show pending users
+        function showPendingUsers(result) {
+            const container = document.getElementById('pending-container');
+            const { pending_users, summary } = result;
+            
+            if (pending_users.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>✅ Excelente!</strong> No hay usuarios con detección pendiente.
+                    </div>
+                `;
+                return;
+            }
+            
+            const usersHtml = pending_users.map(user => `
+                <div class="pending-item">
+                    <div class="pending-user">
+                        <div class="pending-username">👤 ${user.display_name}</div>
+                        <div class="pending-details">
+                            @${user.telegram_username} • ${user.role} • ${user.group_name}
+                        </div>
+                    </div>
+                    <div class="pending-days">${user.pending_days}d</div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <strong>📊 Resumen:</strong> ${summary.total} usuarios pendientes • 
+                    ${summary.recent_24h} recientes • ${summary.older_than_week} > 1 semana
+                </div>
+                
+                <div class="pending-list">
+                    ${usersHtml}
+                </div>
+            `;
+        }
+
+        // Show error in specific container
+        function showErrorInContainer(container, message) {
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <strong>❌ Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        // Show general error
+        function showError(message) {
+            showErrorInContainer(document.getElementById('result-container'), message);
+        }
+
+        // Load pending users on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔍 Telegram Detection iniciado');
+            loadPendingUsers();
+        });
+    </script>
+</body>
+</html>

@@ -34,6 +34,9 @@ const adminDashboardRoutes = require('./routes/admin-dashboard.routes');
 // NEW: Public Dashboard Routes (NO AUTH REQUIRED)
 const publicDashboardRoutes = require('./routes/public-dashboard.routes');
 
+// NEW: Telegram Detection Routes (Mini-Step 1B)
+const telegramDetectionRoutes = require('./routes/telegram-detection.routes');
+
 // NEW: QR System Routes (temporalmente comentado para fix deployment)
 // const qrRoutes = require('./routes/qr-system');
 
@@ -110,6 +113,11 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/admin-dashboard.html'));
   });
   
+  // Telegram Detection - Mini-Step 1B
+  app.get('/webapp/telegram-detection.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/telegram-detection.html'));
+  });
+  
   // Setup Instructions redirect
   app.get('/setup-instructions', (req, res) => {
     res.redirect('/api/qr/instructions');
@@ -173,6 +181,7 @@ function createServer() {
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
   app.use('/api/admin', adminDashboardRoutes); // Admin Dashboard Foundation Phase
   app.use('/api/public', publicDashboardRoutes); // Public Dashboard - NO AUTH REQUIRED
+  app.use('/api/telegram', telegramDetectionRoutes); // Telegram Detection - Mini-Step 1B
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes

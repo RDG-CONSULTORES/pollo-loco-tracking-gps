@@ -459,41 +459,77 @@ function generateSecurePassword() {
 }
 
 /**
- * Generate Telegram Bot QR (placeholder)
+ * Generate Telegram Bot QR (real implementation)
  */
 async function generateTelegramBotQR(trackerId) {
-  // TODO: Implementar generación QR real
-  const botUrl = `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'YourBot'}?start=${trackerId}`;
-  
-  return {
-    url: botUrl,
-    qr_data: botUrl,
-    instructions: 'Escanea este QR con Telegram para conectar automáticamente',
-    status: 'pending_scan'
-  };
+  try {
+    const { generateTelegramQR } = require('../../telegram/qr-generator');
+    
+    const qrData = await generateTelegramQR(trackerId, { format: 'base64' });
+    
+    return {
+      url: qrData.url,
+      qr_data: qrData.qr_data,
+      instructions: qrData.instructions.es,
+      setup_steps: qrData.setup_steps.es,
+      status: 'ready_to_scan',
+      bot_username: qrData.bot_username
+    };
+  } catch (error) {
+    console.error('❌ Error generando QR Telegram:', error.message);
+    
+    // Fallback a versión simple
+    const botUrl = `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'PoloLocoTrackingBot'}?start=${trackerId}`;
+    return {
+      url: botUrl,
+      qr_data: botUrl,
+      instructions: 'Escanea este QR con Telegram para conectar automáticamente',
+      status: 'fallback_url',
+      error: error.message
+    };
+  }
 }
 
 /**
- * Generate OwnTracks QR (placeholder)
+ * Generate OwnTracks QR (real implementation)
  */
 async function generateOwnTracksQR(trackerId) {
-  // TODO: Implementar generación QR real OwnTracks
-  const ownTracksConfig = {
-    _type: 'configuration',
-    host: process.env.WEB_APP_URL?.replace('https://', '') || 'localhost',
-    port: 443,
-    path: '/api/owntracks/location',
-    deviceId: trackerId,
-    username: trackerId,
-    password: 'owntracks123'
-  };
-  
-  return {
-    config: ownTracksConfig,
-    qr_data: JSON.stringify(ownTracksConfig),
-    instructions: 'Escanea este QR con OwnTracks para configurar automáticamente',
-    status: 'ready_to_scan'
-  };
+  try {
+    const { generateOwnTracksQR } = require('../../telegram/qr-generator');
+    
+    const qrData = await generateOwnTracksQR(trackerId, { format: 'base64' });
+    
+    return {
+      config: qrData.config,
+      qr_data: qrData.qr_data,
+      instructions: qrData.instructions.es,
+      setup_steps: qrData.setup_steps.es,
+      download_links: qrData.download_links,
+      endpoint_url: qrData.endpoint_url,
+      status: 'ready_to_scan'
+    };
+  } catch (error) {
+    console.error('❌ Error generando QR OwnTracks:', error.message);
+    
+    // Fallback a versión simple
+    const ownTracksConfig = {
+      _type: 'configuration',
+      host: process.env.WEB_APP_URL?.replace(/https?:\/\//, '') || 'localhost',
+      port: 443,
+      path: '/api/owntracks/location',
+      deviceId: trackerId,
+      username: trackerId,
+      password: 'owntracks123'
+    };
+    
+    return {
+      config: ownTracksConfig,
+      qr_data: JSON.stringify(ownTracksConfig),
+      instructions: 'Escanea este QR con OwnTracks para configurar automáticamente',
+      status: 'fallback_config',
+      error: error.message
+    };
+  }
 }
 
 module.exports = router;

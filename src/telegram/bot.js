@@ -44,10 +44,9 @@ class PolloLocoBot {
     //   next();
     // });
     
-    // Comandos básicos
-    this.bot.onText(/^\/start$/, (msg) => {
-      commands.menu.bot = this.bot;
-      commands.menu.main(msg);
+    // Comando /start con auto-vinculación
+    this.bot.onText(/^\/start(?: (.+))?$/, (msg, match) => {
+      commands.autolink.startCommand.call({ bot: this.bot }, msg, match);
     });
     this.bot.onText(/^\/help$/, (msg) => {
       commands.ayuda.bot = this.bot;
@@ -172,7 +171,9 @@ class PolloLocoBot {
       await this.bot.answerCallbackQuery(query.id);
       
       // Procesar según el tipo de callback
-      if (data.startsWith('user_')) {
+      if (data.startsWith('autolink') || data === 'manual_register' || data === 'contact_admin' || data === 'show_help') {
+        await commands.autolink.handleAutolinkCallback(this.bot, query);
+      } else if (data.startsWith('user_')) {
         await commands.usuarios.handleCallback.call(this, query);
       } else if (data.startsWith('config_')) {
         await commands.config.handleCallback.call(this, query);

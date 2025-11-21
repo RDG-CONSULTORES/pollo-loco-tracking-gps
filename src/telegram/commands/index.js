@@ -8,6 +8,7 @@ const config = require('./config');
 const control = require('./control');
 const reportes = require('./reportes');
 const menu = require('./menu');
+const autolink = require('./autolink');
 
 module.exports = {
   ayuda,
@@ -15,5 +16,6 @@ module.exports = {
   config,
   control,
   reportes,
-  menu
+  menu,
+  autolink
 };

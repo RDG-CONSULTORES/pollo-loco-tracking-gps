@@ -94,28 +94,26 @@ async function getBasicStats(db) {
       FROM tracking_users
     `);
     
-    // Geofences overview (counts only)
+    // Geofences overview (counts only) - using branches table
     const geofenceStats = await db.query(`
       SELECT 
         COUNT(*) as total_geofences,
-        COUNT(*) FILTER (WHERE geofence_enabled = true) as active_geofences,
-        COUNT(*) FILTER (WHERE geofence_enabled = false) as inactive_geofences
-      FROM tracking_locations_cache
-      WHERE geofence_radius IS NOT NULL
+        COUNT(*) FILTER (WHERE active = true) as active_geofences,
+        COUNT(*) FILTER (WHERE active = false) as inactive_geofences
+      FROM branches
+      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
     `);
     
-    // Today's activity (counts only)
-    const todayStats = await db.query(`
-      SELECT 
-        COUNT(*) FILTER (WHERE DATE(event_time) = CURRENT_DATE) as events_today,
-        COUNT(*) FILTER (WHERE DATE(event_time) = CURRENT_DATE AND telegram_sent = true) as alerts_sent_today
-      FROM geofence_events
-    `);
+    // Today's activity - simplified for now
+    const todayStats = {
+      events_today: 0,
+      alerts_sent_today: 0
+    };
     
     return {
       users: userStats.rows[0] || { total_users: 0, active_users: 0, inactive_users: 0 },
       geofences: geofenceStats.rows[0] || { total_geofences: 0, active_geofences: 0, inactive_geofences: 0 },
-      today: todayStats.rows[0] || { events_today: 0, alerts_sent_today: 0 }
+      today: todayStats
     };
     
   } catch (error) {
@@ -133,30 +131,44 @@ async function getBasicStats(db) {
  */
 async function getBasicActivity(db) {
   try {
-    // Recent events (anonymized)
-    const recentEvents = await db.query(`
-      SELECT 
-        event_type,
-        location_name,
-        event_time,
-        telegram_sent,
-        'User-' || SUBSTR(user_tracker_id, 1, 2) as anonymous_user
-      FROM geofence_events
-      ORDER BY event_time DESC
-      LIMIT 10
-    `);
+    // Recent GPS activity (anonymized)
+    let recentEvents = [];
+    try {
+      const locationsResult = await db.query(`
+        SELECT 
+          'location_update' as event_type,
+          'GPS Update' as location_name,
+          timestamp as event_time,
+          false as telegram_sent,
+          'User-' || SUBSTR(tracker_id, 1, 2) as anonymous_user
+        FROM gps_locations
+        ORDER BY timestamp DESC
+        LIMIT 10
+      `);
+      recentEvents = locationsResult.rows || [];
+    } catch (locError) {
+      console.warn('⚠️ GPS locations table not available yet');
+      recentEvents = [];
+    }
     
     // Recent users activity (counts only, no personal info)
-    const activeToday = await db.query(`
-      SELECT 
-        COUNT(DISTINCT tracker_id) as unique_active_today
-      FROM gps_locations
-      WHERE DATE(timestamp) = CURRENT_DATE
-    `);
+    let activeToday = 0;
+    try {
+      const activeTodayResult = await db.query(`
+        SELECT 
+          COUNT(DISTINCT tracker_id) as unique_active_today
+        FROM gps_locations
+        WHERE DATE(timestamp) = CURRENT_DATE
+      `);
+      activeToday = activeTodayResult.rows[0]?.unique_active_today || 0;
+    } catch (activeError) {
+      console.warn('⚠️ Active users count not available yet');
+      activeToday = 0;
+    }
     
     return {
-      recent_events: recentEvents.rows || [],
-      active_today: activeToday.rows[0]?.unique_active_today || 0
+      recent_events: recentEvents,
+      active_today: activeToday
     };
     
   } catch (error) {

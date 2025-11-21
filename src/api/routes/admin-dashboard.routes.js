@@ -9,7 +9,7 @@ const router = express.Router();
 
 /**
  * GET /api/admin/dashboard-data
- * Aggregated metrics for admin dashboard
+ * Aggregated metrics for admin dashboard - PUBLIC ACCESS FOR FOUNDATION PHASE
  */
 router.get('/dashboard-data', async (req, res) => {
   try {

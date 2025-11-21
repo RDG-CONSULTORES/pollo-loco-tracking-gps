@@ -31,6 +31,9 @@ const alertsConfigRoutes = require('./routes/alerts-config.routes');
 // NEW: Admin Dashboard Routes (Foundation Phase)
 const adminDashboardRoutes = require('./routes/admin-dashboard.routes');
 
+// NEW: Public Dashboard Routes (NO AUTH REQUIRED)
+const publicDashboardRoutes = require('./routes/public-dashboard.routes');
+
 // NEW: QR System Routes (temporalmente comentado para fix deployment)
 // const qrRoutes = require('./routes/qr-system');
 
@@ -169,6 +172,7 @@ function createServer() {
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
   app.use('/api/admin', adminDashboardRoutes); // Admin Dashboard Foundation Phase
+  app.use('/api/public', publicDashboardRoutes); // Public Dashboard - NO AUTH REQUIRED
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes

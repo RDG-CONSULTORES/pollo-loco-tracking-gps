@@ -510,13 +510,71 @@
         async function loadDashboardData() {
             try {
                 console.log('📊 Cargando datos del dashboard...');
-                const response = await fetch('/api/admin/dashboard-data');
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // Try authenticated endpoint first, fallback to public endpoints
+                let result;
+                
+                try {
+                    const response = await fetch('/api/admin/dashboard-data');
+                    if (response.ok) {
+                        result = await response.json();
+                    } else {
+                        throw new Error('Auth required');
+                    }
+                } catch (authError) {
+                    console.log('🔓 Usando endpoints públicos sin autenticación...');
+                    
+                    // Load data from public endpoints
+                    const [statsResponse, activityResponse] = await Promise.all([
+                        fetch('/api/public/dashboard-stats'),
+                        fetch('/api/public/dashboard-activity')
+                    ]);
+                    
+                    if (!statsResponse.ok || !activityResponse.ok) {
+                        throw new Error('Error loading public data');
+                    }
+                    
+                    const [statsData, activityData] = await Promise.all([
+                        statsResponse.json(),
+                        activityResponse.json()
+                    ]);
+                    
+                    if (!statsData.success || !activityData.success) {
+                        throw new Error('Public data error');
+                    }
+                    
+                    // Transform public data to match dashboard format
+                    result = {
+                        success: true,
+                        data: {
+                            users: {
+                                overview: statsData.data.stats.users,
+                                by_role: [],
+                                recent_active: []
+                            },
+                            geofences: {
+                                overview: statsData.data.stats.geofences,
+                                by_group: []
+                            },
+                            activity: {
+                                recent_events: activityData.data.activity.recent_events || [],
+                                recent_locations: [],
+                                today_summary: {
+                                    events_today: statsData.data.stats.today.events_today,
+                                    alerts_sent_today: statsData.data.stats.today.alerts_sent_today,
+                                    active_users_today: activityData.data.activity.active_today
+                                }
+                            },
+                            system: statsData.data.system,
+                            map: {
+                                users: [],
+                                geofences: [],
+                                last_update: new Date().toISOString()
+                            },
+                            meta: statsData.data.meta
+                        }
+                    };
                 }
-                
-                const result = await response.json();
                 
                 if (!result.success) {
                     throw new Error(result.error || 'Error desconocido');

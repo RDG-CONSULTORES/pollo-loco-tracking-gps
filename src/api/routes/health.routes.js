@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: '1.0.4',
+      version: '1.0.5',
       environment: process.env.NODE_ENV || 'development',
       response_time_ms: responseTime,
       memory: {

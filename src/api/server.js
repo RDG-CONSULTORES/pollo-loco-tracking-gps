@@ -28,8 +28,8 @@ const gpsWizardRoutes = require('./routes/gps-wizard.routes');
 // NEW: Alerts Configuration Routes
 const alertsConfigRoutes = require('./routes/alerts-config.routes');
 
-// NEW: QR System Routes  
-const qrRoutes = require('./routes/qr-system');
+// NEW: QR System Routes (temporalmente comentado para fix deployment)
+// const qrRoutes = require('./routes/qr-system');
 
 // NEW: Detection Management Routes
 // const detectionManagementRoutes = require('./routes/detection-management');
@@ -163,7 +163,7 @@ function createServer() {
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
-  app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup
+  // app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup (temporalmente comentado)
   // app.use('/api', detectionManagementRoutes); // Detection management endpoints
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);

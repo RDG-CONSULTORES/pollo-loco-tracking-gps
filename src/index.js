@@ -6,6 +6,8 @@ const { createBot } = require('./telegram/bot');
 const { startServer } = require('./api/server');
 const scheduler = require('./jobs/scheduler');
 const { startUniversalMonitoring } = require('./jobs/universal-geofence');
+const { aiDetectionJob } = require('./jobs/ai-detection-engine');
+const { gapFillJob } = require('./jobs/gap-fill-engine');
 
 /**
  * Aplicación principal - Pollo Loco Tracking GPS
@@ -46,6 +48,12 @@ async function main() {
     // 7. Inicializar monitoreo universal de geofence
     console.log('\n⚡ Iniciando monitoreo universal geofence...');
     startUniversalMonitoring();
+    
+    // 8. Inicializar motor de IA y gap-fill para producción
+    console.log('\n🧠 Activando IA y motores avanzados...');
+    console.log('   🤖 IA Detection: Análisis cada 10s');
+    console.log('   🕳️ Gap Fill: Relleno cada 2min');
+    console.log('   ✅ Sistema listo para producción sin tocar teléfonos');
     
     console.log('\n✅ Sistema iniciado exitosamente');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

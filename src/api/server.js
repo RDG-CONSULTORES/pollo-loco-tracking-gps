@@ -31,6 +31,9 @@ const alertsConfigRoutes = require('./routes/alerts-config.routes');
 // NEW: Detection Management Routes
 const detectionManagementRoutes = require('./routes/detection-management');
 
+// NEW: OwnTracks Remote Configuration
+const ownTracksRemoteConfig = require('./routes/owntracks-remote-config');
+
 // NEW: Real-time processing middleware
 const { processLocationMiddleware } = require('../middleware/realtime-processor');
 
@@ -140,6 +143,7 @@ function createServer() {
   // Routes (middleware de tiempo real en OwnTracks)
   app.use('/api/owntracks', processLocationMiddleware, ownTracksRoutes);
   app.use('/api/owntracks', ownTracksConfigRoutes);
+  app.use('/api/owntracks', ownTracksRemoteConfig); // Configuración remota optimizada
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes

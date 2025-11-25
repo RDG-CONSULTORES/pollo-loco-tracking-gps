@@ -36,4 +36,19 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// Servir la interfaz HTML directamente
+router.get('/interface', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  try {
+    const htmlPath = path.join(__dirname, '../../webapp/branch-validation.html');
+    const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(htmlContent);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Interface not available', details: error.message });
+  }
+});
+
 module.exports = router;

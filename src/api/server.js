@@ -77,6 +77,15 @@ function createServer() {
   // Servir archivos estáticos (Telegram Web App)
   app.use('/webapp', express.static(path.join(__dirname, '../webapp')));
   
+  // Ruta específica para validación de sucursales
+  app.get('/validation', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/branch-validation.html'));
+  });
+  
+  app.get('/validacion-sucursales', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/branch-validation.html'));
+  });
+  
   // Rutas específicas para el dashboard
   app.get('/webapp/dashboard.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../webapp/dashboard.html'));

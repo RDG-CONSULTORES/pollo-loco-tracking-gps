@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Validación EPL CAS - 85 Sucursales</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        .logo { font-size: 48px; margin-bottom: 20px; }
+        h1 { color: #333; margin-bottom: 20px; font-size: 28px; }
+        .status { 
+            background: #e8f5e8; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+            border-left: 4px solid #4CAF50;
+        }
+        .stats { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 15px; 
+            margin: 20px 0; 
+        }
+        .stat {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat h3 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }
+        .stat p { color: #666; font-size: 14px; }
+        .btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-api { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .loading { display: none; margin: 20px 0; }
+        .error { color: #d32f2f; margin: 10px 0; }
+        .success { color: #388e3c; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🗺️</div>
+        <h1>Sistema de Validación EPL CAS</h1>
+        <p>Validación de coordenadas GPS para 85 sucursales</p>
+        
+        <div class="status">
+            <strong>✅ Sistema Funcionando</strong><br>
+            Base de datos actualizada con las 3 nuevas sucursales
+        </div>
+
+        <div class="stats" id="stats-container">
+            <div class="stat">
+                <h3 id="total-branches">-</h3>
+                <p>Total Sucursales</p>
+            </div>
+            <div class="stat">
+                <h3 id="validated-branches">-</h3>
+                <p>GPS Validadas</p>
+            </div>
+            <div class="stat">
+                <h3 id="pending-branches">-</h3>
+                <p>Pendientes</p>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">Cargando estadísticas...</div>
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+
+        <div style="margin-top: 30px;">
+            <button class="btn" onclick="openValidationSystem()">
+                🚀 Abrir Sistema de Validación
+            </button>
+            
+            <a href="/api/branch-validation/stats" class="btn btn-api" target="_blank">
+                📊 Ver Estadísticas API
+            </a>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>Nuevas Sucursales Agregadas:</h3>
+            <ul style="text-align: left; margin-top: 10px;">
+                <li><strong>83 - Cerradas de Anahuac</strong> (General Escobedo)</li>
+                <li><strong>84 - Aeropuerto del Norte</strong> (Ciénega de Flores)</li>
+                <li><strong>85 - Diego Diaz</strong> (San Nicolás de los Garza)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Cargar estadísticas automáticamente
+        async function loadStats() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').textContent = '';
+            
+            try {
+                const response = await fetch('/api/branch-validation/stats');
+                if (!response.ok) throw new Error('Error loading stats');
+                
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('total-branches').textContent = data.stats.total;
+                    document.getElementById('validated-branches').textContent = data.stats.validated;
+                    document.getElementById('pending-branches').textContent = 
+                        parseInt(data.stats.total) - parseInt(data.stats.validated);
+                    
+                    document.getElementById('success').textContent = 
+                        '✅ Datos actualizados: ' + new Date().toLocaleTimeString();
+                } else {
+                    throw new Error(data.error || 'Error getting stats');
+                }
+            } catch (error) {
+                document.getElementById('error').textContent = 
+                    '⚠️ Error cargando estadísticas: ' + error.message;
+                console.error('Error:', error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Función para abrir el sistema de validación
+        async function openValidationSystem() {
+            document.getElementById('error').textContent = '';
+            
+            // Intentar diferentes rutas
+            const routes = [
+                '/webapp/branch-validation.html',
+                '/api/branch-validation/interface',
+                '/validation',
+                '/validacion-sucursales'
+            ];
+            
+            for (const route of routes) {
+                try {
+                    const response = await fetch(route, { method: 'HEAD' });
+                    if (response.ok) {
+                        window.open(route, '_blank');
+                        return;
+                    }
+                } catch (e) {
+                    console.log(`Route ${route} not available:`, e);
+                }
+            }
+            
+            // Si ninguna ruta funciona, mostrar alternativas
+            document.getElementById('error').textContent = 
+                '⚠️ Sistema en deployment. Usar API directamente: /api/branch-validation/stats';
+        }
+
+        // Cargar estadísticas al inicio
+        loadStats();
+        
+        // Actualizar cada 30 segundos
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>

@@ -86,6 +86,11 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/branch-validation.html'));
   });
   
+  // Página de acceso principal para validación
+  app.get('/validacion', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../validacion.html'));
+  });
+  
   // Rutas específicas para el dashboard
   app.get('/webapp/dashboard.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../webapp/dashboard.html'));

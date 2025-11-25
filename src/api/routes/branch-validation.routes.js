@@ -116,7 +116,7 @@ router.get('/fresco', (req, res) => {
   const path = require('path');
   
   try {
-    const htmlPath = path.join(__dirname, '../../../validador-fresco.html');
+    const htmlPath = path.join(__dirname, '../../../validador-fresco-corregido.html');
     const htmlContent = fs.readFileSync(htmlPath, 'utf8');
     res.setHeader('Content-Type', 'text/html');
     res.send(htmlContent);

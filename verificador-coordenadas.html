@@ -1,0 +1,2904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Coordenadas EPL CAS - 85 Sucursales</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #f5f6fa; 
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { 
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .stats { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin: 20px 0; 
+        }
+        .stat { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat h3 { font-size: 24px; margin-bottom: 5px; }
+        .stat.valid h3 { color: #27ae60; }
+        .stat.suspicious h3 { color: #f39c12; }
+        .stat.issues h3 { color: #e74c3c; }
+        
+        .instructions {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+        }
+        
+        .filters {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn.active { background: #3498db; color: white; border-color: #3498db; }
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .verification-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 15px;
+        }
+        
+        .branch-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+            position: relative;
+        }
+        .branch-card.valid { border-left-color: #27ae60; }
+        .branch-card.suspicious { border-left-color: #f39c12; background: #fffbf0; }
+        .branch-card.issues { border-left-color: #e74c3c; background: #fff5f5; }
+        
+        .branch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .branch-number { 
+            background: #3498db; 
+            color: white; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: bold;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .status-badge.valid { background: #d4edda; color: #155724; }
+        .status-badge.suspicious { background: #fff3cd; color: #856404; }
+        .status-badge.issues { background: #f8d7da; color: #721c24; }
+        
+        .branch-name { font-weight: bold; color: #2c3e50; margin-bottom: 8px; font-size: 16px; }
+        .branch-location { color: #666; font-size: 14px; margin-bottom: 8px; }
+        .branch-address { 
+            color: #666; 
+            font-size: 13px; 
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            line-height: 1.4;
+        }
+        
+        .coordinates-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .coordinates-display {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .coordinates-input {
+            display: none;
+            margin-top: 8px;
+        }
+        .coordinates-input.editing { display: block; }
+        .coord-input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-bottom: 5px;
+        }
+        
+        .validation-issues {
+            background: #ffebee;
+            color: #c62828;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 12px;
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 12px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-view { background: #4285f4; color: white; }
+        .btn-search { background: #17a2b8; color: white; }
+        .btn-edit { background: #28a745; color: white; }
+        .btn-save { background: #dc3545; color: white; }
+        .btn-cancel { background: #6c757d; color: white; }
+        .btn:hover { opacity: 0.8; transform: translateY(-1px); }
+        
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .hidden { display: none; }
+        
+        .bulk-actions {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .bulk-actions h3 { margin-bottom: 15px; color: #2c3e50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Verificador de Coordenadas EPL CAS</h1>
+            <p>Validación completa de coordenadas GPS para todas las sucursales</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat valid">
+                <h3 id="valid-count">82</h3>
+                <p>Coordenadas Válidas</p>
+            </div>
+            <div class="stat suspicious">
+                <h3 id="suspicious-count">0</h3>
+                <p>Coordenadas Sospechosas</p>
+            </div>
+            <div class="stat issues">
+                <h3 id="issues-count">0</h3>
+                <p>Requieren Atención</p>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones para Verificar Coordenadas:</h3>
+            <ol style="margin-left: 20px; margin-top: 10px; line-height: 1.6;">
+                <li><strong>Ver en Maps:</strong> Haz clic para ver si las coordenadas apuntan al lugar correcto</li>
+                <li><strong>Buscar Dirección:</strong> Haz clic para buscar la dirección real en Google Maps</li>
+                <li><strong>Comparar:</strong> Verifica si las coordenadas coinciden con la dirección real</li>
+                <li><strong>Editar:</strong> Si no coinciden, usa "Editar" para corregir las coordenadas</li>
+                <li><strong>Prioridad:</strong> Comienza con las marcadas en <span style="color: #e74c3c;">rojo</span> (requieren atención inmediata)</li>
+            </ol>
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterBranches('all')">Todas (82)</button>
+            <button class="filter-btn" onclick="filterBranches('issues')">Requieren Atención (0)</button>
+            <button class="filter-btn" onclick="filterBranches('suspicious')">Sospechosas (0)</button>
+            <button class="filter-btn" onclick="filterBranches('valid')">Válidas (82)</button>
+            <input type="text" class="search-box" placeholder="Buscar por nombre, ciudad o ID..." id="search-input" onkeyup="searchBranches()">
+        </div>
+        
+        <div class="status-message hidden" id="status-message"></div>
+        
+        <div class="verification-grid" id="branches-container">
+            
+                <div class="branch-card valid" data-filter="valid" data-search="1 - pino suarez monterrey 1">
+                    <div class="branch-header">
+                        <span class="branch-number">#1</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">1 - Pino Suarez</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-1">
+                            📍 25.669300, -100.310300
+                        </div>
+                        <div class="coordinates-input" id="coords-input-1">
+                            <input type="number" class="coord-input" id="lat-1" step="0.000001" placeholder="Latitud" value="25.6693">
+                            <input type="number" class="coord-input" id="lng-1" step="0.000001" placeholder="Longitud" value="-100.3103">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6693,-100.3103" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(1)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-1" onclick="saveCoordinates(1)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-1" onclick="cancelEdit(1)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="2 - madero monterrey 2">
+                    <div class="branch-header">
+                        <span class="branch-number">#2</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">2 - Madero</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-2">
+                            📍 25.678300, -100.316100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-2">
+                            <input type="number" class="coord-input" id="lat-2" step="0.000001" placeholder="Latitud" value="25.6783">
+                            <input type="number" class="coord-input" id="lng-2" step="0.000001" placeholder="Longitud" value="-100.3161">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6783,-100.3161" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(2)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-2" onclick="saveCoordinates(2)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-2" onclick="cancelEdit(2)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="3 - matamoros monterrey 3">
+                    <div class="branch-header">
+                        <span class="branch-number">#3</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">3 - Matamoros</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-3">
+                            📍 25.679500, -100.308900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-3">
+                            <input type="number" class="coord-input" id="lat-3" step="0.000001" placeholder="Latitud" value="25.6795">
+                            <input type="number" class="coord-input" id="lng-3" step="0.000001" placeholder="Longitud" value="-100.3089">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6795,-100.3089" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(3)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-3" onclick="saveCoordinates(3)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-3" onclick="cancelEdit(3)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="4 - santa catarina santa catarina 4">
+                    <div class="branch-header">
+                        <span class="branch-number">#4</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">4 - Santa Catarina</div>
+                    <div class="branch-location">📍 Santa Catarina, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-4">
+                            📍 25.674800, -100.458400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-4">
+                            <input type="number" class="coord-input" id="lat-4" step="0.000001" placeholder="Latitud" value="25.6748">
+                            <input type="number" class="coord-input" id="lng-4" step="0.000001" placeholder="Longitud" value="-100.4584">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6748,-100.4584" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Santa%20Catarina%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(4)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-4" onclick="saveCoordinates(4)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-4" onclick="cancelEdit(4)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="5 - felix u. gomez monterrey 5">
+                    <div class="branch-header">
+                        <span class="branch-number">#5</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">5 - Felix U. Gomez</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-5">
+                            📍 25.683400, -100.304700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-5">
+                            <input type="number" class="coord-input" id="lat-5" step="0.000001" placeholder="Latitud" value="25.6834">
+                            <input type="number" class="coord-input" id="lng-5" step="0.000001" placeholder="Longitud" value="-100.3047">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6834,-100.3047" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(5)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-5" onclick="saveCoordinates(5)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-5" onclick="cancelEdit(5)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="6 - garcia garcía 6">
+                    <div class="branch-header">
+                        <span class="branch-number">#6</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">6 - Garcia</div>
+                    <div class="branch-location">📍 García, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-6">
+                            📍 25.810400, -100.589400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-6">
+                            <input type="number" class="coord-input" id="lat-6" step="0.000001" placeholder="Latitud" value="25.8104">
+                            <input type="number" class="coord-input" id="lng-6" step="0.000001" placeholder="Longitud" value="-100.5894">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.8104,-100.5894" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(6)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-6" onclick="saveCoordinates(6)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-6" onclick="cancelEdit(6)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="7 - la huasteca santa catarina 7">
+                    <div class="branch-header">
+                        <span class="branch-number">#7</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">7 - La Huasteca</div>
+                    <div class="branch-location">📍 Santa Catarina, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-7">
+                            📍 25.761700, -100.432900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-7">
+                            <input type="number" class="coord-input" id="lat-7" step="0.000001" placeholder="Latitud" value="25.7617">
+                            <input type="number" class="coord-input" id="lng-7" step="0.000001" placeholder="Longitud" value="-100.4329">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7617,-100.4329" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Santa%20Catarina%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(7)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-7" onclick="saveCoordinates(7)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-7" onclick="cancelEdit(7)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="62 - lazaro cardenas (morelia) morelia 8">
+                    <div class="branch-header">
+                        <span class="branch-number">#8</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">62 - Lazaro Cardenas (Morelia)</div>
+                    <div class="branch-location">📍 Morelia, Michoacán</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-8">
+                            📍 19.695581, -101.166203
+                        </div>
+                        <div class="coordinates-input" id="coords-input-8">
+                            <input type="number" class="coord-input" id="lat-8" step="0.000001" placeholder="Latitud" value="19.6955815">
+                            <input type="number" class="coord-input" id="lng-8" step="0.000001" placeholder="Longitud" value="-101.1662026">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=19.6955815,-101.1662026" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Morelia%2C%20Michoac%C3%A1n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(8)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-8" onclick="saveCoordinates(8)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-8" onclick="cancelEdit(8)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="63 - madero (morelia) morelia 9">
+                    <div class="branch-header">
+                        <span class="branch-number">#9</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">63 - Madero (Morelia)</div>
+                    <div class="branch-location">📍 Morelia, Michoacán</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-9">
+                            📍 19.702526, -101.201703
+                        </div>
+                        <div class="coordinates-input" id="coords-input-9">
+                            <input type="number" class="coord-input" id="lat-9" step="0.000001" placeholder="Latitud" value="19.7025261">
+                            <input type="number" class="coord-input" id="lng-9" step="0.000001" placeholder="Longitud" value="-101.2017032">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=19.7025261,-101.2017032" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Morelia%2C%20Michoac%C3%A1n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(9)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-9" onclick="saveCoordinates(9)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-9" onclick="cancelEdit(9)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="64 - huerta morelia 10">
+                    <div class="branch-header">
+                        <span class="branch-number">#10</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">64 - Huerta</div>
+                    <div class="branch-location">📍 Morelia, Michoacán</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-10">
+                            📍 19.706900, -101.175600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-10">
+                            <input type="number" class="coord-input" id="lat-10" step="0.000001" placeholder="Latitud" value="19.7069">
+                            <input type="number" class="coord-input" id="lng-10" step="0.000001" placeholder="Longitud" value="-101.1756">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=19.7069,-101.1756" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Morelia%2C%20Michoac%C3%A1n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(10)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-10" onclick="saveCoordinates(10)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-10" onclick="cancelEdit(10)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="8 - gonzalitos monterrey 18">
+                    <div class="branch-header">
+                        <span class="branch-number">#18</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">8 - Gonzalitos</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-18">
+                            📍 25.659500, -100.284500
+                        </div>
+                        <div class="coordinates-input" id="coords-input-18">
+                            <input type="number" class="coord-input" id="lat-18" step="0.000001" placeholder="Latitud" value="25.6595">
+                            <input type="number" class="coord-input" id="lng-18" step="0.000001" placeholder="Longitud" value="-100.2845">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6595,-100.2845" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(18)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-18" onclick="saveCoordinates(18)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-18" onclick="cancelEdit(18)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="9 - anahuac san nicolás de los garza 19">
+                    <div class="branch-header">
+                        <span class="branch-number">#19</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">9 - Anahuac</div>
+                    <div class="branch-location">📍 San Nicolás de los Garza, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-19">
+                            📍 25.723900, -100.335800
+                        </div>
+                        <div class="coordinates-input" id="coords-input-19">
+                            <input type="number" class="coord-input" id="lat-19" step="0.000001" placeholder="Latitud" value="25.7239">
+                            <input type="number" class="coord-input" id="lng-19" step="0.000001" placeholder="Longitud" value="-100.3358">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7239,-100.3358" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(19)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-19" onclick="saveCoordinates(19)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-19" onclick="cancelEdit(19)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="10 - barragan monterrey 20">
+                    <div class="branch-header">
+                        <span class="branch-number">#20</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">10 - Barragan</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-20">
+                            📍 25.683400, -100.271400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-20">
+                            <input type="number" class="coord-input" id="lat-20" step="0.000001" placeholder="Latitud" value="25.6834">
+                            <input type="number" class="coord-input" id="lng-20" step="0.000001" placeholder="Longitud" value="-100.2714">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6834,-100.2714" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(20)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-20" onclick="saveCoordinates(20)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-20" onclick="cancelEdit(20)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="11 - lincoln monterrey 21">
+                    <div class="branch-header">
+                        <span class="branch-number">#21</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">11 - Lincoln</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-21">
+                            📍 25.697400, -100.335800
+                        </div>
+                        <div class="coordinates-input" id="coords-input-21">
+                            <input type="number" class="coord-input" id="lat-21" step="0.000001" placeholder="Latitud" value="25.6974">
+                            <input type="number" class="coord-input" id="lng-21" step="0.000001" placeholder="Longitud" value="-100.3358">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6974,-100.3358" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(21)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-21" onclick="saveCoordinates(21)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-21" onclick="cancelEdit(21)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="12 - concordia monterrey 22">
+                    <div class="branch-header">
+                        <span class="branch-number">#22</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">12 - Concordia</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-22">
+                            📍 25.690300, -100.324700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-22">
+                            <input type="number" class="coord-input" id="lat-22" step="0.000001" placeholder="Latitud" value="25.6903">
+                            <input type="number" class="coord-input" id="lng-22" step="0.000001" placeholder="Longitud" value="-100.3247">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6903,-100.3247" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(22)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-22" onclick="saveCoordinates(22)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-22" onclick="cancelEdit(22)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="13 - escobedo general escobedo 23">
+                    <div class="branch-header">
+                        <span class="branch-number">#23</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">13 - Escobedo</div>
+                    <div class="branch-location">📍 General Escobedo, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-23">
+                            📍 25.773600, -100.324700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-23">
+                            <input type="number" class="coord-input" id="lat-23" step="0.000001" placeholder="Latitud" value="25.7736">
+                            <input type="number" class="coord-input" id="lng-23" step="0.000001" placeholder="Longitud" value="-100.3247">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7736,-100.3247" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20General%20Escobedo%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(23)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-23" onclick="saveCoordinates(23)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-23" onclick="cancelEdit(23)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="14 - aztlan san nicolás de los garza 24">
+                    <div class="branch-header">
+                        <span class="branch-number">#24</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">14 - Aztlan</div>
+                    <div class="branch-location">📍 San Nicolás de los Garza, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-24">
+                            📍 25.719500, -100.369200
+                        </div>
+                        <div class="coordinates-input" id="coords-input-24">
+                            <input type="number" class="coord-input" id="lat-24" step="0.000001" placeholder="Latitud" value="25.7195">
+                            <input type="number" class="coord-input" id="lng-24" step="0.000001" placeholder="Longitud" value="-100.3692">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7195,-100.3692" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(24)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-24" onclick="saveCoordinates(24)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-24" onclick="cancelEdit(24)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="15 - ruiz cortinez monterrey 25">
+                    <div class="branch-header">
+                        <span class="branch-number">#25</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">15 - Ruiz Cortinez</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-25">
+                            📍 25.688100, -100.342500
+                        </div>
+                        <div class="coordinates-input" id="coords-input-25">
+                            <input type="number" class="coord-input" id="lat-25" step="0.000001" placeholder="Latitud" value="25.6881">
+                            <input type="number" class="coord-input" id="lng-25" step="0.000001" placeholder="Longitud" value="-100.3425">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6881,-100.3425" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(25)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-25" onclick="saveCoordinates(25)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-25" onclick="cancelEdit(25)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="16 - solidaridad monterrey 26">
+                    <div class="branch-header">
+                        <span class="branch-number">#26</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">16 - Solidaridad</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-26">
+                            📍 25.683400, -100.326900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-26">
+                            <input type="number" class="coord-input" id="lat-26" step="0.000001" placeholder="Latitud" value="25.6834">
+                            <input type="number" class="coord-input" id="lng-26" step="0.000001" placeholder="Longitud" value="-100.3269">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6834,-100.3269" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(26)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-26" onclick="saveCoordinates(26)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-26" onclick="cancelEdit(26)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="17 - romulo garza san nicolás de los garza 27">
+                    <div class="branch-header">
+                        <span class="branch-number">#27</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">17 - Romulo Garza</div>
+                    <div class="branch-location">📍 San Nicolás de los Garza, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-27">
+                            📍 25.703600, -100.369200
+                        </div>
+                        <div class="coordinates-input" id="coords-input-27">
+                            <input type="number" class="coord-input" id="lat-27" step="0.000001" placeholder="Latitud" value="25.7036">
+                            <input type="number" class="coord-input" id="lng-27" step="0.000001" placeholder="Longitud" value="-100.3692">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7036,-100.3692" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(27)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-27" onclick="saveCoordinates(27)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-27" onclick="cancelEdit(27)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="18 - linda vista guadalupe 28">
+                    <div class="branch-header">
+                        <span class="branch-number">#28</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">18 - Linda Vista</div>
+                    <div class="branch-location">📍 Guadalupe, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-28">
+                            📍 25.719500, -100.358100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-28">
+                            <input type="number" class="coord-input" id="lat-28" step="0.000001" placeholder="Latitud" value="25.7195">
+                            <input type="number" class="coord-input" id="lng-28" step="0.000001" placeholder="Longitud" value="-100.3581">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7195,-100.3581" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(28)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-28" onclick="saveCoordinates(28)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-28" onclick="cancelEdit(28)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="19 - valle soleado guadalupe 29">
+                    <div class="branch-header">
+                        <span class="branch-number">#29</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">19 - Valle Soleado</div>
+                    <div class="branch-location">📍 Guadalupe, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-29">
+                            📍 25.706100, -100.342500
+                        </div>
+                        <div class="coordinates-input" id="coords-input-29">
+                            <input type="number" class="coord-input" id="lat-29" step="0.000001" placeholder="Latitud" value="25.7061">
+                            <input type="number" class="coord-input" id="lng-29" step="0.000001" placeholder="Longitud" value="-100.3425">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7061,-100.3425" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(29)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-29" onclick="saveCoordinates(29)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-29" onclick="cancelEdit(29)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="20 - tecnológico monterrey 30">
+                    <div class="branch-header">
+                        <span class="branch-number">#30</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">20 - Tecnológico</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-30">
+                            📍 25.651300, -100.289200
+                        </div>
+                        <div class="coordinates-input" id="coords-input-30">
+                            <input type="number" class="coord-input" id="lat-30" step="0.000001" placeholder="Latitud" value="25.6513">
+                            <input type="number" class="coord-input" id="lng-30" step="0.000001" placeholder="Longitud" value="-100.2892">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6513,-100.2892" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(30)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-30" onclick="saveCoordinates(30)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-30" onclick="cancelEdit(30)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="21 - chapultepec monterrey 31">
+                    <div class="branch-header">
+                        <span class="branch-number">#31</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">21 - Chapultepec</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-31">
+                            📍 25.669300, -100.353600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-31">
+                            <input type="number" class="coord-input" id="lat-31" step="0.000001" placeholder="Latitud" value="25.6693">
+                            <input type="number" class="coord-input" id="lng-31" step="0.000001" placeholder="Longitud" value="-100.3536">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6693,-100.3536" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(31)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-31" onclick="saveCoordinates(31)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-31" onclick="cancelEdit(31)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="22 - satelite san nicolás de los garza 32">
+                    <div class="branch-header">
+                        <span class="branch-number">#32</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">22 - Satelite</div>
+                    <div class="branch-location">📍 San Nicolás de los Garza, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-32">
+                            📍 25.719500, -100.391400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-32">
+                            <input type="number" class="coord-input" id="lat-32" step="0.000001" placeholder="Latitud" value="25.7195">
+                            <input type="number" class="coord-input" id="lng-32" step="0.000001" placeholder="Longitud" value="-100.3914">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7195,-100.3914" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(32)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-32" onclick="saveCoordinates(32)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-32" onclick="cancelEdit(32)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="23 - guasave guasave 33">
+                    <div class="branch-header">
+                        <span class="branch-number">#33</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">23 - Guasave</div>
+                    <div class="branch-location">📍 Guasave, Sinaloa</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-33">
+                            📍 25.567500, -108.468600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-33">
+                            <input type="number" class="coord-input" id="lat-33" step="0.000001" placeholder="Latitud" value="25.5675">
+                            <input type="number" class="coord-input" id="lng-33" step="0.000001" placeholder="Longitud" value="-108.4686">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5675,-108.4686" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Guasave%2C%20Sinaloa%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(33)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-33" onclick="saveCoordinates(33)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-33" onclick="cancelEdit(33)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="24 - exposicion monterrey 34">
+                    <div class="branch-header">
+                        <span class="branch-number">#34</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">24 - Exposicion</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-34">
+                            📍 25.731400, -100.308900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-34">
+                            <input type="number" class="coord-input" id="lat-34" step="0.000001" placeholder="Latitud" value="25.7314">
+                            <input type="number" class="coord-input" id="lng-34" step="0.000001" placeholder="Longitud" value="-100.3089">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7314,-100.3089" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(34)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-34" onclick="saveCoordinates(34)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-34" onclick="cancelEdit(34)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="25 - juarez monterrey 35">
+                    <div class="branch-header">
+                        <span class="branch-number">#35</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">25 - Juarez</div>
+                    <div class="branch-location">📍 Monterrey, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-35">
+                            📍 25.669300, -100.302500
+                        </div>
+                        <div class="coordinates-input" id="coords-input-35">
+                            <input type="number" class="coord-input" id="lat-35" step="0.000001" placeholder="Latitud" value="25.6693">
+                            <input type="number" class="coord-input" id="lng-35" step="0.000001" placeholder="Longitud" value="-100.3025">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6693,-100.3025" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(35)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-35" onclick="saveCoordinates(35)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-35" onclick="cancelEdit(35)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="26 - cadereyta cadereyta jiménez 36">
+                    <div class="branch-header">
+                        <span class="branch-number">#36</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">26 - Cadereyta</div>
+                    <div class="branch-location">📍 Cadereyta Jiménez, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-36">
+                            📍 25.593700, -99.996100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-36">
+                            <input type="number" class="coord-input" id="lat-36" step="0.000001" placeholder="Latitud" value="25.5937">
+                            <input type="number" class="coord-input" id="lng-36" step="0.000001" placeholder="Longitud" value="-99.9961">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5937,-99.9961" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Cadereyta%20Jim%C3%A9nez%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(36)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-36" onclick="saveCoordinates(36)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-36" onclick="cancelEdit(36)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="27 - santiago santiago 37">
+                    <div class="branch-header">
+                        <span class="branch-number">#37</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">27 - Santiago</div>
+                    <div class="branch-location">📍 Santiago, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-37">
+                            📍 25.429400, -100.147800
+                        </div>
+                        <div class="coordinates-input" id="coords-input-37">
+                            <input type="number" class="coord-input" id="lat-37" step="0.000001" placeholder="Latitud" value="25.4294">
+                            <input type="number" class="coord-input" id="lng-37" step="0.000001" placeholder="Longitud" value="-100.1478">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.4294,-100.1478" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Santiago%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(37)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-37" onclick="saveCoordinates(37)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-37" onclick="cancelEdit(37)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="28 - guerrero nuevo laredo 38">
+                    <div class="branch-header">
+                        <span class="branch-number">#38</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">28 - Guerrero</div>
+                    <div class="branch-location">📍 Nuevo Laredo, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-38">
+                            📍 27.476900, -99.516900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-38">
+                            <input type="number" class="coord-input" id="lat-38" step="0.000001" placeholder="Latitud" value="27.4769">
+                            <input type="number" class="coord-input" id="lng-38" step="0.000001" placeholder="Longitud" value="-99.5169">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=27.4769,-99.5169" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(38)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-38" onclick="saveCoordinates(38)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-38" onclick="cancelEdit(38)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="29 - pablo livas guadalupe 39">
+                    <div class="branch-header">
+                        <span class="branch-number">#39</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">29 - Pablo Livas</div>
+                    <div class="branch-location">📍 Guadalupe, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-39">
+                            📍 25.719500, -100.346900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-39">
+                            <input type="number" class="coord-input" id="lat-39" step="0.000001" placeholder="Latitud" value="25.7195">
+                            <input type="number" class="coord-input" id="lng-39" step="0.000001" placeholder="Longitud" value="-100.3469">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7195,-100.3469" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(39)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-39" onclick="saveCoordinates(39)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-39" onclick="cancelEdit(39)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="30 - carrizo nuevo laredo 40">
+                    <div class="branch-header">
+                        <span class="branch-number">#40</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">30 - Carrizo</div>
+                    <div class="branch-location">📍 Nuevo Laredo, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-40">
+                            📍 27.484700, -99.509100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-40">
+                            <input type="number" class="coord-input" id="lat-40" step="0.000001" placeholder="Latitud" value="27.4847">
+                            <input type="number" class="coord-input" id="lng-40" step="0.000001" placeholder="Longitud" value="-99.5091">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=27.4847,-99.5091" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(40)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-40" onclick="saveCoordinates(40)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-40" onclick="cancelEdit(40)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="31 - las quintas guadalupe 41">
+                    <div class="branch-header">
+                        <span class="branch-number">#41</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">31 - Las Quintas</div>
+                    <div class="branch-location">📍 Guadalupe, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-41">
+                            📍 25.683400, -100.358100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-41">
+                            <input type="number" class="coord-input" id="lat-41" step="0.000001" placeholder="Latitud" value="25.6834">
+                            <input type="number" class="coord-input" id="lng-41" step="0.000001" placeholder="Longitud" value="-100.3581">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6834,-100.3581" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(41)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-41" onclick="saveCoordinates(41)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-41" onclick="cancelEdit(41)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="32 - allende allende 42">
+                    <div class="branch-header">
+                        <span class="branch-number">#42</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">32 - Allende</div>
+                    <div class="branch-location">📍 Allende, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-42">
+                            📍 25.291100, -100.016900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-42">
+                            <input type="number" class="coord-input" id="lat-42" step="0.000001" placeholder="Latitud" value="25.2911">
+                            <input type="number" class="coord-input" id="lng-42" step="0.000001" placeholder="Longitud" value="-100.0169">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.2911,-100.0169" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Allende%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(42)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-42" onclick="saveCoordinates(42)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-42" onclick="cancelEdit(42)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="33 - eloy cavazos san nicolás de los garza 43">
+                    <div class="branch-header">
+                        <span class="branch-number">#43</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">33 - Eloy Cavazos</div>
+                    <div class="branch-location">📍 San Nicolás de los Garza, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-43">
+                            📍 25.706100, -100.380300
+                        </div>
+                        <div class="coordinates-input" id="coords-input-43">
+                            <input type="number" class="coord-input" id="lat-43" step="0.000001" placeholder="Latitud" value="25.7061">
+                            <input type="number" class="coord-input" id="lng-43" step="0.000001" placeholder="Longitud" value="-100.3803">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7061,-100.3803" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(43)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-43" onclick="saveCoordinates(43)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-43" onclick="cancelEdit(43)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="34 - montemorelos montemorelos 44">
+                    <div class="branch-header">
+                        <span class="branch-number">#44</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">34 - Montemorelos</div>
+                    <div class="branch-location">📍 Montemorelos, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-44">
+                            📍 25.192200, -99.826400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-44">
+                            <input type="number" class="coord-input" id="lat-44" step="0.000001" placeholder="Latitud" value="25.1922">
+                            <input type="number" class="coord-input" id="lng-44" step="0.000001" placeholder="Longitud" value="-99.8264">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.1922,-99.8264" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Montemorelos%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(44)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-44" onclick="saveCoordinates(44)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-44" onclick="cancelEdit(44)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="35 - apodaca apodaca 45">
+                    <div class="branch-header">
+                        <span class="branch-number">#45</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">35 - Apodaca</div>
+                    <div class="branch-location">📍 Apodaca, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-45">
+                            📍 25.781700, -100.182200
+                        </div>
+                        <div class="coordinates-input" id="coords-input-45">
+                            <input type="number" class="coord-input" id="lat-45" step="0.000001" placeholder="Latitud" value="25.7817">
+                            <input type="number" class="coord-input" id="lng-45" step="0.000001" placeholder="Longitud" value="-100.1822">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7817,-100.1822" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Apodaca%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(45)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-45" onclick="saveCoordinates(45)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-45" onclick="cancelEdit(45)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="36 - apodaca centro apodaca 46">
+                    <div class="branch-header">
+                        <span class="branch-number">#46</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">36 - Apodaca Centro</div>
+                    <div class="branch-location">📍 Apodaca, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-46">
+                            📍 25.773600, -100.194400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-46">
+                            <input type="number" class="coord-input" id="lat-46" step="0.000001" placeholder="Latitud" value="25.7736">
+                            <input type="number" class="coord-input" id="lng-46" step="0.000001" placeholder="Longitud" value="-100.1944">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7736,-100.1944" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Apodaca%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(46)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-46" onclick="saveCoordinates(46)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-46" onclick="cancelEdit(46)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="37 - stiva general escobedo 47">
+                    <div class="branch-header">
+                        <span class="branch-number">#47</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">37 - Stiva</div>
+                    <div class="branch-location">📍 General Escobedo, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-47">
+                            📍 25.731400, -100.206900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-47">
+                            <input type="number" class="coord-input" id="lat-47" step="0.000001" placeholder="Latitud" value="25.7314">
+                            <input type="number" class="coord-input" id="lng-47" step="0.000001" placeholder="Longitud" value="-100.2069">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7314,-100.2069" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20General%20Escobedo%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(47)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-47" onclick="saveCoordinates(47)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-47" onclick="cancelEdit(47)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="40 - plaza 1500 apodaca 48">
+                    <div class="branch-header">
+                        <span class="branch-number">#48</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">40 - Plaza 1500</div>
+                    <div class="branch-location">📍 Apodaca, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-48">
+                            📍 25.773600, -100.244700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-48">
+                            <input type="number" class="coord-input" id="lat-48" step="0.000001" placeholder="Latitud" value="25.7736">
+                            <input type="number" class="coord-input" id="lng-48" step="0.000001" placeholder="Longitud" value="-100.2447">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7736,-100.2447" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Apodaca%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(48)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-48" onclick="saveCoordinates(48)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-48" onclick="cancelEdit(48)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="38 - gomez morin san pedro garza garcía 49">
+                    <div class="branch-header">
+                        <span class="branch-number">#49</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">38 - Gomez Morin</div>
+                    <div class="branch-location">📍 San Pedro Garza García, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-49">
+                            📍 25.665300, -100.244700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-49">
+                            <input type="number" class="coord-input" id="lat-49" step="0.000001" placeholder="Latitud" value="25.6653">
+                            <input type="number" class="coord-input" id="lng-49" step="0.000001" placeholder="Longitud" value="-100.2447">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6653,-100.2447" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Pedro%20Garza%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(49)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-49" onclick="saveCoordinates(49)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-49" onclick="cancelEdit(49)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="39 - lazaro cardenas san nicolás de los garza 50">
+                    <div class="branch-header">
+                        <span class="branch-number">#50</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">39 - Lazaro Cardenas</div>
+                    <div class="branch-location">📍 San Nicolás de los Garza, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-50">
+                            📍 25.703600, -100.324700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-50">
+                            <input type="number" class="coord-input" id="lat-50" step="0.000001" placeholder="Latitud" value="25.7036">
+                            <input type="number" class="coord-input" id="lng-50" step="0.000001" placeholder="Longitud" value="-100.3247">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.7036,-100.3247" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(50)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-50" onclick="saveCoordinates(50)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-50" onclick="cancelEdit(50)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="41 - vasconcelos san pedro garza garcía 51">
+                    <div class="branch-header">
+                        <span class="branch-number">#51</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">41 - Vasconcelos</div>
+                    <div class="branch-location">📍 San Pedro Garza García, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-51">
+                            📍 25.697400, -100.315800
+                        </div>
+                        <div class="coordinates-input" id="coords-input-51">
+                            <input type="number" class="coord-input" id="lat-51" step="0.000001" placeholder="Latitud" value="25.6974">
+                            <input type="number" class="coord-input" id="lng-51" step="0.000001" placeholder="Longitud" value="-100.3158">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6974,-100.3158" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Pedro%20Garza%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(51)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-51" onclick="saveCoordinates(51)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-51" onclick="cancelEdit(51)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="42 - independencia torreón 52">
+                    <div class="branch-header">
+                        <span class="branch-number">#52</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">42 - Independencia</div>
+                    <div class="branch-location">📍 Torreón, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-52">
+                            📍 25.542800, -103.406700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-52">
+                            <input type="number" class="coord-input" id="lat-52" step="0.000001" placeholder="Latitud" value="25.5428">
+                            <input type="number" class="coord-input" id="lng-52" step="0.000001" placeholder="Longitud" value="-103.4067">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5428,-103.4067" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(52)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-52" onclick="saveCoordinates(52)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-52" onclick="cancelEdit(52)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="43 - revolucion torreón 53">
+                    <div class="branch-header">
+                        <span class="branch-number">#53</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">43 - Revolucion</div>
+                    <div class="branch-location">📍 Torreón, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-53">
+                            📍 25.550600, -103.418100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-53">
+                            <input type="number" class="coord-input" id="lat-53" step="0.000001" placeholder="Latitud" value="25.5506">
+                            <input type="number" class="coord-input" id="lng-53" step="0.000001" placeholder="Longitud" value="-103.4181">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5506,-103.4181" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(53)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-53" onclick="saveCoordinates(53)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-53" onclick="cancelEdit(53)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="44 - senderos torreón 54">
+                    <div class="branch-header">
+                        <span class="branch-number">#54</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">44 - Senderos</div>
+                    <div class="branch-location">📍 Torreón, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-54">
+                            📍 25.558300, -103.395300
+                        </div>
+                        <div class="coordinates-input" id="coords-input-54">
+                            <input type="number" class="coord-input" id="lat-54" step="0.000001" placeholder="Latitud" value="25.5583">
+                            <input type="number" class="coord-input" id="lng-54" step="0.000001" placeholder="Longitud" value="-103.3953">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5583,-103.3953" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(54)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-54" onclick="saveCoordinates(54)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-54" onclick="cancelEdit(54)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="45 - triana torreón 55">
+                    <div class="branch-header">
+                        <span class="branch-number">#55</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">45 - Triana</div>
+                    <div class="branch-location">📍 Torreón, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-55">
+                            📍 25.566100, -103.429500
+                        </div>
+                        <div class="coordinates-input" id="coords-input-55">
+                            <input type="number" class="coord-input" id="lat-55" step="0.000001" placeholder="Latitud" value="25.5661">
+                            <input type="number" class="coord-input" id="lng-55" step="0.000001" placeholder="Longitud" value="-103.4295">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5661,-103.4295" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(55)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-55" onclick="saveCoordinates(55)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-55" onclick="cancelEdit(55)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="46 - campestre torreón 56">
+                    <div class="branch-header">
+                        <span class="branch-number">#56</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">46 - Campestre</div>
+                    <div class="branch-location">📍 Torreón, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-56">
+                            📍 25.573900, -103.406700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-56">
+                            <input type="number" class="coord-input" id="lat-56" step="0.000001" placeholder="Latitud" value="25.5739">
+                            <input type="number" class="coord-input" id="lng-56" step="0.000001" placeholder="Longitud" value="-103.4067">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5739,-103.4067" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(56)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-56" onclick="saveCoordinates(56)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-56" onclick="cancelEdit(56)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="47 - san antonio gómez palacio 57">
+                    <div class="branch-header">
+                        <span class="branch-number">#57</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">47 - San Antonio</div>
+                    <div class="branch-location">📍 Gómez Palacio, Durango</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-57">
+                            📍 25.864400, -103.418100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-57">
+                            <input type="number" class="coord-input" id="lat-57" step="0.000001" placeholder="Latitud" value="25.8644">
+                            <input type="number" class="coord-input" id="lng-57" step="0.000001" placeholder="Longitud" value="-103.4181">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.8644,-103.4181" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20G%C3%B3mez%20Palacio%2C%20Durango%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(57)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-57" onclick="saveCoordinates(57)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-57" onclick="cancelEdit(57)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="48 - refugio querétaro 58">
+                    <div class="branch-header">
+                        <span class="branch-number">#58</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">48 - Refugio</div>
+                    <div class="branch-location">📍 Querétaro, Querétaro</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-58">
+                            📍 20.588800, -100.389900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-58">
+                            <input type="number" class="coord-input" id="lat-58" step="0.000001" placeholder="Latitud" value="20.5888">
+                            <input type="number" class="coord-input" id="lng-58" step="0.000001" placeholder="Longitud" value="-100.3899">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=20.5888,-100.3899" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Quer%C3%A9taro%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(58)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-58" onclick="saveCoordinates(58)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-58" onclick="cancelEdit(58)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="49 - pueblito corregidora 59">
+                    <div class="branch-header">
+                        <span class="branch-number">#59</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">49 - Pueblito</div>
+                    <div class="branch-location">📍 Corregidora, Querétaro</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-59">
+                            📍 20.601900, -100.371400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-59">
+                            <input type="number" class="coord-input" id="lat-59" step="0.000001" placeholder="Latitud" value="20.6019">
+                            <input type="number" class="coord-input" id="lng-59" step="0.000001" placeholder="Longitud" value="-100.3714">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=20.6019,-100.3714" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Corregidora%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(59)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-59" onclick="saveCoordinates(59)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-59" onclick="cancelEdit(59)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="50 - patio querétaro 60">
+                    <div class="branch-header">
+                        <span class="branch-number">#60</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">50 - Patio</div>
+                    <div class="branch-location">📍 Querétaro, Querétaro</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-60">
+                            📍 20.588800, -100.408400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-60">
+                            <input type="number" class="coord-input" id="lat-60" step="0.000001" placeholder="Latitud" value="20.5888">
+                            <input type="number" class="coord-input" id="lng-60" step="0.000001" placeholder="Longitud" value="-100.4084">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=20.5888,-100.4084" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Quer%C3%A9taro%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(60)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-60" onclick="saveCoordinates(60)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-60" onclick="cancelEdit(60)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="51 - constituyentes querétaro 61">
+                    <div class="branch-header">
+                        <span class="branch-number">#61</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">51 - Constituyentes</div>
+                    <div class="branch-location">📍 Querétaro, Querétaro</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-61">
+                            📍 20.609700, -100.389900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-61">
+                            <input type="number" class="coord-input" id="lat-61" step="0.000001" placeholder="Latitud" value="20.6097">
+                            <input type="number" class="coord-input" id="lng-61" step="0.000001" placeholder="Longitud" value="-100.3899">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=20.6097,-100.3899" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Quer%C3%A9taro%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(61)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-61" onclick="saveCoordinates(61)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-61" onclick="cancelEdit(61)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="52 - venustiano carranza saltillo 62">
+                    <div class="branch-header">
+                        <span class="branch-number">#62</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">52 - Venustiano Carranza</div>
+                    <div class="branch-location">📍 Saltillo, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-62">
+                            📍 25.423100, -100.993100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-62">
+                            <input type="number" class="coord-input" id="lat-62" step="0.000001" placeholder="Latitud" value="25.4231">
+                            <input type="number" class="coord-input" id="lng-62" step="0.000001" placeholder="Longitud" value="-100.9931">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.4231,-100.9931" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(62)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-62" onclick="saveCoordinates(62)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-62" onclick="cancelEdit(62)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="53 - lienzo charro saltillo 63">
+                    <div class="branch-header">
+                        <span class="branch-number">#63</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">53 - Lienzo Charro</div>
+                    <div class="branch-location">📍 Saltillo, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-63">
+                            📍 25.438600, -101.015600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-63">
+                            <input type="number" class="coord-input" id="lat-63" step="0.000001" placeholder="Latitud" value="25.4386">
+                            <input type="number" class="coord-input" id="lng-63" step="0.000001" placeholder="Longitud" value="-101.0156">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.4386,-101.0156" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(63)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-63" onclick="saveCoordinates(63)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-63" onclick="cancelEdit(63)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="54 - ramos arizpe ramos arizpe 64">
+                    <div class="branch-header">
+                        <span class="branch-number">#64</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">54 - Ramos Arizpe</div>
+                    <div class="branch-location">📍 Ramos Arizpe, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-64">
+                            📍 25.559700, -100.945300
+                        </div>
+                        <div class="coordinates-input" id="coords-input-64">
+                            <input type="number" class="coord-input" id="lat-64" step="0.000001" placeholder="Latitud" value="25.5597">
+                            <input type="number" class="coord-input" id="lng-64" step="0.000001" placeholder="Longitud" value="-100.9453">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.5597,-100.9453" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Ramos%20Arizpe%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(64)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-64" onclick="saveCoordinates(64)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-64" onclick="cancelEdit(64)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="55 - eulalio gutierrez saltillo 65">
+                    <div class="branch-header">
+                        <span class="branch-number">#65</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">55 - Eulalio Gutierrez</div>
+                    <div class="branch-location">📍 Saltillo, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-65">
+                            📍 25.407500, -100.967800
+                        </div>
+                        <div class="coordinates-input" id="coords-input-65">
+                            <input type="number" class="coord-input" id="lat-65" step="0.000001" placeholder="Latitud" value="25.4075">
+                            <input type="number" class="coord-input" id="lng-65" step="0.000001" placeholder="Longitud" value="-100.9678">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.4075,-100.9678" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(65)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-65" onclick="saveCoordinates(65)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-65" onclick="cancelEdit(65)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="56 - luis echeverria saltillo 66">
+                    <div class="branch-header">
+                        <span class="branch-number">#66</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">56 - Luis Echeverria</div>
+                    <div class="branch-location">📍 Saltillo, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-66">
+                            📍 25.446400, -100.967800
+                        </div>
+                        <div class="coordinates-input" id="coords-input-66">
+                            <input type="number" class="coord-input" id="lat-66" step="0.000001" placeholder="Latitud" value="25.4464">
+                            <input type="number" class="coord-input" id="lng-66" step="0.000001" placeholder="Longitud" value="-100.9678">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.4464,-100.9678" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(66)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-66" onclick="saveCoordinates(66)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-66" onclick="cancelEdit(66)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="57 - harold r. pape saltillo 67">
+                    <div class="branch-header">
+                        <span class="branch-number">#67</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">57 - Harold R. Pape</div>
+                    <div class="branch-location">📍 Saltillo, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-67">
+                            📍 25.454200, -101.015600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-67">
+                            <input type="number" class="coord-input" id="lat-67" step="0.000001" placeholder="Latitud" value="25.4542">
+                            <input type="number" class="coord-input" id="lng-67" step="0.000001" placeholder="Longitud" value="-101.0156">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.4542,-101.0156" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(67)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-67" onclick="saveCoordinates(67)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-67" onclick="cancelEdit(67)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="58 - universidad (tampico) tampico 68">
+                    <div class="branch-header">
+                        <span class="branch-number">#68</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">58 - Universidad (Tampico)</div>
+                    <div class="branch-location">📍 Tampico, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-68">
+                            📍 22.290800, -97.837500
+                        </div>
+                        <div class="coordinates-input" id="coords-input-68">
+                            <input type="number" class="coord-input" id="lat-68" step="0.000001" placeholder="Latitud" value="22.2908">
+                            <input type="number" class="coord-input" id="lng-68" step="0.000001" placeholder="Longitud" value="-97.8375">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=22.2908,-97.8375" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(68)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-68" onclick="saveCoordinates(68)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-68" onclick="cancelEdit(68)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="59 - plaza 3601 tampico 69">
+                    <div class="branch-header">
+                        <span class="branch-number">#69</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">59 - Plaza 3601</div>
+                    <div class="branch-location">📍 Tampico, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-69">
+                            📍 22.298600, -97.829700
+                        </div>
+                        <div class="coordinates-input" id="coords-input-69">
+                            <input type="number" class="coord-input" id="lat-69" step="0.000001" placeholder="Latitud" value="22.2986">
+                            <input type="number" class="coord-input" id="lng-69" step="0.000001" placeholder="Longitud" value="-97.8297">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=22.2986,-97.8297" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(69)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-69" onclick="saveCoordinates(69)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-69" onclick="cancelEdit(69)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="60 - centro (tampico) tampico 70">
+                    <div class="branch-header">
+                        <span class="branch-number">#70</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">60 - Centro (Tampico)</div>
+                    <div class="branch-location">📍 Tampico, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-70">
+                            📍 22.290800, -97.845300
+                        </div>
+                        <div class="coordinates-input" id="coords-input-70">
+                            <input type="number" class="coord-input" id="lat-70" step="0.000001" placeholder="Latitud" value="22.2908">
+                            <input type="number" class="coord-input" id="lng-70" step="0.000001" placeholder="Longitud" value="-97.8453">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=22.2908,-97.8453" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(70)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-70" onclick="saveCoordinates(70)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-70" onclick="cancelEdit(70)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="61 - aeropuerto (tampico) tampico 71">
+                    <div class="branch-header">
+                        <span class="branch-number">#71</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">61 - Aeropuerto (Tampico)</div>
+                    <div class="branch-location">📍 Tampico, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-71">
+                            📍 22.298600, -97.868600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-71">
+                            <input type="number" class="coord-input" id="lat-71" step="0.000001" placeholder="Latitud" value="22.2986">
+                            <input type="number" class="coord-input" id="lng-71" step="0.000001" placeholder="Longitud" value="-97.8686">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=22.2986,-97.8686" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(71)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-71" onclick="saveCoordinates(71)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-71" onclick="cancelEdit(71)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="65 - pedro cardenas matamoros 75">
+                    <div class="branch-header">
+                        <span class="branch-number">#75</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">65 - Pedro Cardenas</div>
+                    <div class="branch-location">📍 Matamoros, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-75">
+                            📍 25.869400, -97.504400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-75">
+                            <input type="number" class="coord-input" id="lat-75" step="0.000001" placeholder="Latitud" value="25.8694">
+                            <input type="number" class="coord-input" id="lng-75" step="0.000001" placeholder="Longitud" value="-97.5044">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.8694,-97.5044" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(75)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-75" onclick="saveCoordinates(75)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-75" onclick="cancelEdit(75)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="66 - lauro villar matamoros 76">
+                    <div class="branch-header">
+                        <span class="branch-number">#76</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">66 - Lauro Villar</div>
+                    <div class="branch-location">📍 Matamoros, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-76">
+                            📍 25.877200, -97.512200
+                        </div>
+                        <div class="coordinates-input" id="coords-input-76">
+                            <input type="number" class="coord-input" id="lat-76" step="0.000001" placeholder="Latitud" value="25.8772">
+                            <input type="number" class="coord-input" id="lng-76" step="0.000001" placeholder="Longitud" value="-97.5122">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.8772,-97.5122" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(76)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-76" onclick="saveCoordinates(76)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-76" onclick="cancelEdit(76)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="67 - centro (matamoros) matamoros 77">
+                    <div class="branch-header">
+                        <span class="branch-number">#77</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">67 - Centro (Matamoros)</div>
+                    <div class="branch-location">📍 Matamoros, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-77">
+                            📍 25.869400, -97.520000
+                        </div>
+                        <div class="coordinates-input" id="coords-input-77">
+                            <input type="number" class="coord-input" id="lat-77" step="0.000001" placeholder="Latitud" value="25.8694">
+                            <input type="number" class="coord-input" id="lng-77" step="0.000001" placeholder="Longitud" value="-97.52">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.8694,-97.52" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(77)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-77" onclick="saveCoordinates(77)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-77" onclick="cancelEdit(77)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="68 - avenida del niño matamoros 78">
+                    <div class="branch-header">
+                        <span class="branch-number">#78</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">68 - Avenida del Niño</div>
+                    <div class="branch-location">📍 Matamoros, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-78">
+                            📍 25.885000, -97.512200
+                        </div>
+                        <div class="coordinates-input" id="coords-input-78">
+                            <input type="number" class="coord-input" id="lat-78" step="0.000001" placeholder="Latitud" value="25.885">
+                            <input type="number" class="coord-input" id="lng-78" step="0.000001" placeholder="Longitud" value="-97.5122">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.885,-97.5122" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(78)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-78" onclick="saveCoordinates(78)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-78" onclick="cancelEdit(78)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="69 - puerto rico matamoros 79">
+                    <div class="branch-header">
+                        <span class="branch-number">#79</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">69 - Puerto Rico</div>
+                    <div class="branch-location">📍 Matamoros, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-79">
+                            📍 25.892800, -97.496600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-79">
+                            <input type="number" class="coord-input" id="lat-79" step="0.000001" placeholder="Latitud" value="25.8928">
+                            <input type="number" class="coord-input" id="lng-79" step="0.000001" placeholder="Longitud" value="-97.4966">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.8928,-97.4966" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(79)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-79" onclick="saveCoordinates(79)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-79" onclick="cancelEdit(79)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="70 - coahuila comidas piedras negras 80">
+                    <div class="branch-header">
+                        <span class="branch-number">#80</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">70 - Coahuila Comidas</div>
+                    <div class="branch-location">📍 Piedras Negras, Coahuila</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-80">
+                            📍 28.700000, -100.533300
+                        </div>
+                        <div class="coordinates-input" id="coords-input-80">
+                            <input type="number" class="coord-input" id="lat-80" step="0.000001" placeholder="Latitud" value="28.7">
+                            <input type="number" class="coord-input" id="lng-80" step="0.000001" placeholder="Longitud" value="-100.5333">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=28.7,-100.5333" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Piedras%20Negras%2C%20Coahuila%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(80)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-80" onclick="saveCoordinates(80)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-80" onclick="cancelEdit(80)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="71 - centrito valle san pedro garza garcía 81">
+                    <div class="branch-header">
+                        <span class="branch-number">#81</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">71 - Centrito Valle</div>
+                    <div class="branch-location">📍 San Pedro Garza García, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-81">
+                            📍 25.665300, -100.236900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-81">
+                            <input type="number" class="coord-input" id="lat-81" step="0.000001" placeholder="Latitud" value="25.6653">
+                            <input type="number" class="coord-input" id="lng-81" step="0.000001" placeholder="Longitud" value="-100.2369">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.6653,-100.2369" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20San%20Pedro%20Garza%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(81)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-81" onclick="saveCoordinates(81)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-81" onclick="cancelEdit(81)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="72 - sabinas hidalgo sabinas hidalgo 82">
+                    <div class="branch-header">
+                        <span class="branch-number">#82</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">72 - Sabinas Hidalgo</div>
+                    <div class="branch-location">📍 Sabinas Hidalgo, Nuevo León</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-82">
+                            📍 26.504400, -100.174400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-82">
+                            <input type="number" class="coord-input" id="lat-82" step="0.000001" placeholder="Latitud" value="26.5044">
+                            <input type="number" class="coord-input" id="lng-82" step="0.000001" placeholder="Longitud" value="-100.1744">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=26.5044,-100.1744" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Sabinas%20Hidalgo%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(82)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-82" onclick="saveCoordinates(82)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-82" onclick="cancelEdit(82)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="73 - anzalduas reynosa 83">
+                    <div class="branch-header">
+                        <span class="branch-number">#83</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">73 - Anzalduas</div>
+                    <div class="branch-location">📍 Reynosa, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-83">
+                            📍 26.060000, -98.304400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-83">
+                            <input type="number" class="coord-input" id="lat-83" step="0.000001" placeholder="Latitud" value="26.06">
+                            <input type="number" class="coord-input" id="lng-83" step="0.000001" placeholder="Longitud" value="-98.3044">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=26.06,-98.3044" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(83)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-83" onclick="saveCoordinates(83)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-83" onclick="cancelEdit(83)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="74 - hidalgo (reynosa) reynosa 84">
+                    <div class="branch-header">
+                        <span class="branch-number">#84</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">74 - Hidalgo (Reynosa)</div>
+                    <div class="branch-location">📍 Reynosa, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-84">
+                            📍 26.067800, -98.312200
+                        </div>
+                        <div class="coordinates-input" id="coords-input-84">
+                            <input type="number" class="coord-input" id="lat-84" step="0.000001" placeholder="Latitud" value="26.0678">
+                            <input type="number" class="coord-input" id="lng-84" step="0.000001" placeholder="Longitud" value="-98.3122">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=26.0678,-98.3122" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(84)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-84" onclick="saveCoordinates(84)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-84" onclick="cancelEdit(84)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="75 - libramiento (reynosa) reynosa 85">
+                    <div class="branch-header">
+                        <span class="branch-number">#85</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">75 - Libramiento (Reynosa)</div>
+                    <div class="branch-location">📍 Reynosa, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-85">
+                            📍 26.075600, -98.296600
+                        </div>
+                        <div class="coordinates-input" id="coords-input-85">
+                            <input type="number" class="coord-input" id="lat-85" step="0.000001" placeholder="Latitud" value="26.0756">
+                            <input type="number" class="coord-input" id="lng-85" step="0.000001" placeholder="Longitud" value="-98.2966">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=26.0756,-98.2966" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(85)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-85" onclick="saveCoordinates(85)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-85" onclick="cancelEdit(85)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="76 - aeropuerto (reynosa) reynosa 86">
+                    <div class="branch-header">
+                        <span class="branch-number">#86</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">76 - Aeropuerto (Reynosa)</div>
+                    <div class="branch-location">📍 Reynosa, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-86">
+                            📍 26.052200, -98.227800
+                        </div>
+                        <div class="coordinates-input" id="coords-input-86">
+                            <input type="number" class="coord-input" id="lat-86" step="0.000001" placeholder="Latitud" value="26.0522">
+                            <input type="number" class="coord-input" id="lng-86" step="0.000001" placeholder="Longitud" value="-98.2278">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=26.0522,-98.2278" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(86)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-86" onclick="saveCoordinates(86)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-86" onclick="cancelEdit(86)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="77 - boulevard morelos reynosa 87">
+                    <div class="branch-header">
+                        <span class="branch-number">#87</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">77 - Boulevard Morelos</div>
+                    <div class="branch-location">📍 Reynosa, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-87">
+                            📍 26.067800, -98.288900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-87">
+                            <input type="number" class="coord-input" id="lat-87" step="0.000001" placeholder="Latitud" value="26.0678">
+                            <input type="number" class="coord-input" id="lng-87" step="0.000001" placeholder="Longitud" value="-98.2889">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=26.0678,-98.2889" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(87)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-87" onclick="saveCoordinates(87)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-87" onclick="cancelEdit(87)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="78 - alcala reynosa 88">
+                    <div class="branch-header">
+                        <span class="branch-number">#88</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">78 - Alcala</div>
+                    <div class="branch-location">📍 Reynosa, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-88">
+                            📍 26.083400, -98.304400
+                        </div>
+                        <div class="coordinates-input" id="coords-input-88">
+                            <input type="number" class="coord-input" id="lat-88" step="0.000001" placeholder="Latitud" value="26.0834">
+                            <input type="number" class="coord-input" id="lng-88" step="0.000001" placeholder="Longitud" value="-98.3044">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=26.0834,-98.3044" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(88)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-88" onclick="saveCoordinates(88)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-88" onclick="cancelEdit(88)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="79 - rio bravo río bravo 89">
+                    <div class="branch-header">
+                        <span class="branch-number">#89</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">79 - Rio Bravo</div>
+                    <div class="branch-location">📍 Río Bravo, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-89">
+                            📍 25.989400, -98.093300
+                        </div>
+                        <div class="coordinates-input" id="coords-input-89">
+                            <input type="number" class="coord-input" id="lat-89" step="0.000001" placeholder="Latitud" value="25.9894">
+                            <input type="number" class="coord-input" id="lng-89" step="0.000001" placeholder="Longitud" value="-98.0933">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=25.9894,-98.0933" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20R%C3%ADo%20Bravo%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(89)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-89" onclick="saveCoordinates(89)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-89" onclick="cancelEdit(89)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="80 - guerrero 2 (ruelas) nuevo laredo 90">
+                    <div class="branch-header">
+                        <span class="branch-number">#90</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">80 - Guerrero 2 (Ruelas)</div>
+                    <div class="branch-location">📍 Nuevo Laredo, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-90">
+                            📍 27.476900, -99.516900
+                        </div>
+                        <div class="coordinates-input" id="coords-input-90">
+                            <input type="number" class="coord-input" id="lat-90" step="0.000001" placeholder="Latitud" value="27.4769">
+                            <input type="number" class="coord-input" id="lng-90" step="0.000001" placeholder="Longitud" value="-99.5169">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=27.4769,-99.5169" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(90)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-90" onclick="saveCoordinates(90)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-90" onclick="cancelEdit(90)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="81 - reforma (ruelas) nuevo laredo 91">
+                    <div class="branch-header">
+                        <span class="branch-number">#91</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">81 - Reforma (Ruelas)</div>
+                    <div class="branch-location">📍 Nuevo Laredo, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-91">
+                            📍 27.484700, -99.509100
+                        </div>
+                        <div class="coordinates-input" id="coords-input-91">
+                            <input type="number" class="coord-input" id="lat-91" step="0.000001" placeholder="Latitud" value="27.4847">
+                            <input type="number" class="coord-input" id="lng-91" step="0.000001" placeholder="Longitud" value="-99.5091">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=27.4847,-99.5091" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(91)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-91" onclick="saveCoordinates(91)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-91" onclick="cancelEdit(91)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+                <div class="branch-card valid" data-filter="valid" data-search="82 - aeropuerto nuevo laredo nuevo laredo 92">
+                    <div class="branch-header">
+                        <span class="branch-number">#92</span>
+                        <span class="status-badge valid">VÁLIDA</span>
+                    </div>
+                    <div class="branch-name">82 - Aeropuerto Nuevo Laredo</div>
+                    <div class="branch-location">📍 Nuevo Laredo, Tamaulipas</div>
+                    <div class="branch-address">🏠 Sin dirección</div>
+                    
+                    <div class="coordinates-section">
+                        <div class="coordinates-display" id="coords-display-92">
+                            📍 27.443300, -99.570500
+                        </div>
+                        <div class="coordinates-input" id="coords-input-92">
+                            <input type="number" class="coord-input" id="lat-92" step="0.000001" placeholder="Latitud" value="27.4433">
+                            <input type="number" class="coord-input" id="lng-92" step="0.000001" placeholder="Longitud" value="-99.5705">
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="actions">
+                        <a href="https://maps.google.com/?q=27.4433,-99.5705" target="_blank" class="btn btn-view">🗺️ Ver en Maps</a>
+                        <a href="https://maps.google.com/maps?q=null%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" target="_blank" class="btn btn-search">🔍 Buscar Dirección</a>
+                        <button class="btn btn-edit" onclick="toggleEdit(92)">✏️ Editar</button>
+                        <button class="btn btn-save hidden" id="save-92" onclick="saveCoordinates(92)">💾 Guardar</button>
+                        <button class="btn btn-cancel hidden" id="cancel-92" onclick="cancelEdit(92)">❌ Cancelar</button>
+                    </div>
+                </div>
+              
+        </div>
+        
+        <div class="bulk-actions">
+            <h3>🚀 Acciones Masivas</h3>
+            <button class="btn btn-search" onclick="openAllProblematic()" style="margin: 5px; padding: 10px 20px;">
+                🗺️ Abrir todas las problemáticas en Google Maps
+            </button>
+            <button class="btn btn-view" onclick="exportProblematicList()" style="margin: 5px; padding: 10px 20px;">
+                📋 Exportar lista de coordenadas problemáticas
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let editingBranch = null;
+        
+        // Filtrar sucursales
+        function filterBranches(filter) {
+            const cards = document.querySelectorAll('.branch-card');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            cards.forEach(card => {
+                if (filter === 'all' || card.dataset.filter === filter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Buscar sucursales
+        function searchBranches() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const cards = document.querySelectorAll('.branch-card');
+            
+            cards.forEach(card => {
+                if (card.dataset.search.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Toggle edit mode
+        function toggleEdit(branchId) {
+            if (editingBranch && editingBranch !== branchId) {
+                cancelEdit(editingBranch);
+            }
+            
+            editingBranch = branchId;
+            
+            document.getElementById('coords-display-' + branchId).style.display = 'none';
+            document.getElementById('coords-input-' + branchId).classList.add('editing');
+            document.getElementById('save-' + branchId).classList.remove('hidden');
+            document.getElementById('cancel-' + branchId).classList.remove('hidden');
+        }
+        
+        // Cancel edit
+        function cancelEdit(branchId) {
+            document.getElementById('coords-display-' + branchId).style.display = 'block';
+            document.getElementById('coords-input-' + branchId).classList.remove('editing');
+            document.getElementById('save-' + branchId).classList.add('hidden');
+            document.getElementById('cancel-' + branchId).classList.add('hidden');
+            editingBranch = null;
+        }
+        
+        // Save coordinates
+        async function saveCoordinates(branchId) {
+            const lat = parseFloat(document.getElementById('lat-' + branchId).value);
+            const lng = parseFloat(document.getElementById('lng-' + branchId).value);
+            
+            if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                showMessage('Por favor ingresa coordenadas válidas', 'error');
+                return;
+            }
+            
+            // Validar que están en México
+            if (lat < 14.5 || lat > 32.7 || lng < -118.5 || lng > -86.7) {
+                if (!confirm('Las coordenadas parecen estar fuera de México. ¿Continuar?')) {
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/branch-validation/update-coordinates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        branchId: branchId, 
+                        latitude: lat, 
+                        longitude: lng 
+                    })
+                });
+                
+                if (response.ok) {
+                    showMessage('✅ Coordenadas actualizadas exitosamente', 'success');
+                    // Actualizar la vista
+                    document.getElementById('coords-display-' + branchId).textContent = 
+                        '📍 ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
+                    cancelEdit(branchId);
+                } else {
+                    showMessage('❌ Error actualizando coordenadas', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Error de conexión', 'error');
+            }
+        }
+        
+        // Show message
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('status-message');
+            messageEl.textContent = text;
+            messageEl.className = 'status-message status-' + type;
+            messageEl.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageEl.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Open all problematic coordinates in Google Maps
+        function openAllProblematic() {
+            const problematicCards = document.querySelectorAll('.branch-card.issues, .branch-card.suspicious');
+            
+            if (problematicCards.length === 0) {
+                alert('¡No hay coordenadas problemáticas!');
+                return;
+            }
+            
+            if (problematicCards.length > 10) {
+                if (!confirm(`Esto abrirá ${problematicCards.length} pestañas. ¿Continuar?`)) {
+                    return;
+                }
+            }
+            
+            problematicCards.forEach((card, index) => {
+                setTimeout(() => {
+                    const viewLink = card.querySelector('.btn-view');
+                    if (viewLink) {
+                        window.open(viewLink.href, '_blank');
+                    }
+                }, index * 1000); // Abrir cada segundo para no saturar el navegador
+            });
+        }
+        
+        // Export problematic list
+        function exportProblematicList() {
+            const problematicCards = document.querySelectorAll('.branch-card.issues, .branch-card.suspicious');
+            
+            if (problematicCards.length === 0) {
+                alert('¡No hay coordenadas problemáticas!');
+                return;
+            }
+            
+            let report = 'REPORTE DE COORDENADAS PROBLEMÁTICAS EPL CAS\n';
+            report += '='.repeat(60) + '\n\n';
+            
+            problematicCards.forEach((card, index) => {
+                const name = card.querySelector('.branch-name').textContent;
+                const location = card.querySelector('.branch-location').textContent;
+                const coords = card.querySelector('.coordinates-display').textContent;
+                const status = card.querySelector('.status-badge').textContent;
+                
+                report += `${index + 1}. ${name}\n`;
+                report += `   ${location}\n`;
+                report += `   ${coords}\n`;
+                report += `   Estado: ${status}\n\n`;
+            });
+            
+            // Crear y descargar archivo
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'coordenadas-problematicas-epl-cas.txt';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>

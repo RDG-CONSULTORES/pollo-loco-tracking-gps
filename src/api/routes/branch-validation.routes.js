@@ -80,4 +80,19 @@ router.get('/interface', (req, res) => {
   }
 });
 
+// Servir el verificador de coordenadas
+router.get('/verificador', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  try {
+    const htmlPath = path.join(__dirname, '../../../verificador-coordenadas.html');
+    const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(htmlContent);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Verificador not available', details: error.message });
+  }
+});
+
 module.exports = router;

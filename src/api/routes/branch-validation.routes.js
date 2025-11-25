@@ -110,4 +110,19 @@ router.get('/mejorado', (req, res) => {
   }
 });
 
+// Servir el validador fresco - empezar desde cero
+router.get('/fresco', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  try {
+    const htmlPath = path.join(__dirname, '../../../validador-fresco.html');
+    const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(htmlContent);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Validador fresco not available', details: error.message });
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,2085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validación de 85 Sucursales EPL CAS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2c3e50, #3498db); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .table-container { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background: #34495e; color: white; font-weight: 600; }
+        .actions { display: flex; gap: 5px; }
+        .btn { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 11px; }
+        .btn-maps { background: #4285f4; color: white; }
+        .btn-update { background: #27ae60; color: white; }
+        .btn-validate { background: #f39c12; color: white; }
+        .coordinates { font-family: monospace; }
+        .missing { color: #e74c3c; font-weight: bold; }
+        .valid { color: #27ae60; }
+        .search-box { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 300px; }
+        .filters { margin: 10px 0; }
+        .filter-btn { margin: 5px; padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; }
+        .filter-btn.active { background: #3498db; color: white; }
+        .coord-input { width: 100px; padding: 2px; border: 1px solid #ddd; border-radius: 3px; }
+        .validation-form { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: none; z-index: 1000; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ Sistema de Validación - 85 Sucursales EPL CAS</h1>
+            <p>Validación completa de coordenadas GPS y normalización de datos</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>85</h3>
+                <p>Total Sucursales</p>
+            </div>
+            <div class="stat-card">
+                <h3>0</h3>
+                <p>Sin Coordenadas</p>
+            </div>
+            <div class="stat-card">
+                <h3>82</h3>
+                <p>GPS Validadas</p>
+            </div>
+            <div class="stat-card">
+                <h3>0</h3>
+                <p>Zenput Tiene Coords</p>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <input type="text" id="searchBox" class="search-box" placeholder="Buscar por nombre, ciudad o dirección...">
+            <button class="filter-btn active" onclick="filterBranches('all')">Todas</button>
+            <button class="filter-btn" onclick="filterBranches('missing')">Sin Coordenadas</button>
+            <button class="filter-btn" onclick="filterBranches('validated')">Validadas</button>
+            <button class="filter-btn" onclick="filterBranches('zenput')">Zenput Tiene</button>
+        </div>
+        
+        <div class="table-container">
+            <table id="branchesTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Ciudad/Estado</th>
+                        <th>Dirección</th>
+                        <th>Coordenadas Actuales</th>
+                        <th>Zenput Coords</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr data-branch-id="1" data-filter="validated">
+                        <td>1</td>
+                        <td><strong>1 - Pino Suarez</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.669300, -100.310300
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Pino%20Suarez%0A%23500%20sur%20Col.%20Centro%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(1)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="2" data-filter="validated">
+                        <td>2</td>
+                        <td><strong>2 - Madero</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.678300, -100.316100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Francisco%20I.%20Madero%20%23843%20pte.%20Col.%20Centro%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(2)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="3" data-filter="validated">
+                        <td>3</td>
+                        <td><strong>3 - Matamoros</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.679500, -100.308900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Ju%C3%A1rez%20%23701%2C%20Col.%20Centro%2C%20Monterrey%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(3)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="4" data-filter="validated">
+                        <td>4</td>
+                        <td><strong>4 - Santa Catarina</strong></td>
+                        <td>Santa Catarina, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.674800, -100.458400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Manuel%20Ordo%C3%B1ez%20%23700-R%2C%20Col.%20Centro%2C%20Santa%20Catarina%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(4)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="5" data-filter="validated">
+                        <td>5</td>
+                        <td><strong>5 - Felix U. Gomez</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.683400, -100.304700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Francisco%20I.%20Madero%20%231536%20ote.%20Col.%20Centro%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(5)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="6" data-filter="validated">
+                        <td>6</td>
+                        <td><strong>6 - Garcia</strong></td>
+                        <td>García, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.810400, -100.589400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Heberto%20Castillo%20Mart%C3%ADnez%20%231360%20int.%2014%2C%20Col.%20Mirador%20de%20Garcia%2C%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(6)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="7" data-filter="validated">
+                        <td>7</td>
+                        <td><strong>7 - La Huasteca</strong></td>
+                        <td>Santa Catarina, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.761700, -100.432900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Morones%20Prieto%20%231100%20local%208%20y%209%2C%20Col.%20Las%20Monta%C3%B1as%2C%20Santa%20Catarina%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(7)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="8" data-filter="validated">
+                        <td>8</td>
+                        <td><strong>62 - Lazaro Cardenas (Morelia)</strong></td>
+                        <td>Morelia, Michoacán</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            19.695581, -101.166203
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20La%CC%81zaro%20Ca%CC%81rdenas%20No%2C2995%2C%20Chapultepec%20Norte%2C%20Morelia%2C%20Michoac%C3%A1n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(8)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="9" data-filter="validated">
+                        <td>9</td>
+                        <td><strong>63 - Madero (Morelia)</strong></td>
+                        <td>Morelia, Michoacán</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            19.702526, -101.201703
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Madero%20Pte.%20No.%201086%2C%20Col.%20Centro%2C%20Morelia%2C%20Michoac%C3%A1n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(9)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="10" data-filter="validated">
+                        <td>10</td>
+                        <td><strong>64 - Huerta</strong></td>
+                        <td>Morelia, Michoacán</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            19.706900, -101.175600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Perife%CC%81rico%20Paseo%20de%20la%20Republica%20No.%203140%2C%20Col.%20Ex%20%E2%80%93%20hacienda%20de%20la%20Huerta%2C%20Morelia%2C%20Michoac%C3%A1n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(10)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="18" data-filter="validated">
+                        <td>18</td>
+                        <td><strong>8 - Gonzalitos</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.659500, -100.284500
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Jos%C3%A9%20Eleuterio%20Gonz%C3%A1lez%20%23150%20Nte.%20Monterrey%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(18)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="19" data-filter="validated">
+                        <td>19</td>
+                        <td><strong>9 - Anahuac</strong></td>
+                        <td>San Nicolás de los Garza, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.723900, -100.335800
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Alfonso%20Reyes%20%23%20504%20Nte.%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(19)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="20" data-filter="validated">
+                        <td>20</td>
+                        <td><strong>10 - Barragan</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.683400, -100.271400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Manuel%20I.%20Barraga%CC%81n%20%231401%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(20)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="21" data-filter="validated">
+                        <td>21</td>
+                        <td><strong>11 - Lincoln</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.697400, -100.335800
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Paseo%20de%20Cumbres%20%231001-C%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(21)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="22" data-filter="validated">
+                        <td>22</td>
+                        <td><strong>12 - Concordia</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.690300, -100.324700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Concordia%20%23%20300%20Apodaca%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(22)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="23" data-filter="validated">
+                        <td>23</td>
+                        <td><strong>13 - Escobedo</strong></td>
+                        <td>General Escobedo, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.773600, -100.324700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Rau%CC%81l%20Salinas%20%23555%20Escobedo%2C%20General%20Escobedo%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(23)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="24" data-filter="validated">
+                        <td>24</td>
+                        <td><strong>14 - Aztlan</strong></td>
+                        <td>San Nicolás de los Garza, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.719500, -100.369200
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Solidaridad%20%235151%20Monterrey%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(24)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="25" data-filter="validated">
+                        <td>25</td>
+                        <td><strong>15 - Ruiz Cortinez</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.688100, -100.342500
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Ruiz%20Corti%CC%81nez%20%235600%20Col.%20Valle%20de%20Infonavit%2C%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(25)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="26" data-filter="validated">
+                        <td>26</td>
+                        <td><strong>16 - Solidaridad</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.683400, -100.326900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Luis%20Donaldo%20Colosio%20%232200%20A%2C%20Col.%20Barrio%20Acero%2C%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(26)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="27" data-filter="validated">
+                        <td>27</td>
+                        <td><strong>17 - Romulo Garza</strong></td>
+                        <td>San Nicolás de los Garza, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.703600, -100.369200
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Calle%20de%20los%20Pinos%20%23990%2C%20Col.%20Hacienda%20los%20Morales%202do%20sector%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(27)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="28" data-filter="validated">
+                        <td>28</td>
+                        <td><strong>18 - Linda Vista</strong></td>
+                        <td>Guadalupe, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.719500, -100.358100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Miguel%20Alema%CC%81n%20%23210%20A%20Col.%2010%20de%20mayo%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(28)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="29" data-filter="validated">
+                        <td>29</td>
+                        <td><strong>19 - Valle Soleado</strong></td>
+                        <td>Guadalupe, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.706100, -100.342500
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Dulces%20Nombres%20%23400%20C%2C%20Col.%20Valle%20Soleado%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(29)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="30" data-filter="validated">
+                        <td>30</td>
+                        <td><strong>20 - Tecnológico</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.651300, -100.289200
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Calle%20Ave.%20Eugenio%20Garza%20Sada%20%23%202788%20Col.%20Alta%20Vista%20Sur%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(30)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="31" data-filter="validated">
+                        <td>31</td>
+                        <td><strong>21 - Chapultepec</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.669300, -100.353600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Chapultepec%20%23180%2C%20Int.%20PB-01-E%20Col.%20Parai%CC%81so%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(31)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="32" data-filter="validated">
+                        <td>32</td>
+                        <td><strong>22 - Satelite</strong></td>
+                        <td>San Nicolás de los Garza, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.719500, -100.391400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Eugenio%20Garza%20Sada%20%236044%20Col.%20Mederos%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(32)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="33" data-filter="validated">
+                        <td>33</td>
+                        <td><strong>23 - Guasave</strong></td>
+                        <td>Guasave, Sinaloa</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.567500, -108.468600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Vicente%20Guerrero%20%23517%2C%20Col.%20Centro%2C%20Guasave%2C%20Sinaloa%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(33)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="34" data-filter="validated">
+                        <td>34</td>
+                        <td><strong>24 - Exposicion</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.731400, -100.308900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Benito%20Jua%CC%81rez%20%231210%2C%20Col.%20La%20Hacienda%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(34)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="35" data-filter="validated">
+                        <td>35</td>
+                        <td><strong>25 - Juarez</strong></td>
+                        <td>Monterrey, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.669300, -100.302500
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20a%20Reynosa%20%231000%2C%20Col.%20Centro%2C%2C%20Monterrey%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(35)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="36" data-filter="validated">
+                        <td>36</td>
+                        <td><strong>26 - Cadereyta</strong></td>
+                        <td>Cadereyta Jiménez, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.593700, -99.996100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Zaragoza%20%23102%20Col.%20Centro%2C%20Cadereyta%20Jim%C3%A9nez%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(36)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="37" data-filter="validated">
+                        <td>37</td>
+                        <td><strong>27 - Santiago</strong></td>
+                        <td>Santiago, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.429400, -100.147800
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Nacional%20%23209%2C%20Col.%20Centro%2C%2C%20Santiago%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(37)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="38" data-filter="validated">
+                        <td>38</td>
+                        <td><strong>28 - Guerrero</strong></td>
+                        <td>Nuevo Laredo, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            27.476900, -99.516900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Guerrero%20%23619%2C%20Col.%20Centro%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(38)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="39" data-filter="validated">
+                        <td>39</td>
+                        <td><strong>29 - Pablo Livas</strong></td>
+                        <td>Guadalupe, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.719500, -100.346900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Pablo%20Livas%20%237601%2C%20Col.%20Rinco%CC%81n%20de%20Guadalupe%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(39)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="40" data-filter="validated">
+                        <td>40</td>
+                        <td><strong>30 - Carrizo</strong></td>
+                        <td>Nuevo Laredo, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            27.484700, -99.509100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Belden%20%237412%2C%20Col.%20Buena%20Vista%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(40)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="41" data-filter="validated">
+                        <td>41</td>
+                        <td><strong>31 - Las Quintas</strong></td>
+                        <td>Guadalupe, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.683400, -100.358100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Lo%CC%81pez%20Mateos%20%23301%2C%20Col.%20Residencial%20las%20quintas%2C%20Guadalupe%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(41)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="42" data-filter="validated">
+                        <td>42</td>
+                        <td><strong>32 - Allende</strong></td>
+                        <td>Allende, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.291100, -100.016900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Nacional%20%23702%2C%20Col.%20Hacienda%20San%20Javier%2C%20Allende%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(42)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="43" data-filter="validated">
+                        <td>43</td>
+                        <td><strong>33 - Eloy Cavazos</strong></td>
+                        <td>San Nicolás de los Garza, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.706100, -100.380300
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Eloy%20Cavazos%20%235100%2C%20Col.%20San%20Eduardo%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(43)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="44" data-filter="validated">
+                        <td>44</td>
+                        <td><strong>34 - Montemorelos</strong></td>
+                        <td>Montemorelos, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.192200, -99.826400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Capita%CC%81n%20Alonso%20de%20Leo%CC%81n%20%231203%2C%20Col.%20Zaragoza%2C%20Montemorelos%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(44)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="45" data-filter="validated">
+                        <td>45</td>
+                        <td><strong>35 - Apodaca</strong></td>
+                        <td>Apodaca, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.781700, -100.182200
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Miguel%20Alema%CC%81n%20%23549%20Col.%20El%20Milagro%2C%20Apodaca%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(45)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="46" data-filter="validated">
+                        <td>46</td>
+                        <td><strong>36 - Apodaca Centro</strong></td>
+                        <td>Apodaca, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.773600, -100.194400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Gral.%20Ignacio%20Zaragoza%20510%2C%20Cabecera%20Municipal%2C%20Apodaca%20Centro%2C%20Apodaca%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(46)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="47" data-filter="validated">
+                        <td>47</td>
+                        <td><strong>37 - Stiva</strong></td>
+                        <td>General Escobedo, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.731400, -100.206900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=BLVD.%20Rogelio%20Gonza%CC%81lez%20Caballero%20no.100%20Local%209%2C%20General%20Escobedo%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(47)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="48" data-filter="validated">
+                        <td>48</td>
+                        <td><strong>40 - Plaza 1500</strong></td>
+                        <td>Apodaca, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.773600, -100.244700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Acapulco%20%23800%2C%20Col.%20Josefa%20Sozaya%2C%20Apodaca%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(48)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="49" data-filter="validated">
+                        <td>49</td>
+                        <td><strong>38 - Gomez Morin</strong></td>
+                        <td>San Pedro Garza García, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.665300, -100.244700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Missouri%20%23458-A%20ote.%2C%20San%20Pedro%20Garza%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(49)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="50" data-filter="validated">
+                        <td>50</td>
+                        <td><strong>39 - Lazaro Cardenas</strong></td>
+                        <td>San Nicolás de los Garza, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.703600, -100.324700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=La%CC%81zaro%20Ca%CC%81rdenas%20%232810%20G%2C%20esq.%20Camino%20al%20Mirador%2C%20Col.%20Mirador%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(50)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="51" data-filter="validated">
+                        <td>51</td>
+                        <td><strong>41 - Vasconcelos</strong></td>
+                        <td>San Pedro Garza García, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.697400, -100.315800
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Los%20Aldama%20%23123%2C%20Casco%20Urbano%2C%20San%20Pedro%20Garza%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(51)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="52" data-filter="validated">
+                        <td>52</td>
+                        <td><strong>42 - Independencia</strong></td>
+                        <td>Torreón, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.542800, -103.406700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Javier%20Mina%20%23585%20Nte.%20Col.%20Centro%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(52)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="53" data-filter="validated">
+                        <td>53</td>
+                        <td><strong>43 - Revolucion</strong></td>
+                        <td>Torreón, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.550600, -103.418100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Blvd.%20Torreo%CC%81n-%20Matamoros%20%234630%20Col.%20Ex%20Hacienda%20los%20A%CC%81ngeles%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(53)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="54" data-filter="validated">
+                        <td>54</td>
+                        <td><strong>44 - Senderos</strong></td>
+                        <td>Torreón, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.558300, -103.395300
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Torreo%CC%81n-San%20Pedro%20%232010%20Km%203.3.%20Col.%20La%20Unio%CC%81n%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(54)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="55" data-filter="validated">
+                        <td>55</td>
+                        <td><strong>45 - Triana</strong></td>
+                        <td>Torreón, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.566100, -103.429500
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Blvd%2C%20Rodri%CC%81guez%20Triana%20%23950%2C%20Col.%20Las%20Misiones%2C%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(55)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="56" data-filter="validated">
+                        <td>56</td>
+                        <td><strong>46 - Campestre</strong></td>
+                        <td>Torreón, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.573900, -103.406700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Blvd.%20Miguel%20Alema%CC%81n%20%23717%2C%20Col.%20El%20Campestre%2C%20Torre%C3%B3n%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(56)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="57" data-filter="validated">
+                        <td>57</td>
+                        <td><strong>47 - San Antonio</strong></td>
+                        <td>Gómez Palacio, Durango</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.864400, -103.418100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Blvd.%20Eje%CC%81rcito%20Mexicano%20%23396%2C%20Fraccionamiento%20San%20Antonio%2C%20G%C3%B3mez%20Palacio%2C%20Durango%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(57)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="58" data-filter="validated">
+                        <td>58</td>
+                        <td><strong>48 - Refugio</strong></td>
+                        <td>Querétaro, Querétaro</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            20.588800, -100.389900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Anillo%20vial%20F.J.%20Serra%20%23151%20Col.%20El%20Refugio.%20Quere%CC%81taro%2C%20QRO%2C%20Quer%C3%A9taro%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(58)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="59" data-filter="validated">
+                        <td>59</td>
+                        <td><strong>49 - Pueblito</strong></td>
+                        <td>Corregidora, Querétaro</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            20.601900, -100.371400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Paseo%20Constituyentes%20%231527%20Col.%20Pueblito%2C%20Corregidora%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(59)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="60" data-filter="validated">
+                        <td>60</td>
+                        <td><strong>50 - Patio</strong></td>
+                        <td>Querétaro, Querétaro</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            20.588800, -100.408400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Ave.%20Revolucio%CC%81n%20%2399%20Col.%20Puertas%20del%20Sol%2C%20Quer%C3%A9taro%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(60)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="61" data-filter="validated">
+                        <td>61</td>
+                        <td><strong>51 - Constituyentes</strong></td>
+                        <td>Querétaro, Querétaro</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            20.609700, -100.389900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Ave.%20Constituyentes%20%23274%20Col.%20Casablanca%2C%20Quer%C3%A9taro%2C%20Quer%C3%A9taro%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(61)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="62" data-filter="validated">
+                        <td>62</td>
+                        <td><strong>52 - Venustiano Carranza</strong></td>
+                        <td>Saltillo, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.423100, -100.993100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=BLVD.%20Venustiano%20Carranza%2C%20No.3680%20col.%20Jardi%CC%81n%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(62)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="63" data-filter="validated">
+                        <td>63</td>
+                        <td><strong>53 - Lienzo Charro</strong></td>
+                        <td>Saltillo, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.438600, -101.015600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Perife%CC%81rico.%20Luis%20Echeverria%20A%CC%81lvarez%2C%20No.%20540%20Col.%20Lourdes%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(63)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="64" data-filter="validated">
+                        <td>64</td>
+                        <td><strong>54 - Ramos Arizpe</strong></td>
+                        <td>Ramos Arizpe, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.559700, -100.945300
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=BLVD.%20Miguel%20Ramos%20Arizpe%20Sur%2C%20No.%2018%20Col.%20Ramos%20Arizpe%20Centro%2C%20Ramos%20Arizpe%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(64)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="65" data-filter="validated">
+                        <td>65</td>
+                        <td><strong>55 - Eulalio Gutierrez</strong></td>
+                        <td>Saltillo, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.407500, -100.967800
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Eulalio%20Gutie%CC%81rrez%20Trevin%CC%83o%2C%20No.%20600%20Col.%20Ex%20Hacienda%20de%20los%20Cerritos%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(65)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="66" data-filter="validated">
+                        <td>66</td>
+                        <td><strong>56 - Luis Echeverria</strong></td>
+                        <td>Saltillo, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.446400, -100.967800
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Perife%CC%81rico.%20Luis%20Echeverri%CC%81a%20Hacienda%20No.1980%20Col.%20La%20Magueyada%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(66)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="67" data-filter="validated">
+                        <td>67</td>
+                        <td><strong>57 - Harold R. Pape</strong></td>
+                        <td>Saltillo, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.454200, -101.015600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Harold%20R.%20Pape%20No.1903%2C%20Col.%20La%20Salle%2C%20Saltillo%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(67)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="68" data-filter="validated">
+                        <td>68</td>
+                        <td><strong>58 - Universidad (Tampico)</strong></td>
+                        <td>Tampico, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            22.290800, -97.837500
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Universidad%20%231702%2C%20Col.%20Universidad%20sur%2C%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(68)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="69" data-filter="validated">
+                        <td>69</td>
+                        <td><strong>59 - Plaza 3601</strong></td>
+                        <td>Tampico, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            22.298600, -97.829700
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Hidalgo%20%233601%2C%20Col.%20Guadalupe%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(69)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="70" data-filter="validated">
+                        <td>70</td>
+                        <td><strong>60 - Centro (Tampico)</strong></td>
+                        <td>Tampico, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            22.290800, -97.845300
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Diaz%20Miron%20%23115%20local%202%2C%20Col.%20Centro%2C%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(70)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="71" data-filter="validated">
+                        <td>71</td>
+                        <td><strong>61 - Aeropuerto (Tampico)</strong></td>
+                        <td>Tampico, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            22.298600, -97.868600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Tampico-Mante%20%236904%2C%20Col%2C%20Arenal%2C%2C%20Tampico%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(71)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="75" data-filter="validated">
+                        <td>75</td>
+                        <td><strong>65 - Pedro Cardenas</strong></td>
+                        <td>Matamoros, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.869400, -97.504400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Pedro%20Ca%CC%81rdenas%204001%20A%2C%20Jaumave%20Fraccionamiento%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(75)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="76" data-filter="validated">
+                        <td>76</td>
+                        <td><strong>66 - Lauro Villar</strong></td>
+                        <td>Matamoros, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.877200, -97.512200
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Gral.%20Lauro%20Villar%201%2C%20Trevin%CC%83o%20Zapata%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(76)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="77" data-filter="validated">
+                        <td>77</td>
+                        <td><strong>67 - Centro (Matamoros)</strong></td>
+                        <td>Matamoros, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.869400, -97.520000
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Cinco%2050%2C%20Col.%20Centro%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(77)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="78" data-filter="validated">
+                        <td>78</td>
+                        <td><strong>68 - Avenida del Niño</strong></td>
+                        <td>Matamoros, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.885000, -97.512200
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Lib.%20Emilio%20Portes%20Gil%20SN-C%2C%20San%20Fernando%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(78)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="79" data-filter="validated">
+                        <td>79</td>
+                        <td><strong>69 - Puerto Rico</strong></td>
+                        <td>Matamoros, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.892800, -97.496600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Ave.%20Puerto%20Rico%20%2384%20Col.%20Fracc.%20Rinco%CC%81n%20Colonial%2C%20Matamoros%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(79)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="80" data-filter="validated">
+                        <td>80</td>
+                        <td><strong>70 - Coahuila Comidas</strong></td>
+                        <td>Piedras Negras, Coahuila</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            28.700000, -100.533300
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Carranza%20%23609%20Col.%20Gonza%CC%81lez%2C%20Piedras%20Negras%2C%20Coahuila%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(80)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="81" data-filter="validated">
+                        <td>81</td>
+                        <td><strong>71 - Centrito Valle</strong></td>
+                        <td>San Pedro Garza García, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.665300, -100.236900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Rio%20Tamazunchale%20Nte.%20%23317%20D3%2C%20Col.%20Del%20Valle%2C%20San%20Pedro%20Garza%20Garc%C3%ADa%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(81)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="82" data-filter="validated">
+                        <td>82</td>
+                        <td><strong>72 - Sabinas Hidalgo</strong></td>
+                        <td>Sabinas Hidalgo, Nuevo León</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            26.504400, -100.174400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Nacional%20%23915%2C%20Barrio%20el%20do%CC%81lar%2C%20Sabinas%20Hidalgo%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(82)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="83" data-filter="validated">
+                        <td>83</td>
+                        <td><strong>73 - Anzalduas</strong></td>
+                        <td>Reynosa, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            26.060000, -98.304400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Lateral%20Canal%20Anzalduas%20s%2Fn%2C%20Col.%20Ferrocarril%20Pte%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(83)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="84" data-filter="validated">
+                        <td>84</td>
+                        <td><strong>74 - Hidalgo (Reynosa)</strong></td>
+                        <td>Reynosa, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            26.067800, -98.312200
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Blvd.%20Hidalgo%20%23199%2C%20Col.%20Fuentes%20del%20Valle%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(84)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="85" data-filter="validated">
+                        <td>85</td>
+                        <td><strong>75 - Libramiento (Reynosa)</strong></td>
+                        <td>Reynosa, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            26.075600, -98.296600
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20a%20Matamoros%20%23520%2C%20Col.%20Fundadores%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(85)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="86" data-filter="validated">
+                        <td>86</td>
+                        <td><strong>76 - Aeropuerto (Reynosa)</strong></td>
+                        <td>Reynosa, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            26.052200, -98.227800
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Federal%20Reynosa%20a%20Matamoros%20km%2084%20s%2Fn%20col%20Almaguer%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(86)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="87" data-filter="validated">
+                        <td>87</td>
+                        <td><strong>77 - Boulevard Morelos</strong></td>
+                        <td>Reynosa, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            26.067800, -98.288900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Boulevard%20Morelos%202418%20Sur%2C%20Col.%20Ampliacio%CC%81n%20Rodri%CC%81guez%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(87)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="88" data-filter="validated">
+                        <td>88</td>
+                        <td><strong>78 - Alcala</strong></td>
+                        <td>Reynosa, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            26.083400, -98.304400
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Carretera%20Fed.%20De%20Reynosa%20a%20San%20Fernando%20KM%202.5%20Parque%20Industrial%20Estiva%20Alcala%CC%81%20Reynosa%2C%20Reynosa%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(88)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="89" data-filter="validated">
+                        <td>89</td>
+                        <td><strong>79 - Rio Bravo</strong></td>
+                        <td>Río Bravo, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            25.989400, -98.093300
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Constitucio%CC%81n%20%23105%2C%20Col.%20Centro%2C%20R%C3%ADo%20Bravo%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(89)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="90" data-filter="validated">
+                        <td>90</td>
+                        <td><strong>80 - Guerrero 2 (Ruelas)</strong></td>
+                        <td>Nuevo Laredo, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            27.476900, -99.516900
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Av.%20Guerrero%20%232454%2C%20Col.%20Centro%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(90)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="91" data-filter="validated">
+                        <td>91</td>
+                        <td><strong>81 - Reforma (Ruelas)</strong></td>
+                        <td>Nuevo Laredo, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            27.484700, -99.509100
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Reforma%20%235701%2C%20Pad%236%2C%20Col.%20Centro%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(91)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="92" data-filter="validated">
+                        <td>92</td>
+                        <td><strong>82 - Aeropuerto Nuevo Laredo</strong></td>
+                        <td>Nuevo Laredo, Tamaulipas</td>
+                        <td title="null"></td>
+                        <td class="coordinates valid">
+                            27.443300, -99.570500
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="valid">✅ Validado</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=%2C%20Nuevo%20Laredo%2C%20Tamaulipas%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(92)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="93" data-filter="">
+                        <td>93</td>
+                        <td><strong>83 - Cerradas de Anahuac</strong></td>
+                        <td>General Escobedo, Nuevo León</td>
+                        <td title="401 Avenida Concordia">401 Avenida Concordia</td>
+                        <td class="coordinates valid">
+                            0.000000, 0.000000
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="missing">⚠️ Pendiente</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=401%20Avenida%20Concordia%2C%20General%20Escobedo%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(93)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="94" data-filter="">
+                        <td>94</td>
+                        <td><strong>84 - Aeropuerto del Norte</strong></td>
+                        <td>Ciénega de Flores, Nuevo León</td>
+                        <td title="Km. 23.2 Autopista Monterrey - Nuevo Laredo">Km. 23.2 Autopista Monterrey - Nuevo Lar...</td>
+                        <td class="coordinates valid">
+                            0.000000, 0.000000
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="missing">⚠️ Pendiente</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=Km.%2023.2%20Autopista%20Monterrey%20-%20Nuevo%20Laredo%2C%20Ci%C3%A9nega%20de%20Flores%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(94)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr data-branch-id="95" data-filter="">
+                        <td>95</td>
+                        <td><strong>85 - Diego Diaz</strong></td>
+                        <td>San Nicolás de los Garza, Nuevo León</td>
+                        <td title="198 Avenida Diego Díaz de Berlanga">198 Avenida Diego Díaz de Berlanga</td>
+                        <td class="coordinates valid">
+                            0.000000, 0.000000
+                        </td>
+                        <td class="coordinates missing">
+                            N/A
+                        </td>
+                        <td>
+                            <span class="missing">⚠️ Pendiente</span>
+                        </td>
+                        <td class="actions">
+                            <a href="https://maps.google.com/maps?q=198%20Avenida%20Diego%20D%C3%ADaz%20de%20Berlanga%2C%20San%20Nicol%C3%A1s%20de%20los%20Garza%2C%20Nuevo%20Le%C3%B3n%2C%20M%C3%A9xico" 
+                               target="_blank" class="btn btn-maps" title="Buscar en Google Maps">📍 Maps</a>
+                            <button class="btn btn-update" onclick="openValidationForm(95)" title="Actualizar coordenadas">✏️ Edit</button>
+                            
+                        </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay"></div>
+    <div class="validation-form" id="validationForm">
+        <h3>Actualizar Coordenadas</h3>
+        <p><strong>Sucursal:</strong> <span id="currentBranchName"></span></p>
+        <p><strong>Dirección:</strong> <span id="currentBranchAddress"></span></p>
+        <br>
+        <label>Latitud:</label>
+        <input type="text" id="latInput" class="coord-input" placeholder="25.123456">
+        <br><br>
+        <label>Longitud:</label>
+        <input type="text" id="lngInput" class="coord-input" placeholder="-100.123456">
+        <br><br>
+        <button onclick="updateCoordinates()">💾 Guardar</button>
+        <button onclick="closeValidationForm()">❌ Cancelar</button>
+    </div>
+
+    <script>
+        let branches = [{"id":1,"name":"1 - Pino Suarez","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.66930000","longitude":"-100.31030000","phone":null,"email":"pinosuarez@polloloco.mx","group_id":1,"group_name":"TEPEYAC","zenput_id":2247000,"gps_validated":true,"zenput_name":"1 - Pino Suarez","zenput_address":"Av. Pino Suarez\n#500 sur Col. Centro","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Pino Suarez\n#500 sur Col. Centro, Monterrey, Nuevo León, México","needs_validation":false},{"id":2,"name":"2 - Madero","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.67830000","longitude":"-100.31610000","phone":null,"email":"madero@polloloco.mx","group_id":1,"group_name":"TEPEYAC","zenput_id":2247001,"gps_validated":true,"zenput_name":"2 - Madero","zenput_address":"Av. Francisco I. Madero #843 pte. Col. Centro","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Francisco I. Madero #843 pte. Col. Centro, Monterrey, Nuevo León, México","needs_validation":false},{"id":3,"name":"3 - Matamoros","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.67950000","longitude":"-100.30890000","phone":null,"email":"matamoros@polloloco.mx","group_id":1,"group_name":"TEPEYAC","zenput_id":2247002,"gps_validated":true,"zenput_name":"3 - Matamoros","zenput_address":"Juárez #701, Col. Centro, Monterrey","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Juárez #701, Col. Centro, Monterrey, Monterrey, Nuevo León, México","needs_validation":false},{"id":4,"name":"4 - Santa Catarina","city":"Santa Catarina","state":"Nuevo León","municipality":"Santa Catarina","address":null,"latitude":"25.67480000","longitude":"-100.45840000","phone":null,"email":"santacatarina@polloloco.mx","group_id":1,"group_name":"TEPEYAC","zenput_id":2247003,"gps_validated":true,"zenput_name":"4 - Santa Catarina","zenput_address":"Av. Manuel Ordoñez #700-R, Col. Centro","zenput_city":"Santa Catarina","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Manuel Ordoñez #700-R, Col. Centro, Santa Catarina, Nuevo León, México","needs_validation":false},{"id":5,"name":"5 - Felix U. Gomez","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.68340000","longitude":"-100.30470000","phone":null,"email":"felixgomez@polloloco.mx","group_id":1,"group_name":"TEPEYAC","zenput_id":2247004,"gps_validated":true,"zenput_name":"5 - Felix U. Gomez","zenput_address":"Av. Francisco I. Madero #1536 ote. Col. Centro","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Francisco I. Madero #1536 ote. Col. Centro, Monterrey, Nuevo León, México","needs_validation":false},{"id":6,"name":"6 - Garcia","city":"García","state":"Nuevo León","municipality":"García","address":null,"latitude":"25.81040000","longitude":"-100.58940000","phone":null,"email":"garcia@polloloco.mx","group_id":1,"group_name":"TEPEYAC","zenput_id":2247005,"gps_validated":true,"zenput_name":"6 - Garcia","zenput_address":"Av. Heberto Castillo Martínez #1360 int. 14, Col. Mirador de Garcia","zenput_city":"Garcia","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Heberto Castillo Martínez #1360 int. 14, Col. Mirador de Garcia, García, Nuevo León, México","needs_validation":false},{"id":7,"name":"7 - La Huasteca","city":"Santa Catarina","state":"Nuevo León","municipality":"Santa Catarina","address":null,"latitude":"25.76170000","longitude":"-100.43290000","phone":null,"email":"lahuasteca@polloloco.mx","group_id":1,"group_name":"TEPEYAC","zenput_id":2247006,"gps_validated":true,"zenput_name":"7 - La Huasteca","zenput_address":"Av. Morones Prieto #1100 local 8 y 9, Col. Las Montañas","zenput_city":"Santa Catarina","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Morones Prieto #1100 local 8 y 9, Col. Las Montañas, Santa Catarina, Nuevo León, México","needs_validation":false},{"id":8,"name":"62 - Lazaro Cardenas (Morelia)","city":"Morelia","state":"Michoacán","municipality":"Morelia","address":null,"latitude":"19.69558150","longitude":"-101.16620260","phone":null,"email":"lazarocardenasmorelia@polloloco.mx","group_id":14,"group_name":"GRUPO CANTERA ROSA (MORELIA)","zenput_id":2247061,"gps_validated":true,"zenput_name":"62 - Lazaro Cardenas (Morelia)","zenput_address":"Av. Lázaro Cárdenas No,2995, Chapultepec Norte","zenput_city":"Morelia","zenput_state":"MI","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Lázaro Cárdenas No,2995, Chapultepec Norte, Morelia, Michoacán, México","needs_validation":false},{"id":9,"name":"63 - Madero (Morelia)","city":"Morelia","state":"Michoacán","municipality":"Morelia","address":null,"latitude":"19.70252610","longitude":"-101.20170320","phone":null,"email":"maderomorelia@polloloco.mx","group_id":14,"group_name":"GRUPO CANTERA ROSA (MORELIA)","zenput_id":2247062,"gps_validated":true,"zenput_name":"63 - Madero (Morelia)","zenput_address":"Av. Madero Pte. No. 1086, Col. Centro","zenput_city":"Morelia","zenput_state":"MI","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Madero Pte. No. 1086, Col. Centro, Morelia, Michoacán, México","needs_validation":false},{"id":10,"name":"64 - Huerta","city":"Morelia","state":"Michoacán","municipality":"Morelia","address":null,"latitude":"19.70690000","longitude":"-101.17560000","phone":null,"email":"huerta@polloloco.mx","group_id":14,"group_name":"GRUPO CANTERA ROSA (MORELIA)","zenput_id":2247063,"gps_validated":true,"zenput_name":"64 - Huerta","zenput_address":"Periférico Paseo de la Republica No. 3140, Col. Ex – hacienda de la Huerta","zenput_city":"Morelia","zenput_state":"MI","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Periférico Paseo de la Republica No. 3140, Col. Ex – hacienda de la Huerta, Morelia, Michoacán, México","needs_validation":false},{"id":18,"name":"8 - Gonzalitos","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.65950000","longitude":"-100.28450000","phone":null,"email":"gonzalitos@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247007,"gps_validated":true,"zenput_name":"8 - Gonzalitos","zenput_address":"Av. José Eleuterio González #150 Nte. Monterrey","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. José Eleuterio González #150 Nte. Monterrey, Monterrey, Nuevo León, México","needs_validation":false},{"id":19,"name":"9 - Anahuac","city":"San Nicolás de los Garza","state":"Nuevo León","municipality":"San Nicolás de los Garza","address":null,"latitude":"25.72390000","longitude":"-100.33580000","phone":null,"email":"anahuac@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247008,"gps_validated":true,"zenput_name":"9 - Anahuac","zenput_address":"Av. Alfonso Reyes # 504 Nte.","zenput_city":"San Nicolas de los Garza","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Alfonso Reyes # 504 Nte., San Nicolás de los Garza, Nuevo León, México","needs_validation":false},{"id":20,"name":"10 - Barragan","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.68340000","longitude":"-100.27140000","phone":null,"email":"barragan@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247009,"gps_validated":true,"zenput_name":"10 - Barragan","zenput_address":"Av. Manuel I. Barragán #1401","zenput_city":"San Nicolas de los Garza","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Manuel I. Barragán #1401, Monterrey, Nuevo León, México","needs_validation":false},{"id":21,"name":"11 - Lincoln","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.69740000","longitude":"-100.33580000","phone":null,"email":"lincoln@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247010,"gps_validated":true,"zenput_name":"11 - Lincoln","zenput_address":"Av. Paseo de Cumbres #1001-C","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Paseo de Cumbres #1001-C, Monterrey, Nuevo León, México","needs_validation":false},{"id":22,"name":"12 - Concordia","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.69030000","longitude":"-100.32470000","phone":null,"email":"concordia@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247011,"gps_validated":true,"zenput_name":"12 - Concordia","zenput_address":"Av. Concordia # 300 Apodaca","zenput_city":"Apodaca","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Concordia # 300 Apodaca, Monterrey, Nuevo León, México","needs_validation":false},{"id":23,"name":"13 - Escobedo","city":"General Escobedo","state":"Nuevo León","municipality":"General Escobedo","address":null,"latitude":"25.77360000","longitude":"-100.32470000","phone":null,"email":"escobedo@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247012,"gps_validated":true,"zenput_name":"13 - Escobedo","zenput_address":"Av. Raúl Salinas #555 Escobedo","zenput_city":"Escobedo","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Raúl Salinas #555 Escobedo, General Escobedo, Nuevo León, México","needs_validation":false},{"id":24,"name":"14 - Aztlan","city":"San Nicolás de los Garza","state":"Nuevo León","municipality":"San Nicolás de los Garza","address":null,"latitude":"25.71950000","longitude":"-100.36920000","phone":null,"email":"aztlan@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247013,"gps_validated":true,"zenput_name":"14 - Aztlan","zenput_address":"Av. Solidaridad #5151 Monterrey","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Solidaridad #5151 Monterrey, San Nicolás de los Garza, Nuevo León, México","needs_validation":false},{"id":25,"name":"15 - Ruiz Cortinez","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.68810000","longitude":"-100.34250000","phone":null,"email":"ruizcortinez@polloloco.mx","group_id":4,"group_name":"OGAS","zenput_id":2247014,"gps_validated":true,"zenput_name":"15 - Ruiz Cortinez","zenput_address":"Av. Ruiz Cortínez #5600 Col. Valle de Infonavit,","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Ruiz Cortínez #5600 Col. Valle de Infonavit,, Monterrey, Nuevo León, México","needs_validation":false},{"id":26,"name":"16 - Solidaridad","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.68340000","longitude":"-100.32690000","phone":null,"email":"solidaridad@polloloco.mx","group_id":20,"group_name":"EPL SO","zenput_id":2247015,"gps_validated":true,"zenput_name":"16 - Solidaridad","zenput_address":"Av. Luis Donaldo Colosio #2200 A, Col. Barrio Acero,","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Luis Donaldo Colosio #2200 A, Col. Barrio Acero,, Monterrey, Nuevo León, México","needs_validation":false},{"id":27,"name":"17 - Romulo Garza","city":"San Nicolás de los Garza","state":"Nuevo León","municipality":"San Nicolás de los Garza","address":null,"latitude":"25.70360000","longitude":"-100.36920000","phone":null,"email":"romulogarza@polloloco.mx","group_id":5,"group_name":"EFM","zenput_id":2247016,"gps_validated":true,"zenput_name":"17 - Romulo Garza","zenput_address":"Calle de los Pinos #990, Col. Hacienda los Morales 2do sector","zenput_city":"San Nicolas de los Garza","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Calle de los Pinos #990, Col. Hacienda los Morales 2do sector, San Nicolás de los Garza, Nuevo León, México","needs_validation":false},{"id":28,"name":"18 - Linda Vista","city":"Guadalupe","state":"Nuevo León","municipality":"Guadalupe","address":null,"latitude":"25.71950000","longitude":"-100.35810000","phone":null,"email":"lindavista@polloloco.mx","group_id":5,"group_name":"EFM","zenput_id":2247017,"gps_validated":true,"zenput_name":"18 - Linda Vista","zenput_address":"Av. Miguel Alemán #210 A Col. 10 de mayo","zenput_city":"Guadalupe","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Miguel Alemán #210 A Col. 10 de mayo, Guadalupe, Nuevo León, México","needs_validation":false},{"id":29,"name":"19 - Valle Soleado","city":"Guadalupe","state":"Nuevo León","municipality":"Guadalupe","address":null,"latitude":"25.70610000","longitude":"-100.34250000","phone":null,"email":"vallesoleado@polloloco.mx","group_id":5,"group_name":"EFM","zenput_id":2247018,"gps_validated":true,"zenput_name":"19 - Valle Soleado","zenput_address":"Carretera Dulces Nombres #400 C, Col. Valle Soleado","zenput_city":"Guadalupe","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Dulces Nombres #400 C, Col. Valle Soleado, Guadalupe, Nuevo León, México","needs_validation":false},{"id":30,"name":"20 - Tecnológico","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.65130000","longitude":"-100.28920000","phone":null,"email":"tecnologico@polloloco.mx","group_id":8,"group_name":"TEC","zenput_id":2247019,"gps_validated":true,"zenput_name":"20 - Tecnológico","zenput_address":"Calle Ave. Eugenio Garza Sada # 2788 Col. Alta Vista Sur","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Calle Ave. Eugenio Garza Sada # 2788 Col. Alta Vista Sur, Monterrey, Nuevo León, México","needs_validation":false},{"id":31,"name":"21 - Chapultepec","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.66930000","longitude":"-100.35360000","phone":null,"email":"chapultepec@polloloco.mx","group_id":8,"group_name":"TEC","zenput_id":2247020,"gps_validated":true,"zenput_name":"21 - Chapultepec","zenput_address":"Av. Chapultepec #180, Int. PB-01-E Col. Paraíso","zenput_city":"Guadalupe","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Chapultepec #180, Int. PB-01-E Col. Paraíso, Monterrey, Nuevo León, México","needs_validation":false},{"id":32,"name":"22 - Satelite","city":"San Nicolás de los Garza","state":"Nuevo León","municipality":"San Nicolás de los Garza","address":null,"latitude":"25.71950000","longitude":"-100.39140000","phone":null,"email":"satelite@polloloco.mx","group_id":8,"group_name":"TEC","zenput_id":2247021,"gps_validated":true,"zenput_name":"22 - Satelite","zenput_address":"Av. Eugenio Garza Sada #6044 Col. Mederos","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Eugenio Garza Sada #6044 Col. Mederos, San Nicolás de los Garza, Nuevo León, México","needs_validation":false},{"id":33,"name":"23 - Guasave","city":"Guasave","state":"Sinaloa","municipality":"Guasave","address":null,"latitude":"25.56750000","longitude":"-108.46860000","phone":null,"email":"guasave@polloloco.mx","group_id":8,"group_name":"TEC","zenput_id":2247022,"gps_validated":true,"zenput_name":"23 - Guasave","zenput_address":"Av. Vicente Guerrero #517, Col. Centro","zenput_city":"Guasave","zenput_state":"SI","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Vicente Guerrero #517, Col. Centro, Guasave, Sinaloa, México","needs_validation":false},{"id":34,"name":"24 - Exposicion","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.73140000","longitude":"-100.30890000","phone":null,"email":"exposicion@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247023,"gps_validated":true,"zenput_name":"24 - Exposicion","zenput_address":"Av. Benito Juárez #1210, Col. La Hacienda","zenput_city":"Guadalupe","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Benito Juárez #1210, Col. La Hacienda, Monterrey, Nuevo León, México","needs_validation":false},{"id":35,"name":"25 - Juarez","city":"Monterrey","state":"Nuevo León","municipality":"Monterrey","address":null,"latitude":"25.66930000","longitude":"-100.30250000","phone":null,"email":"juarez@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247024,"gps_validated":true,"zenput_name":"25 - Juarez","zenput_address":"Carretera a Reynosa #1000, Col. Centro,","zenput_city":"Benito Juarez","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera a Reynosa #1000, Col. Centro,, Monterrey, Nuevo León, México","needs_validation":false},{"id":36,"name":"26 - Cadereyta","city":"Cadereyta Jiménez","state":"Nuevo León","municipality":"Cadereyta Jiménez","address":null,"latitude":"25.59370000","longitude":"-99.99610000","phone":null,"email":"cadereyta@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247025,"gps_validated":true,"zenput_name":"26 - Cadereyta","zenput_address":"Zaragoza #102 Col. Centro","zenput_city":"Cadereyta","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Zaragoza #102 Col. Centro, Cadereyta Jiménez, Nuevo León, México","needs_validation":false},{"id":37,"name":"27 - Santiago","city":"Santiago","state":"Nuevo León","municipality":"Santiago","address":null,"latitude":"25.42940000","longitude":"-100.14780000","phone":null,"email":"santiago@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247026,"gps_validated":true,"zenput_name":"27 - Santiago","zenput_address":"Carretera Nacional #209, Col. Centro,","zenput_city":"Santiago","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Nacional #209, Col. Centro,, Santiago, Nuevo León, México","needs_validation":false},{"id":38,"name":"28 - Guerrero","city":"Nuevo Laredo","state":"Tamaulipas","municipality":"Nuevo Laredo","address":null,"latitude":"27.47690000","longitude":"-99.51690000","phone":null,"email":"guerrero@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247027,"gps_validated":true,"zenput_name":"28 - Guerrero","zenput_address":"Guerrero #619, Col. Centro","zenput_city":"Nuevo Laredo","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Guerrero #619, Col. Centro, Nuevo Laredo, Tamaulipas, México","needs_validation":false},{"id":39,"name":"29 - Pablo Livas","city":"Guadalupe","state":"Nuevo León","municipality":"Guadalupe","address":null,"latitude":"25.71950000","longitude":"-100.34690000","phone":null,"email":"pablolivas@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247028,"gps_validated":true,"zenput_name":"29 - Pablo Livas","zenput_address":"Av. Pablo Livas #7601, Col. Rincón de Guadalupe","zenput_city":"Guadalupe","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Pablo Livas #7601, Col. Rincón de Guadalupe, Guadalupe, Nuevo León, México","needs_validation":false},{"id":40,"name":"30 - Carrizo","city":"Nuevo Laredo","state":"Tamaulipas","municipality":"Nuevo Laredo","address":null,"latitude":"27.48470000","longitude":"-99.50910000","phone":null,"email":"carrizo@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247029,"gps_validated":true,"zenput_name":"30 - Carrizo","zenput_address":"Belden #7412, Col. Buena Vista","zenput_city":"Nuevo Laredo","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Belden #7412, Col. Buena Vista, Nuevo Laredo, Tamaulipas, México","needs_validation":false},{"id":41,"name":"31 - Las Quintas","city":"Guadalupe","state":"Nuevo León","municipality":"Guadalupe","address":null,"latitude":"25.68340000","longitude":"-100.35810000","phone":null,"email":"lasquintas@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247030,"gps_validated":true,"zenput_name":"31 - Las Quintas","zenput_address":"Av. López Mateos #301, Col. Residencial las quintas","zenput_city":"Guadalupe","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. López Mateos #301, Col. Residencial las quintas, Guadalupe, Nuevo León, México","needs_validation":false},{"id":42,"name":"32 - Allende","city":"Allende","state":"Nuevo León","municipality":"Allende","address":null,"latitude":"25.29110000","longitude":"-100.01690000","phone":null,"email":"allende@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247031,"gps_validated":true,"zenput_name":"32 - Allende","zenput_address":"Carretera Nacional #702, Col. Hacienda San Javier","zenput_city":"Allende","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Nacional #702, Col. Hacienda San Javier, Allende, Nuevo León, México","needs_validation":false},{"id":43,"name":"33 - Eloy Cavazos","city":"San Nicolás de los Garza","state":"Nuevo León","municipality":"San Nicolás de los Garza","address":null,"latitude":"25.70610000","longitude":"-100.38030000","phone":null,"email":"eloycavazos@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247032,"gps_validated":true,"zenput_name":"33 - Eloy Cavazos","zenput_address":"Av. Eloy Cavazos #5100, Col. San Eduardo","zenput_city":"Guadalupe","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Eloy Cavazos #5100, Col. San Eduardo, San Nicolás de los Garza, Nuevo León, México","needs_validation":false},{"id":44,"name":"34 - Montemorelos","city":"Montemorelos","state":"Nuevo León","municipality":"Montemorelos","address":null,"latitude":"25.19220000","longitude":"-99.82640000","phone":null,"email":"montemorelos@polloloco.mx","group_id":2,"group_name":"EXPO","zenput_id":2247033,"gps_validated":true,"zenput_name":"34 - Montemorelos","zenput_address":"Av. Capitán Alonso de León #1203, Col. Zaragoza","zenput_city":"Montemorelos","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Capitán Alonso de León #1203, Col. Zaragoza, Montemorelos, Nuevo León, México","needs_validation":false},{"id":45,"name":"35 - Apodaca","city":"Apodaca","state":"Nuevo León","municipality":"Apodaca","address":null,"latitude":"25.78170000","longitude":"-100.18220000","phone":null,"email":"apodaca@polloloco.mx","group_id":3,"group_name":"PLOG","zenput_id":2247034,"gps_validated":true,"zenput_name":"35 - Apodaca","zenput_address":"Miguel Alemán #549 Col. El Milagro","zenput_city":"Apodaca","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Miguel Alemán #549 Col. El Milagro, Apodaca, Nuevo León, México","needs_validation":false},{"id":46,"name":"36 - Apodaca Centro","city":"Apodaca","state":"Nuevo León","municipality":"Apodaca","address":null,"latitude":"25.77360000","longitude":"-100.19440000","phone":null,"email":"apodacacentro@polloloco.mx","group_id":3,"group_name":"PLOG","zenput_id":2247035,"gps_validated":true,"zenput_name":"36 - Apodaca Centro","zenput_address":"Gral. Ignacio Zaragoza 510, Cabecera Municipal, Apodaca Centro","zenput_city":"Apodaca","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Gral. Ignacio Zaragoza 510, Cabecera Municipal, Apodaca Centro, Apodaca, Nuevo León, México","needs_validation":false},{"id":47,"name":"37 - Stiva","city":"General Escobedo","state":"Nuevo León","municipality":"General Escobedo","address":null,"latitude":"25.73140000","longitude":"-100.20690000","phone":null,"email":"stiva@polloloco.mx","group_id":3,"group_name":"PLOG","zenput_id":2247036,"gps_validated":true,"zenput_name":"37 - Stiva","zenput_address":"BLVD. Rogelio González Caballero no.100 Local 9","zenput_city":"Apodaca","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"BLVD. Rogelio González Caballero no.100 Local 9, General Escobedo, Nuevo León, México","needs_validation":false},{"id":48,"name":"40 - Plaza 1500","city":"Apodaca","state":"Nuevo León","municipality":"Apodaca","address":null,"latitude":"25.77360000","longitude":"-100.24470000","phone":null,"email":"plaza1500@polloloco.mx","group_id":3,"group_name":"PLOG","zenput_id":2247039,"gps_validated":true,"zenput_name":"40 - Plaza 1500","zenput_address":"Av. Acapulco #800, Col. Josefa Sozaya","zenput_city":"Escobedo","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Acapulco #800, Col. Josefa Sozaya, Apodaca, Nuevo León, México","needs_validation":false},{"id":49,"name":"38 - Gomez Morin","city":"San Pedro Garza García","state":"Nuevo León","municipality":"San Pedro Garza García","address":null,"latitude":"25.66530000","longitude":"-100.24470000","phone":null,"email":"gomezmorin@polloloco.mx","group_id":3,"group_name":"PLOG","zenput_id":2247037,"gps_validated":true,"zenput_name":"38 - Gomez Morin","zenput_address":"Missouri #458-A ote.","zenput_city":"San Pedro Garza García","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Missouri #458-A ote., San Pedro Garza García, Nuevo León, México","needs_validation":false},{"id":50,"name":"39 - Lazaro Cardenas","city":"San Nicolás de los Garza","state":"Nuevo León","municipality":"San Nicolás de los Garza","address":null,"latitude":"25.70360000","longitude":"-100.32470000","phone":null,"email":"lazarocardenas@polloloco.mx","group_id":3,"group_name":"PLOG","zenput_id":2247038,"gps_validated":true,"zenput_name":"39 - Lazaro Cardenas","zenput_address":"Lázaro Cárdenas #2810 G, esq. Camino al Mirador, Col. Mirador","zenput_city":"Monterrey","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Lázaro Cárdenas #2810 G, esq. Camino al Mirador, Col. Mirador, San Nicolás de los Garza, Nuevo León, México","needs_validation":false},{"id":51,"name":"41 - Vasconcelos","city":"San Pedro Garza García","state":"Nuevo León","municipality":"San Pedro Garza García","address":null,"latitude":"25.69740000","longitude":"-100.31580000","phone":null,"email":"vasconcelos@polloloco.mx","group_id":3,"group_name":"PLOG","zenput_id":2247040,"gps_validated":true,"zenput_name":"41 - Vasconcelos","zenput_address":"Los Aldama #123, Casco Urbano","zenput_city":"San Pedro Garza García","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Los Aldama #123, Casco Urbano, San Pedro Garza García, Nuevo León, México","needs_validation":false},{"id":52,"name":"42 - Independencia","city":"Torreón","state":"Coahuila","municipality":"Torreón","address":null,"latitude":"25.54280000","longitude":"-103.40670000","phone":null,"email":"independencia@polloloco.mx","group_id":9,"group_name":"PLOG LAGUNA","zenput_id":2247041,"gps_validated":true,"zenput_name":"42 - Independencia","zenput_address":"Javier Mina #585 Nte. Col. Centro","zenput_city":"Torreon","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Javier Mina #585 Nte. Col. Centro, Torreón, Coahuila, México","needs_validation":false},{"id":53,"name":"43 - Revolucion","city":"Torreón","state":"Coahuila","municipality":"Torreón","address":null,"latitude":"25.55060000","longitude":"-103.41810000","phone":null,"email":"revolucion@polloloco.mx","group_id":9,"group_name":"PLOG LAGUNA","zenput_id":2247042,"gps_validated":true,"zenput_name":"43 - Revolucion","zenput_address":"Blvd. Torreón- Matamoros #4630 Col. Ex Hacienda los Ángeles","zenput_city":"Torreon","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Blvd. Torreón- Matamoros #4630 Col. Ex Hacienda los Ángeles, Torreón, Coahuila, México","needs_validation":false},{"id":54,"name":"44 - Senderos","city":"Torreón","state":"Coahuila","municipality":"Torreón","address":null,"latitude":"25.55830000","longitude":"-103.39530000","phone":null,"email":"senderos@polloloco.mx","group_id":9,"group_name":"PLOG LAGUNA","zenput_id":2247043,"gps_validated":true,"zenput_name":"44 - Senderos","zenput_address":"Carretera Torreón-San Pedro #2010 Km 3.3. Col. La Unión","zenput_city":"Torreon","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Torreón-San Pedro #2010 Km 3.3. Col. La Unión, Torreón, Coahuila, México","needs_validation":false},{"id":55,"name":"45 - Triana","city":"Torreón","state":"Coahuila","municipality":"Torreón","address":null,"latitude":"25.56610000","longitude":"-103.42950000","phone":null,"email":"triana@polloloco.mx","group_id":9,"group_name":"PLOG LAGUNA","zenput_id":2247044,"gps_validated":true,"zenput_name":"45 - Triana","zenput_address":"Blvd, Rodríguez Triana #950, Col. Las Misiones,","zenput_city":"Torreon","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Blvd, Rodríguez Triana #950, Col. Las Misiones,, Torreón, Coahuila, México","needs_validation":false},{"id":56,"name":"46 - Campestre","city":"Torreón","state":"Coahuila","municipality":"Torreón","address":null,"latitude":"25.57390000","longitude":"-103.40670000","phone":null,"email":"campestre@polloloco.mx","group_id":9,"group_name":"PLOG LAGUNA","zenput_id":2247045,"gps_validated":true,"zenput_name":"46 - Campestre","zenput_address":"Blvd. Miguel Alemán #717, Col. El Campestre","zenput_city":"Gomez Palacio","zenput_state":"DG","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Blvd. Miguel Alemán #717, Col. El Campestre, Torreón, Coahuila, México","needs_validation":false},{"id":57,"name":"47 - San Antonio","city":"Gómez Palacio","state":"Durango","municipality":"Gómez Palacio","address":null,"latitude":"25.86440000","longitude":"-103.41810000","phone":null,"email":"sanantonio@polloloco.mx","group_id":9,"group_name":"PLOG LAGUNA","zenput_id":2247046,"gps_validated":true,"zenput_name":"47 - San Antonio","zenput_address":"Blvd. Ejército Mexicano #396, Fraccionamiento San Antonio","zenput_city":"Gomez Palacio","zenput_state":"DG","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Blvd. Ejército Mexicano #396, Fraccionamiento San Antonio, Gómez Palacio, Durango, México","needs_validation":false},{"id":58,"name":"48 - Refugio","city":"Querétaro","state":"Querétaro","municipality":"Querétaro","address":null,"latitude":"20.58880000","longitude":"-100.38990000","phone":null,"email":"refugio@polloloco.mx","group_id":10,"group_name":"PLOG QUERÉTARO","zenput_id":2247047,"gps_validated":true,"zenput_name":"48 - Refugio","zenput_address":"Anillo vial F.J. Serra #151 Col. El Refugio. Querétaro, QRO","zenput_city":"Queretaro","zenput_state":"QT","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Anillo vial F.J. Serra #151 Col. El Refugio. Querétaro, QRO, Querétaro, Querétaro, México","needs_validation":false},{"id":59,"name":"49 - Pueblito","city":"Corregidora","state":"Querétaro","municipality":"Corregidora","address":null,"latitude":"20.60190000","longitude":"-100.37140000","phone":null,"email":"pueblito@polloloco.mx","group_id":10,"group_name":"PLOG QUERÉTARO","zenput_id":2247048,"gps_validated":true,"zenput_name":"49 - Pueblito","zenput_address":"Paseo Constituyentes #1527 Col. Pueblito","zenput_city":"Corregidora","zenput_state":"QT","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Paseo Constituyentes #1527 Col. Pueblito, Corregidora, Querétaro, México","needs_validation":false},{"id":60,"name":"50 - Patio","city":"Querétaro","state":"Querétaro","municipality":"Querétaro","address":null,"latitude":"20.58880000","longitude":"-100.40840000","phone":null,"email":"patio@polloloco.mx","group_id":10,"group_name":"PLOG QUERÉTARO","zenput_id":2247049,"gps_validated":true,"zenput_name":"50 - Patio","zenput_address":"Ave. Revolución #99 Col. Puertas del Sol","zenput_city":"Queretaro","zenput_state":"QT","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Ave. Revolución #99 Col. Puertas del Sol, Querétaro, Querétaro, México","needs_validation":false},{"id":61,"name":"51 - Constituyentes","city":"Querétaro","state":"Querétaro","municipality":"Querétaro","address":null,"latitude":"20.60970000","longitude":"-100.38990000","phone":null,"email":"constituyentes@polloloco.mx","group_id":10,"group_name":"PLOG QUERÉTARO","zenput_id":2247050,"gps_validated":true,"zenput_name":"51 - Constituyentes","zenput_address":"Ave. Constituyentes #274 Col. Casablanca","zenput_city":"Queretaro","zenput_state":"QT","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Ave. Constituyentes #274 Col. Casablanca, Querétaro, Querétaro, México","needs_validation":false},{"id":62,"name":"52 - Venustiano Carranza","city":"Saltillo","state":"Coahuila","municipality":"Saltillo","address":null,"latitude":"25.42310000","longitude":"-100.99310000","phone":null,"email":"venustianocarranza@polloloco.mx","group_id":11,"group_name":"GRUPO SALTILLO","zenput_id":2247051,"gps_validated":true,"zenput_name":"52 - Venustiano Carranza","zenput_address":"BLVD. Venustiano Carranza, No.3680 col. Jardín","zenput_city":"Saltillo","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"BLVD. Venustiano Carranza, No.3680 col. Jardín, Saltillo, Coahuila, México","needs_validation":false},{"id":63,"name":"53 - Lienzo Charro","city":"Saltillo","state":"Coahuila","municipality":"Saltillo","address":null,"latitude":"25.43860000","longitude":"-101.01560000","phone":null,"email":"lienzocharro@polloloco.mx","group_id":11,"group_name":"GRUPO SALTILLO","zenput_id":2247052,"gps_validated":true,"zenput_name":"53 - Lienzo Charro","zenput_address":"Periférico. Luis Echeverria Álvarez, No. 540 Col. Lourdes","zenput_city":"Saltillo","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Periférico. Luis Echeverria Álvarez, No. 540 Col. Lourdes, Saltillo, Coahuila, México","needs_validation":false},{"id":64,"name":"54 - Ramos Arizpe","city":"Ramos Arizpe","state":"Coahuila","municipality":"Ramos Arizpe","address":null,"latitude":"25.55970000","longitude":"-100.94530000","phone":null,"email":"ramosarizpe@polloloco.mx","group_id":11,"group_name":"GRUPO SALTILLO","zenput_id":2247053,"gps_validated":true,"zenput_name":"54 - Ramos Arizpe","zenput_address":"BLVD. Miguel Ramos Arizpe Sur, No. 18 Col. Ramos Arizpe Centro","zenput_city":"Ramos Arizpe","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"BLVD. Miguel Ramos Arizpe Sur, No. 18 Col. Ramos Arizpe Centro, Ramos Arizpe, Coahuila, México","needs_validation":false},{"id":65,"name":"55 - Eulalio Gutierrez","city":"Saltillo","state":"Coahuila","municipality":"Saltillo","address":null,"latitude":"25.40750000","longitude":"-100.96780000","phone":null,"email":"eulaliogutierrez@polloloco.mx","group_id":11,"group_name":"GRUPO SALTILLO","zenput_id":2247054,"gps_validated":true,"zenput_name":"55 - Eulalio Gutierrez","zenput_address":"Eulalio Gutiérrez Treviño, No. 600 Col. Ex Hacienda de los Cerritos","zenput_city":"Saltillo","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Eulalio Gutiérrez Treviño, No. 600 Col. Ex Hacienda de los Cerritos, Saltillo, Coahuila, México","needs_validation":false},{"id":66,"name":"56 - Luis Echeverria","city":"Saltillo","state":"Coahuila","municipality":"Saltillo","address":null,"latitude":"25.44640000","longitude":"-100.96780000","phone":null,"email":"luisecheverria@polloloco.mx","group_id":11,"group_name":"GRUPO SALTILLO","zenput_id":2247055,"gps_validated":true,"zenput_name":"56 - Luis Echeverria","zenput_address":"Periférico. Luis Echeverría Hacienda No.1980 Col. La Magueyada","zenput_city":"Saltillo","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Periférico. Luis Echeverría Hacienda No.1980 Col. La Magueyada, Saltillo, Coahuila, México","needs_validation":false},{"id":67,"name":"57 - Harold R. Pape","city":"Saltillo","state":"Coahuila","municipality":"Saltillo","address":null,"latitude":"25.45420000","longitude":"-101.01560000","phone":null,"email":"haroldpape@polloloco.mx","group_id":11,"group_name":"GRUPO SALTILLO","zenput_id":2247056,"gps_validated":true,"zenput_name":"57 - Harold R. Pape","zenput_address":"Harold R. Pape No.1903, Col. La Salle","zenput_city":"Monclova","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Harold R. Pape No.1903, Col. La Salle, Saltillo, Coahuila, México","needs_validation":false},{"id":68,"name":"58 - Universidad (Tampico)","city":"Tampico","state":"Tamaulipas","municipality":"Tampico","address":null,"latitude":"22.29080000","longitude":"-97.83750000","phone":null,"email":"universidadtampico@polloloco.mx","group_id":12,"group_name":"OCHTER TAMPICO","zenput_id":2247057,"gps_validated":true,"zenput_name":"58 - Universidad (Tampico)","zenput_address":"Av. Universidad #1702, Col. Universidad sur,","zenput_city":"Tampico","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Universidad #1702, Col. Universidad sur,, Tampico, Tamaulipas, México","needs_validation":false},{"id":69,"name":"59 - Plaza 3601","city":"Tampico","state":"Tamaulipas","municipality":"Tampico","address":null,"latitude":"22.29860000","longitude":"-97.82970000","phone":null,"email":"plaza3601@polloloco.mx","group_id":12,"group_name":"OCHTER TAMPICO","zenput_id":2247058,"gps_validated":true,"zenput_name":"59 - Plaza 3601","zenput_address":"Av. Hidalgo #3601, Col. Guadalupe","zenput_city":"Tampico","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Hidalgo #3601, Col. Guadalupe, Tampico, Tamaulipas, México","needs_validation":false},{"id":70,"name":"60 - Centro (Tampico)","city":"Tampico","state":"Tamaulipas","municipality":"Tampico","address":null,"latitude":"22.29080000","longitude":"-97.84530000","phone":null,"email":"centrotampico@polloloco.mx","group_id":12,"group_name":"OCHTER TAMPICO","zenput_id":2247059,"gps_validated":true,"zenput_name":"60 - Centro (Tampico)","zenput_address":"Diaz Miron #115 local 2, Col. Centro,","zenput_city":"Tampico","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Diaz Miron #115 local 2, Col. Centro,, Tampico, Tamaulipas, México","needs_validation":false},{"id":71,"name":"61 - Aeropuerto (Tampico)","city":"Tampico","state":"Tamaulipas","municipality":"Tampico","address":null,"latitude":"22.29860000","longitude":"-97.86860000","phone":null,"email":"aeropuertotampico@polloloco.mx","group_id":12,"group_name":"OCHTER TAMPICO","zenput_id":2247060,"gps_validated":true,"zenput_name":"61 - Aeropuerto (Tampico)","zenput_address":"Carretera Tampico-Mante #6904, Col, Arenal,","zenput_city":"Tampico","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Tampico-Mante #6904, Col, Arenal,, Tampico, Tamaulipas, México","needs_validation":false},{"id":75,"name":"65 - Pedro Cardenas","city":"Matamoros","state":"Tamaulipas","municipality":"Matamoros","address":null,"latitude":"25.86940000","longitude":"-97.50440000","phone":null,"email":"pedrocardenas@polloloco.mx","group_id":13,"group_name":"GRUPO MATAMOROS","zenput_id":2247064,"gps_validated":true,"zenput_name":"65 - Pedro Cardenas","zenput_address":"Av. Pedro Cárdenas 4001 A, Jaumave Fraccionamiento","zenput_city":"Matamoros","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Pedro Cárdenas 4001 A, Jaumave Fraccionamiento, Matamoros, Tamaulipas, México","needs_validation":false},{"id":76,"name":"66 - Lauro Villar","city":"Matamoros","state":"Tamaulipas","municipality":"Matamoros","address":null,"latitude":"25.87720000","longitude":"-97.51220000","phone":null,"email":"laurovillar@polloloco.mx","group_id":13,"group_name":"GRUPO MATAMOROS","zenput_id":2247065,"gps_validated":true,"zenput_name":"66 - Lauro Villar","zenput_address":"Av. Gral. Lauro Villar 1, Treviño Zapata","zenput_city":"Matamoros","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Gral. Lauro Villar 1, Treviño Zapata, Matamoros, Tamaulipas, México","needs_validation":false},{"id":77,"name":"67 - Centro (Matamoros)","city":"Matamoros","state":"Tamaulipas","municipality":"Matamoros","address":null,"latitude":"25.86940000","longitude":"-97.52000000","phone":null,"email":"centromatamoros@polloloco.mx","group_id":13,"group_name":"GRUPO MATAMOROS","zenput_id":2247066,"gps_validated":true,"zenput_name":"67 - Centro (Matamoros)","zenput_address":"Cinco 50, Col. Centro","zenput_city":"Matamoros","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Cinco 50, Col. Centro, Matamoros, Tamaulipas, México","needs_validation":false},{"id":78,"name":"68 - Avenida del Niño","city":"Matamoros","state":"Tamaulipas","municipality":"Matamoros","address":null,"latitude":"25.88500000","longitude":"-97.51220000","phone":null,"email":"avenidanino@polloloco.mx","group_id":13,"group_name":"GRUPO MATAMOROS","zenput_id":2247067,"gps_validated":true,"zenput_name":"68 - Avenida del Niño","zenput_address":"Lib. Emilio Portes Gil SN-C, San Fernando","zenput_city":"Matamoros","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Lib. Emilio Portes Gil SN-C, San Fernando, Matamoros, Tamaulipas, México","needs_validation":false},{"id":79,"name":"69 - Puerto Rico","city":"Matamoros","state":"Tamaulipas","municipality":"Matamoros","address":null,"latitude":"25.89280000","longitude":"-97.49660000","phone":null,"email":"puertorico@polloloco.mx","group_id":13,"group_name":"GRUPO MATAMOROS","zenput_id":2247068,"gps_validated":true,"zenput_name":"69 - Puerto Rico","zenput_address":"Ave. Puerto Rico #84 Col. Fracc. Rincón Colonial","zenput_city":"Matamoros","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Ave. Puerto Rico #84 Col. Fracc. Rincón Colonial, Matamoros, Tamaulipas, México","needs_validation":false},{"id":80,"name":"70 - Coahuila Comidas","city":"Piedras Negras","state":"Coahuila","municipality":"Piedras Negras","address":null,"latitude":"28.70000000","longitude":"-100.53330000","phone":null,"email":"coahuilacomidas@polloloco.mx","group_id":15,"group_name":"GRUPO PIEDRAS NEGRAS","zenput_id":2247069,"gps_validated":true,"zenput_name":"70 - Coahuila Comidas","zenput_address":"Av. Carranza #609 Col. González","zenput_city":"Piedras Negras","zenput_state":"CO","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Carranza #609 Col. González, Piedras Negras, Coahuila, México","needs_validation":false},{"id":81,"name":"71 - Centrito Valle","city":"San Pedro Garza García","state":"Nuevo León","municipality":"San Pedro Garza García","address":null,"latitude":"25.66530000","longitude":"-100.23690000","phone":null,"email":"centritovalle@polloloco.mx","group_id":16,"group_name":"GRUPO CENTRITO","zenput_id":2247070,"gps_validated":true,"zenput_name":"71 - Centrito Valle","zenput_address":"Rio Tamazunchale Nte. #317 D3, Col. Del Valle","zenput_city":"San Pedro Garza García","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Rio Tamazunchale Nte. #317 D3, Col. Del Valle, San Pedro Garza García, Nuevo León, México","needs_validation":false},{"id":82,"name":"72 - Sabinas Hidalgo","city":"Sabinas Hidalgo","state":"Nuevo León","municipality":"Sabinas Hidalgo","address":null,"latitude":"26.50440000","longitude":"-100.17440000","phone":null,"email":"sabinashidalgo@polloloco.mx","group_id":17,"group_name":"GRUPO SABINAS HIDALGO","zenput_id":2247071,"gps_validated":true,"zenput_name":"72 - Sabinas Hidalgo","zenput_address":"Carretera Nacional #915, Barrio el dólar","zenput_city":"Sabinas Hidalgo","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Nacional #915, Barrio el dólar, Sabinas Hidalgo, Nuevo León, México","needs_validation":false},{"id":83,"name":"73 - Anzalduas","city":"Reynosa","state":"Tamaulipas","municipality":"Reynosa","address":null,"latitude":"26.06000000","longitude":"-98.30440000","phone":null,"email":"anzalduas@polloloco.mx","group_id":7,"group_name":"CRR","zenput_id":2247072,"gps_validated":true,"zenput_name":"73 - Anzalduas","zenput_address":"Lateral Canal Anzalduas s/n, Col. Ferrocarril Pte","zenput_city":"Reynosa","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Lateral Canal Anzalduas s/n, Col. Ferrocarril Pte, Reynosa, Tamaulipas, México","needs_validation":false},{"id":84,"name":"74 - Hidalgo (Reynosa)","city":"Reynosa","state":"Tamaulipas","municipality":"Reynosa","address":null,"latitude":"26.06780000","longitude":"-98.31220000","phone":null,"email":"hidalgoreynosa@polloloco.mx","group_id":7,"group_name":"CRR","zenput_id":2247073,"gps_validated":true,"zenput_name":"74 - Hidalgo (Reynosa)","zenput_address":"Blvd. Hidalgo #199, Col. Fuentes del Valle","zenput_city":"Reynosa","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Blvd. Hidalgo #199, Col. Fuentes del Valle, Reynosa, Tamaulipas, México","needs_validation":false},{"id":85,"name":"75 - Libramiento (Reynosa)","city":"Reynosa","state":"Tamaulipas","municipality":"Reynosa","address":null,"latitude":"26.07560000","longitude":"-98.29660000","phone":null,"email":"libramientoreynosa@polloloco.mx","group_id":7,"group_name":"CRR","zenput_id":2247074,"gps_validated":true,"zenput_name":"75 - Libramiento (Reynosa)","zenput_address":"Carretera a Matamoros #520, Col. Fundadores","zenput_city":"Reynosa","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera a Matamoros #520, Col. Fundadores, Reynosa, Tamaulipas, México","needs_validation":false},{"id":86,"name":"76 - Aeropuerto (Reynosa)","city":"Reynosa","state":"Tamaulipas","municipality":"Reynosa","address":null,"latitude":"26.05220000","longitude":"-98.22780000","phone":null,"email":"aeropuertoreynosa@polloloco.mx","group_id":6,"group_name":"RAP","zenput_id":2247075,"gps_validated":true,"zenput_name":"76 - Aeropuerto (Reynosa)","zenput_address":"Carretera Federal Reynosa a Matamoros km 84 s/n col Almaguer","zenput_city":"Reynosa","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Federal Reynosa a Matamoros km 84 s/n col Almaguer, Reynosa, Tamaulipas, México","needs_validation":false},{"id":87,"name":"77 - Boulevard Morelos","city":"Reynosa","state":"Tamaulipas","municipality":"Reynosa","address":null,"latitude":"26.06780000","longitude":"-98.28890000","phone":null,"email":"boulevardmorelos@polloloco.mx","group_id":6,"group_name":"RAP","zenput_id":2247076,"gps_validated":true,"zenput_name":"77 - Boulevard Morelos","zenput_address":"Boulevard Morelos 2418 Sur, Col. Ampliación Rodríguez","zenput_city":"Reynosa","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Boulevard Morelos 2418 Sur, Col. Ampliación Rodríguez, Reynosa, Tamaulipas, México","needs_validation":false},{"id":88,"name":"78 - Alcala","city":"Reynosa","state":"Tamaulipas","municipality":"Reynosa","address":null,"latitude":"26.08340000","longitude":"-98.30440000","phone":null,"email":"alcala@polloloco.mx","group_id":6,"group_name":"RAP","zenput_id":2247077,"gps_validated":true,"zenput_name":"78 - Alcala","zenput_address":"Carretera Fed. De Reynosa a San Fernando KM 2.5 Parque Industrial Estiva Alcalá Reynosa","zenput_city":"Reynosa","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Carretera Fed. De Reynosa a San Fernando KM 2.5 Parque Industrial Estiva Alcalá Reynosa, Reynosa, Tamaulipas, México","needs_validation":false},{"id":89,"name":"79 - Rio Bravo","city":"Río Bravo","state":"Tamaulipas","municipality":"Río Bravo","address":null,"latitude":"25.98940000","longitude":"-98.09330000","phone":null,"email":"riobravo@polloloco.mx","group_id":18,"group_name":"GRUPO RÍO BRAVO","zenput_id":2247078,"gps_validated":true,"zenput_name":"79 - Rio Bravo","zenput_address":"Av. Constitución #105, Col. Centro","zenput_city":"Rio Bravo","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Constitución #105, Col. Centro, Río Bravo, Tamaulipas, México","needs_validation":false},{"id":90,"name":"80 - Guerrero 2 (Ruelas)","city":"Nuevo Laredo","state":"Tamaulipas","municipality":"Nuevo Laredo","address":null,"latitude":"27.47690000","longitude":"-99.51690000","phone":null,"email":"guerrero2ruelas@polloloco.mx","group_id":19,"group_name":"GRUPO NUEVO LAREDO (RUELAS)","zenput_id":2247079,"gps_validated":true,"zenput_name":"80 - Guerrero 2 (Ruelas)","zenput_address":"Av. Guerrero #2454, Col. Centro","zenput_city":"Nuevo Laredo","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Av. Guerrero #2454, Col. Centro, Nuevo Laredo, Tamaulipas, México","needs_validation":false},{"id":91,"name":"81 - Reforma (Ruelas)","city":"Nuevo Laredo","state":"Tamaulipas","municipality":"Nuevo Laredo","address":null,"latitude":"27.48470000","longitude":"-99.50910000","phone":null,"email":"reformaruelas@polloloco.mx","group_id":19,"group_name":"GRUPO NUEVO LAREDO (RUELAS)","zenput_id":2247080,"gps_validated":true,"zenput_name":"81 - Reforma (Ruelas)","zenput_address":"Reforma #5701, Pad#6, Col. Centro","zenput_city":"Nuevo Laredo","zenput_state":"TM","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Reforma #5701, Pad#6, Col. Centro, Nuevo Laredo, Tamaulipas, México","needs_validation":false},{"id":92,"name":"82 - Aeropuerto Nuevo Laredo","city":"Nuevo Laredo","state":"Tamaulipas","municipality":"Nuevo Laredo","address":null,"latitude":"27.44330000","longitude":"-99.57050000","phone":null,"email":"aeropuertonuevolaredo@polloloco.mx","group_id":19,"group_name":"GRUPO NUEVO LAREDO (RUELAS)","zenput_id":2247081,"gps_validated":true,"zenput_name":null,"zenput_address":null,"zenput_city":null,"zenput_state":null,"zenput_latitude":null,"zenput_longitude":null,"name_matches":false,"address_matches":false,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":", Nuevo Laredo, Tamaulipas, México","needs_validation":false},{"id":93,"name":"83 - Cerradas de Anahuac","city":"General Escobedo","state":"Nuevo León","municipality":"General Escobedo","address":"401 Avenida Concordia","latitude":"0.00000000","longitude":"0.00000000","phone":"+52 81 0000-0001","email":"sucursal83@eplcas.com","group_id":1,"group_name":"TEPEYAC","zenput_id":2260766,"gps_validated":false,"zenput_name":"83 - Cerradas de Anahuac","zenput_address":"401 Avenida Concordia","zenput_city":"Ciudad General Escobedo","zenput_state":"Nuevo León","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":true,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"401 Avenida Concordia, General Escobedo, Nuevo León, México","needs_validation":true},{"id":94,"name":"84 - Aeropuerto del Norte","city":"Ciénega de Flores","state":"Nuevo León","municipality":"Ciénega de Flores","address":"Km. 23.2 Autopista Monterrey - Nuevo Laredo","latitude":"0.00000000","longitude":"0.00000000","phone":"+52 81 0000-0002","email":"sucursal84@eplcas.com","group_id":1,"group_name":"TEPEYAC","zenput_id":2260636,"gps_validated":false,"zenput_name":"84 - Aeropuerto del Norte","zenput_address":"Km. 23.2 Autopista Monterrey - Nuevo Laredo","zenput_city":"Ciénega de Flores","zenput_state":"NL","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":true,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"Km. 23.2 Autopista Monterrey - Nuevo Laredo, Ciénega de Flores, Nuevo León, México","needs_validation":true},{"id":95,"name":"85 - Diego Diaz","city":"San Nicolás de los Garza","state":"Nuevo León","municipality":"San Nicolás de los Garza","address":"198 Avenida Diego Díaz de Berlanga","latitude":"0.00000000","longitude":"0.00000000","phone":"+52 81 0000-0003","email":"sucursal85@eplcas.com","group_id":1,"group_name":"TEPEYAC","zenput_id":2260765,"gps_validated":false,"zenput_name":"85 - Diego Diaz","zenput_address":"198 Avenida Diego Díaz de Berlanga","zenput_city":"San Nicolás de los Garza","zenput_state":"Nuevo León","zenput_latitude":null,"zenput_longitude":null,"name_matches":true,"address_matches":true,"coordinates_missing":false,"zenput_has_coordinates":false,"google_maps_query":"198 Avenida Diego Díaz de Berlanga, San Nicolás de los Garza, Nuevo León, México","needs_validation":true}];
+        let currentBranchId = null;
+        
+        function filterBranches(filter) {
+            const rows = document.querySelectorAll('#branchesTable tbody tr');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            rows.forEach(row => {
+                const filterClass = row.dataset.filter;
+                if (filter === 'all' || filterClass.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        function openValidationForm(branchId) {
+            const branch = branches.find(b => b.id === branchId);
+            currentBranchId = branchId;
+            
+            document.getElementById('currentBranchName').textContent = branch.name;
+            document.getElementById('currentBranchAddress').textContent = branch.address;
+            document.getElementById('latInput').value = branch.latitude || '';
+            document.getElementById('lngInput').value = branch.longitude || '';
+            
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('validationForm').style.display = 'block';
+        }
+        
+        function closeValidationForm() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('validationForm').style.display = 'none';
+        }
+        
+        async function updateCoordinates() {
+            const lat = document.getElementById('latInput').value;
+            const lng = document.getElementById('lngInput').value;
+            
+            if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                alert('Por favor ingresa coordenadas válidas');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/branch-validation/update-coordinates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        branchId: currentBranchId, 
+                        latitude: parseFloat(lat), 
+                        longitude: parseFloat(lng) 
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Coordenadas actualizadas exitosamente');
+                    location.reload();
+                } else {
+                    alert('Error actualizando coordenadas');
+                }
+            } catch (error) {
+                alert('Error de conexión');
+            }
+            
+            closeValidationForm();
+        }
+        
+        async function useZenputCoords(branchId) {
+            const branch = branches.find(b => b.id === branchId);
+            
+            if (confirm(`¿Usar coordenadas de Zenput?\n${branch.zenput_latitude}, ${branch.zenput_longitude}`)) {
+                try {
+                    const response = await fetch('/api/branch-validation/update-coordinates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            branchId: branchId, 
+                            latitude: parseFloat(branch.zenput_latitude), 
+                            longitude: parseFloat(branch.zenput_longitude) 
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert('Coordenadas de Zenput aplicadas');
+                        location.reload();
+                    }
+                } catch (error) {
+                    alert('Error aplicando coordenadas');
+                }
+            }
+        }
+        
+        // Búsqueda en tiempo real
+        document.getElementById('searchBox').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#branchesTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

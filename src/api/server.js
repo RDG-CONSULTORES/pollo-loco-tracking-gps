@@ -49,6 +49,9 @@ const unifiedUserRoutes = require('./routes/unified-user-management.routes');
 // NEW: OwnTracks Remote Configuration
 // const ownTracksRemoteConfig = require('./routes/owntracks-remote-config');
 
+// NEW: Branch Validation Routes (Sistema de Validación de 85 Sucursales)
+const branchValidationRoutes = require('./routes/branch-validation.routes');
+
 // NEW: Real-time processing middleware
 // const { processLocationMiddleware } = require('../middleware/realtime-processor');
 
@@ -194,6 +197,7 @@ function createServer() {
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
+  app.use('/api/branch-validation', branchValidationRoutes); // Branch validation system
   // app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup (temporalmente comentado)
   // app.use('/api', detectionManagementRoutes); // Detection management endpoints
   app.use('/api/debug', debugRoutes);

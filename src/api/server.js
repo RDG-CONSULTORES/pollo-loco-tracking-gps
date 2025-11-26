@@ -324,3 +324,9 @@ function startServer() {
 }
 
 module.exports = { createServer, startServer };
+// DEPLOY TRIGGER - 2025-11-26T22:30:43.072Z
+// Coordenadas actualizadas desde CSV normalizado de Roberto
+// Total branches: 82
+// Total geofences: 85
+// Status: PRODUCTION READY
+console.log('🎯 COORDENADAS ACTUALIZADAS: 2025-11-26T22:30:43.072Z');

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Fresco - Coordenadas Correctas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: #dc2626;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .status {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .sucursal {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .sucursal-header {
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 8px;
+        }
+        .coordinates {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        .correct {
+            border-left: 4px solid #059669;
+        }
+        .incorrect {
+            border-left: 4px solid #dc2626;
+        }
+        .btn {
+            background: #dc2626;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #b91c1c;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+            margin: 10px 0;
+        }
+        .success {
+            background: #f0fdf4;
+            color: #059669;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #059669;
+            margin: 10px 0;
+        }
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Dashboard Fresco - Coordenadas del CSV</h1>
+        <p>Endpoint sin cache que muestra las coordenadas correctas directamente</p>
+    </div>
+
+    <div class="status" id="status">
+        <h3>📊 Estado de la Conexión</h3>
+        <p class="loading">Conectando...</p>
+    </div>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <button class="btn" onclick="loadFreshCoordinates()">🔄 Recargar Coordenadas Frescas</button>
+        <button class="btn" onclick="testProblemBranches()">🧪 Test Sucursales Problemáticas</button>
+        <button class="btn" onclick="showAllBranches()">📋 Mostrar Todas las Sucursales</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Coordenadas esperadas del CSV de Roberto
+        const expectedCoordinates = {
+            1: { name: "Pino Suarez", lat: 25.672254063040413, lng: -100.31993941809768 },
+            26: { name: "Cadereyta", lat: 25.592724985762, lng: -100.001618907664 },
+            66: { name: "Huasteca", lat: 25.863774989939, lng: -97.480015038001 },
+            62: { name: "Gomez Morin", lat: 19.695589755530, lng: -101.166190802104 },
+            83: { name: "Anahuac", lat: 25.785732112716154, lng: -100.28004375427862 }
+        };
+
+        async function loadFreshCoordinates() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            statusDiv.innerHTML = '<h3>📊 Estado de la Conexión</h3><p class="loading">Cargando coordenadas frescas...</p>';
+            resultsDiv.innerHTML = '';
+
+            try {
+                const startTime = Date.now();
+                
+                // Llamar al endpoint fresco SIN CACHE
+                const response = await fetch('/api/fresh-coordinates/geofences', {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    },
+                    cache: 'no-store'
+                });
+
+                const responseTime = Date.now() - startTime;
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                statusDiv.innerHTML = `
+                    <h3>📊 Estado de la Conexión</h3>
+                    <div class="success">
+                        ✅ Conexión exitosa al endpoint fresco<br>
+                        📊 Sucursales: ${data.geofences.length}<br>
+                        ⏱️ Tiempo de respuesta: ${responseTime}ms<br>
+                        🕐 Generado: ${new Date(data.meta.generated_at).toLocaleString()}<br>
+                        🚫 Cache: Deshabilitado<br>
+                        📡 Fuente: ${data.source}
+                    </div>
+                `;
+
+                showCoordinates(data.geofences, 'fresh');
+
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <h3>📊 Estado de la Conexión</h3>
+                    <div class="error">
+                        ❌ Error cargando coordenadas frescas:<br>
+                        ${error.message}
+                    </div>
+                `;
+                console.error('Error:', error);
+            }
+        }
+
+        async function testProblemBranches() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="loading">Testeando sucursales problemáticas...</p>';
+
+            try {
+                const response = await fetch('/api/fresh-coordinates/test', {
+                    cache: 'no-store'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let html = '<h3>🧪 Test de Sucursales Problemáticas</h3>';
+                    html += '<div class="grid">';
+
+                    data.test_branches.forEach(branch => {
+                        const expected = expectedCoordinates[branch.branch_number];
+                        let status = '✅ CORRECTO';
+                        let cssClass = 'correct';
+
+                        if (expected) {
+                            const coords = branch.branch_coordinates.split(', ');
+                            const actualLat = parseFloat(coords[0]);
+                            const actualLng = parseFloat(coords[1]);
+                            
+                            const latDiff = Math.abs(actualLat - expected.lat);
+                            const lngDiff = Math.abs(actualLng - expected.lng);
+                            
+                            if (latDiff > 0.001 || lngDiff > 0.001) {
+                                status = '❌ INCORRECTO';
+                                cssClass = 'incorrect';
+                            }
+                        }
+
+                        html += `
+                            <div class="sucursal ${cssClass}">
+                                <div class="sucursal-header">#${branch.branch_number} - ${branch.name}</div>
+                                <div><strong>Ciudad:</strong> ${branch.city}, ${branch.state}</div>
+                                <div class="coordinates"><strong>Coordenadas:</strong> ${branch.branch_coordinates}</div>
+                                <div><strong>Status:</strong> ${status}</div>
+                                <div><strong>Geofence:</strong> ${branch.coordinates_match ? 'Sincronizado ✅' : 'No sincronizado ❌'}</div>
+                                ${branch.created_at ? `<div class="timestamp">Creado: ${new Date(branch.created_at).toLocaleString()}</div>` : ''}
+                            </div>
+                        `;
+                    });
+
+                    html += '</div>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    throw new Error(data.error || 'Error en el test');
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error en test: ${error.message}</div>`;
+            }
+        }
+
+        async function showAllBranches() {
+            await loadFreshCoordinates();
+        }
+
+        function showCoordinates(geofences, source) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `<h3>📋 Todas las Sucursales (${source === 'fresh' ? 'Endpoint Fresco' : 'Endpoint Normal'})</h3>`;
+            html += '<div class="grid">';
+
+            // Ordenar por número de sucursal
+            const sortedGeofences = geofences.sort((a, b) => {
+                const aNum = parseInt(a.location_name.split(' - ')[0]);
+                const bNum = parseInt(b.location_name.split(' - ')[0]);
+                return aNum - bNum;
+            });
+
+            sortedGeofences.forEach(geofence => {
+                const branchNum = parseInt(geofence.location_name.split(' - ')[0]);
+                const expected = expectedCoordinates[branchNum];
+                
+                let status = '';
+                let cssClass = '';
+                
+                if (expected) {
+                    const actualLat = parseFloat(geofence.latitude);
+                    const actualLng = parseFloat(geofence.longitude);
+                    
+                    const latDiff = Math.abs(actualLat - expected.lat);
+                    const lngDiff = Math.abs(actualLng - expected.lng);
+                    
+                    if (latDiff < 0.001 && lngDiff < 0.001) {
+                        status = '✅ CORRECTO';
+                        cssClass = 'correct';
+                    } else {
+                        status = '❌ INCORRECTO';
+                        cssClass = 'incorrect';
+                    }
+                } else {
+                    status = '➖ No verificado';
+                }
+
+                html += `
+                    <div class="sucursal ${cssClass}">
+                        <div class="sucursal-header">${geofence.location_name}</div>
+                        <div><strong>Grupo:</strong> ${geofence.grupo}</div>
+                        <div class="coordinates"><strong>Coordenadas:</strong> ${parseFloat(geofence.latitude).toFixed(8)}, ${parseFloat(geofence.longitude).toFixed(8)}</div>
+                        <div><strong>Status:</strong> ${status}</div>
+                        <div class="timestamp">Creado: ${new Date(geofence.created_at).toLocaleString()}</div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        // Cargar datos al inicializar
+        window.onload = function() {
+            loadFreshCoordinates();
+        };
+
+        // Evitar cache del navegador
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

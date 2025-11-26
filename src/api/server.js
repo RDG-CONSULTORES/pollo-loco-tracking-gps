@@ -52,6 +52,9 @@ const unifiedUserRoutes = require('./routes/unified-user-management.routes');
 // NEW: Branch Validation Routes (Sistema de Validación de 85 Sucursales)
 const branchValidationRoutes = require('./routes/branch-validation.routes');
 
+// NEW: Fresh Coordinates Routes (Sin Cache - Fix Coordenadas)
+const freshCoordinatesRoutes = require('./routes/fresh-coordinates.routes');
+
 // NEW: Real-time processing middleware
 // const { processLocationMiddleware } = require('../middleware/realtime-processor');
 
@@ -94,6 +97,11 @@ function createServer() {
   // Rutas específicas para el dashboard
   app.get('/webapp/dashboard.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../webapp/dashboard.html'));
+  });
+  
+  // Dashboard fresco sin cache - FIX COORDENADAS
+  app.get('/webapp/fresh-dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/fresh-dashboard.html'));
   });
   
   // Admin panel - redirigir a versión móvil para Telegram
@@ -207,6 +215,7 @@ function createServer() {
   app.use('/api/admin', adminDashboardRoutes); // Admin Dashboard Foundation Phase
   app.use('/api/public', publicDashboardRoutes); // Public Dashboard - NO AUTH REQUIRED
   app.use('/api/telegram', telegramDetectionRoutes); // Telegram Detection - Mini-Step 1B
+  app.use('/api/fresh-coordinates', freshCoordinatesRoutes); // Fresh Coordinates - Sin Cache Fix
   app.use('/api/users', unifiedUserRoutes); // Unified User Management - Panel EPL CAS
   app.use('/api/directors', directorsRoutes); // Directors management routes
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes

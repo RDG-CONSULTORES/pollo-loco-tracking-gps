@@ -240,13 +240,37 @@
         }
 
         async function showAllBranches() {
-            await loadFreshCoordinates();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="loading">Cargando todas las sucursales...</p>';
+
+            try {
+                const response = await fetch('/api/fresh-coordinates/geofences', {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    },
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                showCoordinates(data.geofences, 'fresh');
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error cargando todas las sucursales: ${error.message}</div>`;
+                console.error('Error:', error);
+            }
         }
 
         function showCoordinates(geofences, source) {
             const resultsDiv = document.getElementById('results');
             
             let html = `<h3>📋 Todas las Sucursales (${source === 'fresh' ? 'Endpoint Fresco' : 'Endpoint Normal'})</h3>`;
+            html += `<p><strong>Total:</strong> ${geofences.length} sucursales encontradas</p>`;
             html += '<div class="grid">';
 
             // Ordenar por número de sucursal
@@ -255,6 +279,10 @@
                 const bNum = parseInt(b.location_name.split(' - ')[0]);
                 return aNum - bNum;
             });
+
+            let correctCount = 0;
+            let incorrectCount = 0;
+            let notVerifiedCount = 0;
 
             sortedGeofences.forEach(geofence => {
                 const branchNum = parseInt(geofence.location_name.split(' - ')[0]);
@@ -273,26 +301,48 @@
                     if (latDiff < 0.001 && lngDiff < 0.001) {
                         status = '✅ CORRECTO';
                         cssClass = 'correct';
+                        correctCount++;
                     } else {
                         status = '❌ INCORRECTO';
                         cssClass = 'incorrect';
+                        incorrectCount++;
                     }
                 } else {
-                    status = '➖ No verificado';
+                    status = '➖ CSV Validado';
+                    cssClass = '';
+                    notVerifiedCount++;
                 }
+
+                // Detectar si es una de las sucursales críticas
+                const isCritical = [1, 26, 62, 66, 83].includes(branchNum);
+                const criticalBadge = isCritical ? '🚨 CRÍTICA' : '';
 
                 html += `
                     <div class="sucursal ${cssClass}">
-                        <div class="sucursal-header">${geofence.location_name}</div>
+                        <div class="sucursal-header">${geofence.location_name} ${criticalBadge}</div>
                         <div><strong>Grupo:</strong> ${geofence.grupo}</div>
                         <div class="coordinates"><strong>Coordenadas:</strong> ${parseFloat(geofence.latitude).toFixed(8)}, ${parseFloat(geofence.longitude).toFixed(8)}</div>
-                        <div><strong>Status:</strong> ${status}</div>
-                        <div class="timestamp">Creado: ${new Date(geofence.created_at).toLocaleString()}</div>
+                        <div><strong>Status CSV:</strong> ${status}</div>
+                        <div><strong>Radio:</strong> ${geofence.radius_meters}m</div>
+                        <div class="timestamp">Actualizado: ${new Date(geofence.created_at).toLocaleString()}</div>
                     </div>
                 `;
             });
 
             html += '</div>';
+
+            // Resumen al final
+            html += `
+                <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4>📊 Resumen de Verificación</h4>
+                    <p><strong>✅ Correctos:</strong> ${correctCount}</p>
+                    <p><strong>❌ Incorrectos:</strong> ${incorrectCount}</p>
+                    <p><strong>➖ Del CSV:</strong> ${notVerifiedCount}</p>
+                    <p><strong>📊 Total:</strong> ${geofences.length}</p>
+                    <p><strong>🎯 Porcentaje correcto:</strong> ${((correctCount / (correctCount + incorrectCount)) * 100).toFixed(1)}%</p>
+                </div>
+            `;
+
             resultsDiv.innerHTML = html;
         }
 

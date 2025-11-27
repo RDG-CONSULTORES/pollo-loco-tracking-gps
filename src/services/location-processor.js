@@ -303,7 +303,7 @@ class LocationProcessor {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
         RETURNING id
       `, [
-        data.tracker_id,  // Usar tracker_id correcto
+        this.generateUUIDFromTrackerId(data.tracker_id),  // Convertir tracker_id a UUID válido
         data.user_id,
         data.lat,
         data.lon,
@@ -375,6 +375,18 @@ class LocationProcessor {
       console.error('❌ Error limpiando ubicaciones:', error.message);
       return 0;
     }
+  }
+  
+  /**
+   * Generar UUID consistente desde tracker_id string
+   * Esto asegura que "RD01" siempre genere el mismo UUID
+   */
+  generateUUIDFromTrackerId(trackerId) {
+    const crypto = require('crypto');
+    // Crear hash MD5 del tracker_id y convertirlo a formato UUID válido
+    const hash = crypto.createHash('md5').update(trackerId).digest('hex');
+    // Formatear como UUID: 8-4-4-4-12 caracteres
+    return `${hash.slice(0,8)}-${hash.slice(8,12)}-${hash.slice(12,16)}-${hash.slice(16,20)}-${hash.slice(20,32)}`;
   }
 }
 

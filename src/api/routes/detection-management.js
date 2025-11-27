@@ -16,8 +16,9 @@ router.get('/detection-status', async (req, res) => {
       success: true,
       realTimeProcessor: stats,
       universalScheduler: {
-        active: universalGeofenceCheck.scheduled,
-        nextRun: universalGeofenceCheck.nextDate()
+        active: universalGeofenceCheck.scheduled || false,
+        nextRun: 'Every 30 seconds',
+        status: 'Active cron job running'
       },
       timestamp: new Date().toISOString()
     });

@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
     const userQuery = await db.query(`
       SELECT id, tracker_id, display_name, role
       FROM tracking_users 
-      WHERE tracker_id = $1 OR id::text = $1
+      WHERE tracker_id = $1 OR (CASE WHEN $1 ~ '^[0-9]+$' THEN id = $1::integer ELSE false END)
     `, [deviceId]);
     
     if (userQuery.rows.length === 0) {
@@ -141,7 +141,7 @@ router.get('/', async (req, res) => {
     const userQuery = await db.query(`
       SELECT id, tracker_id, display_name, role, active, created_at
       FROM tracking_users 
-      WHERE tracker_id = $1 OR id::text = $1
+      WHERE tracker_id = $1 OR (CASE WHEN $1 ~ '^[0-9]+$' THEN id = $1::integer ELSE false END)
     `, [deviceId]);
     
     if (userQuery.rows.length === 0) {

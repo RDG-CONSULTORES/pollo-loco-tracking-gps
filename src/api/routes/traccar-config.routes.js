@@ -16,11 +16,11 @@ router.get('/config/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Buscar usuario
+    // Buscar usuario (convertir id a entero si es numérico)
     const userQuery = await db.query(`
       SELECT id, tracker_id, display_name, role, active
       FROM tracking_users 
-      WHERE id = $1 OR tracker_id = $1
+      WHERE tracker_id = $1 OR (CASE WHEN $1 ~ '^[0-9]+$' THEN id = $1::integer ELSE false END)
     `, [userId]);
     
     if (userQuery.rows.length === 0) {
@@ -75,11 +75,11 @@ router.get('/setup/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Buscar usuario
+    // Buscar usuario (convertir id a entero si es numérico)
     const userQuery = await db.query(`
       SELECT id, tracker_id, display_name, role, active
       FROM tracking_users 
-      WHERE id = $1 OR tracker_id = $1
+      WHERE tracker_id = $1 OR (CASE WHEN $1 ~ '^[0-9]+$' THEN id = $1::integer ELSE false END)
     `, [userId]);
     
     if (userQuery.rows.length === 0) {

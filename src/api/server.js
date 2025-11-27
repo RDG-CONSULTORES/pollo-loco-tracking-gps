@@ -49,6 +49,9 @@ const detectionManagementRoutes = require('./routes/detection-management');
 // NEW: OwnTracks Remote Configuration (RE-HABILITADO)
 const ownTracksRemoteConfig = require('./routes/owntracks-remote-config');
 
+// NEW: Setup Generator Routes (Configuración automática para empleados)
+const setupGeneratorRoutes = require('./routes/setup-generator.routes');
+
 // NEW: Branch Validation Routes (Sistema de Validación de 85 Sucursales)
 const branchValidationRoutes = require('./routes/branch-validation.routes');
 
@@ -224,6 +227,7 @@ function createServer() {
   app.use('/api/branch-validation', branchValidationRoutes); // Branch validation system
   app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup - RE-HABILITADO
   app.use('/api/detection', detectionManagementRoutes); // Detection management endpoints - RE-HABILITADO
+  app.use('/api/setup', setupGeneratorRoutes); // Setup generator for employees - NUEVO
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

@@ -107,9 +107,8 @@ class LocationProcessor {
       
       // 9. Guardar ubicación en BD
       const savedLocation = await this.saveLocation({
-        tid,
+        tracker_id: tid,   // Pasar tracker_id string
         user_id: user.id,  // Use database ID instead of tracker_id string
-        email: user.zenput_email,
         lat,
         lon,
         acc,
@@ -299,22 +298,21 @@ class LocationProcessor {
       // 1. Guardar ubicación GPS
       const result = await db.query(`
         INSERT INTO gps_locations 
-        (user_id, zenput_email, latitude, longitude, accuracy, altitude, 
-         battery, velocity, heading, gps_timestamp, raw_payload)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        (tracker_id, user_id, latitude, longitude, accuracy, altitude, 
+         heading, speed, timestamp, battery_level, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
         RETURNING id
       `, [
-        data.user_id,  // Use user_id (database ID) instead of tracker_id
-        data.email,
+        data.tracker_id,  // Usar tracker_id correcto
+        data.user_id,
         data.lat,
         data.lon,
         data.acc,
         data.alt,
-        data.batt,
-        data.vel,
-        data.cog,
-        data.gpsTimestamp,
-        JSON.stringify(data.payload)
+        data.cog,      // heading
+        data.vel,      // speed
+        data.gpsTimestamp,  // timestamp
+        data.batt      // battery_level
       ]);
       
       // 2. Actualizar estado del usuario en tracking_users

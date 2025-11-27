@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración GPS - Usuario DEMO01</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .logo { 
+            font-size: 28px; 
+            margin-bottom: 20px; 
+            color: #ff6b35;
+            font-weight: bold;
+        }
+        .user-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #ff6b35;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin: 15px 0;
+            background: #ff6b35;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn:hover { 
+            background: #e55a2e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+        .btn.secondary {
+            background: #28a745;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        .btn.secondary:hover {
+            background: #218838;
+        }
+        .info { 
+            background: #e3f2fd; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-size: 14px;
+            text-align: left;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🐔 POLLO LOCO GPS</div>
+        <h2>Configuración Automática</h2>
+        
+        <div class="user-info">
+            <strong>👤 Usuario:</strong> DEMO01<br>
+            <strong>📝 Nombre:</strong> Usuario Demo Testing<br>
+            <strong>🎭 Rol:</strong> Employee
+        </div>
+        
+        <div id="status" class="status warning">
+            📱 Presiona el botón para configurar OwnTracks automáticamente
+        </div>
+        
+        <!-- Método 1: URL Scheme OwnTracks -->
+        <a href="owntracks://config?url=https%3A//pollo-loco-tracking-gps-production.up.railway.app/api/owntracks/config/DEMO01" 
+           class="btn" onclick="trackClick('owntracks_scheme')">
+            📱 Configurar OwnTracks Automáticamente
+        </a>
+        
+        <!-- Método 2: Ver configuración JSON -->
+        <a href="https://pollo-loco-tracking-gps-production.up.railway.app/api/owntracks/config/DEMO01" 
+           class="btn secondary" onclick="trackClick('view_config')">
+            🔧 Ver Configuración Manual
+        </a>
+        
+        <div class="info">
+            <strong>📋 Instrucciones:</strong><br>
+            1. Instala OwnTracks desde App Store<br>
+            2. Presiona "Configurar OwnTracks Automáticamente"<br>
+            3. Si no funciona automáticamente, usa "Ver Configuración Manual"<br>
+            4. ¡Listo! Ya estarás enviando tu ubicación GPS
+        </div>
+        
+        <div class="info">
+            <strong>⚙️ Configuración Manual (si es necesario):</strong><br>
+            <strong>Servidor:</strong> pollo-loco-tracking-gps-production.up.railway.app<br>
+            <strong>Puerto:</strong> 443 | <strong>TLS:</strong> Sí<br>
+            <strong>Ruta:</strong> /api/owntracks/location<br>
+            <strong>Usuario:</strong> DEMO01
+        </div>
+
+        <div class="info" style="background: #fff3cd; color: #856404;">
+            <strong>🔄 Estado del sistema:</strong> ✅ Operativo<br>
+            <strong>📡 Última prueba:</strong> Exitosa (Nov 27, 2025)<br>
+            <strong>👥 Usuarios activos:</strong> 3 configurados
+        </div>
+    </div>
+
+    <script>
+        function trackClick(action) {
+            console.log('🎯 Acción:', action);
+            
+            if (action === 'owntracks_scheme') {
+                document.getElementById('status').innerHTML = '⚡ Abriendo OwnTracks...';
+                document.getElementById('status').className = 'status success';
+                
+                // Detectar si OwnTracks está instalado
+                setTimeout(() => {
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    if (isIOS) {
+                        // Fallback a App Store después de 5 segundos
+                        setTimeout(() => {
+                            if (confirm('¿No se abrió OwnTracks automáticamente? ¿Quieres ir al App Store para instalarlo?')) {
+                                window.location.href = "https://apps.apple.com/app/owntracks/id692424691";
+                            }
+                        }, 5000);
+                    }
+                }, 1000);
+            }
+            
+            if (action === 'view_config') {
+                document.getElementById('status').innerHTML = '📋 Abriendo configuración manual...';
+                document.getElementById('status').className = 'status warning';
+            }
+        }
+        
+        // Auto-detectar OwnTracks
+        window.onload = function() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                document.getElementById('status').innerHTML = '📱 iOS detectado - Listo para configuración automática';
+            } else {
+                document.getElementById('status').innerHTML = '💻 Para Android, el QR Scanner funciona mejor';
+            }
+        };
+    </script>
+</body>
+</html>

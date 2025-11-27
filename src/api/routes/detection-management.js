@@ -4,8 +4,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { realTimeProcessor } = require('../middleware/realtime-processor');
-const { universalGeofenceCheck } = require('../jobs/universal-geofence');
+const { realTimeProcessor } = require('../../middleware/realtime-processor');
+const { universalGeofenceCheck } = require('../../jobs/universal-geofence');
 
 // Status general del sistema
 router.get('/detection-status', async (req, res) => {

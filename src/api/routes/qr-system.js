@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const qrGenerator = require('../services/qr-generator');
+const qrGenerator = require('../../services/qr-generator');
 
 // Generar QR para usuario específico
 router.get('/qr/:userId', async (req, res) => {

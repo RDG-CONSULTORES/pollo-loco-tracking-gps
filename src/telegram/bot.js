@@ -31,18 +31,23 @@ class PolloLocoBot {
   setupHandlers() {
     if (!this.bot) return;
     
-    // Middleware de autenticación - COMENTADO TEMPORALMENTE
-    // this.bot.use((ctx, next) => {
-    //   const userId = ctx.message?.from?.id || ctx.callback_query?.from?.id;
-    //   
-    //   if (!isAdmin(userId)) {
-    //     this.sendMessage(ctx.message?.chat?.id || ctx.callback_query?.message?.chat?.id, 
-    //       messages.unauthorized);
-    //     return;
-    //   }
-    //   
-    //   next();
-    // });
+    // Middleware de autenticación - HABILITADO CONDICIONALMENTE
+    if (process.env.TELEGRAM_ADMIN_IDS && process.env.TELEGRAM_ADMIN_IDS.trim() !== '') {
+      console.log('🔐 Autenticación Telegram habilitada');
+      this.bot.use((ctx, next) => {
+        const userId = ctx.message?.from?.id || ctx.callback_query?.from?.id;
+        
+        if (!isAdmin(userId)) {
+          this.sendMessage(ctx.message?.chat?.id || ctx.callback_query?.message?.chat?.id, 
+            messages.unauthorized);
+          return;
+        }
+        
+        next();
+      });
+    } else {
+      console.log('⚠️  Autenticación Telegram deshabilitada (TELEGRAM_ADMIN_IDS no configurado)');
+    }
     
     // Comando /start con auto-vinculación
     this.bot.onText(/^\/start(?: (.+))?$/, (msg, match) => {

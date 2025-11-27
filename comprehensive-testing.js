@@ -126,11 +126,11 @@ class ComprehensiveTester {
     await this.testEndpoint('QR User 1', '/api/qr/qr/1', [200, 400]); // Puede fallar por usuario, pero endpoint debe existir
     
     // Detection Management
-    await this.testEndpoint('Detection Status', '/api/detection/status', [200, 404]);
-    await this.testEndpoint('Detection Config', '/api/detection/config', [200, 404]);
+    await this.testEndpoint('Detection Status', '/api/detection/detection-status', [200, 404]);
+    await this.testEndpoint('Detection Force Check', '/api/detection/force-check-all', [200, 404]);
     
     // OwnTracks Remote Config
-    await this.testEndpoint('OwnTracks Remote Config', '/api/owntracks/remote-config', [200, 404]);
+    await this.testEndpoint('OwnTracks Optimal Config', '/api/owntracks/config/optimal', [200, 404]);
     await this.testEndpoint('OwnTracks Config User 1', '/api/owntracks/config/1', [200, 400]);
     
     console.log('');

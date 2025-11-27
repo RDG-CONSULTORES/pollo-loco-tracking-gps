@@ -223,7 +223,8 @@ function createServer() {
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
   app.use('/api/branch-validation', branchValidationRoutes); // Branch validation system
   app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup - RE-HABILITADO
-  app.use('/api', detectionManagementRoutes); // Detection management endpoints - RE-HABILITADO
+  app.use('/api/detection', detectionManagementRoutes); // Detection management endpoints - RE-HABILITADO
+  app.use('/api/owntracks', ownTracksRemoteConfig); // OwnTracks remote configuration - RE-HABILITADO
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

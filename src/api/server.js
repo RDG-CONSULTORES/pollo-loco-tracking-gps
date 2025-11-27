@@ -209,7 +209,7 @@ function createServer() {
   app.use('/api/owntracks', processLocationMiddleware); // Real-time processing - RE-HABILITADO
   app.use('/api/owntracks', ownTracksRoutes);
   app.use('/api/owntracks', ownTracksConfigRoutes);
-  app.use('/api/owntracks', ownTracksRemoteConfig); // Configuración remota optimizada - RE-HABILITADO
+  app.use('/api/owntracks-remote', ownTracksRemoteConfig); // Configuración remota optimizada - RE-HABILITADO
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
@@ -224,7 +224,6 @@ function createServer() {
   app.use('/api/branch-validation', branchValidationRoutes); // Branch validation system
   app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup - RE-HABILITADO
   app.use('/api/detection', detectionManagementRoutes); // Detection management endpoints - RE-HABILITADO
-  app.use('/api/owntracks', ownTracksRemoteConfig); // OwnTracks remote configuration - RE-HABILITADO
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

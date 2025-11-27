@@ -130,8 +130,8 @@ class ComprehensiveTester {
     await this.testEndpoint('Detection Force Check', '/api/detection/force-check-all', [200, 404]);
     
     // OwnTracks Remote Config
-    await this.testEndpoint('OwnTracks Optimal Config', '/api/owntracks/config/optimal', [200, 404]);
-    await this.testEndpoint('OwnTracks Config User 1', '/api/owntracks/config/1', [200, 400]);
+    await this.testEndpoint('OwnTracks Optimal Config', '/api/owntracks-remote/config/optimal', [200, 404]);
+    await this.testEndpoint('OwnTracks Config User 1', '/api/owntracks-remote/config/1', [200, 400]);
     
     console.log('');
   }

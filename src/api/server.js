@@ -40,14 +40,14 @@ const telegramDetectionRoutes = require('./routes/telegram-detection.routes');
 // NEW: Unified User Management Routes (Panel Unificado EPL CAS)
 const unifiedUserRoutes = require('./routes/unified-user-management.routes');
 
-// NEW: QR System Routes (temporalmente comentado para fix deployment)
-// const qrRoutes = require('./routes/qr-system');
+// NEW: QR System Routes (RE-HABILITADO)
+const qrRoutes = require('./routes/qr-system');
 
-// NEW: Detection Management Routes
-// const detectionManagementRoutes = require('./routes/detection-management');
+// NEW: Detection Management Routes (RE-HABILITADO)
+const detectionManagementRoutes = require('./routes/detection-management');
 
-// NEW: OwnTracks Remote Configuration
-// const ownTracksRemoteConfig = require('./routes/owntracks-remote-config');
+// NEW: OwnTracks Remote Configuration (RE-HABILITADO)
+const ownTracksRemoteConfig = require('./routes/owntracks-remote-config');
 
 // NEW: Branch Validation Routes (Sistema de Validación de 85 Sucursales)
 const branchValidationRoutes = require('./routes/branch-validation.routes');
@@ -55,8 +55,8 @@ const branchValidationRoutes = require('./routes/branch-validation.routes');
 // NEW: Fresh Coordinates Routes (Sin Cache - Fix Coordenadas)
 const freshCoordinatesRoutes = require('./routes/fresh-coordinates.routes');
 
-// NEW: Real-time processing middleware
-// const { processLocationMiddleware } = require('../middleware/realtime-processor');
+// NEW: Real-time processing middleware (RE-HABILITADO)
+const { processLocationMiddleware } = require('../middleware/realtime-processor');
 
 /**
  * Configurar servidor Express
@@ -206,9 +206,10 @@ function createServer() {
   });
   
   // Routes (middleware de tiempo real en OwnTracks)
+  app.use('/api/owntracks', processLocationMiddleware); // Real-time processing - RE-HABILITADO
   app.use('/api/owntracks', ownTracksRoutes);
   app.use('/api/owntracks', ownTracksConfigRoutes);
-  // app.use('/api/owntracks', ownTracksRemoteConfig); // Configuración remota optimizada
+  app.use('/api/owntracks', ownTracksRemoteConfig); // Configuración remota optimizada - RE-HABILITADO
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
@@ -221,8 +222,8 @@ function createServer() {
   app.use('/api/gps-wizard', gpsWizardRoutes); // GPS setup wizard routes
   app.use('/api/alerts-config', alertsConfigRoutes); // Alerts configuration routes
   app.use('/api/branch-validation', branchValidationRoutes); // Branch validation system
-  // app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup (temporalmente comentado)
-  // app.use('/api', detectionManagementRoutes); // Detection management endpoints
+  app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup - RE-HABILITADO
+  app.use('/api', detectionManagementRoutes); // Detection management endpoints - RE-HABILITADO
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

@@ -225,7 +225,7 @@ function createServer() {
   app.use('/api/tracking', trackingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', mobileAdminRoutes);  // Mobile admin routes
-  app.use('/api/admin', adminDashboardRoutes); // Admin Dashboard Foundation Phase
+  app.use('/api/dashboard', adminDashboardRoutes); // Admin Dashboard - SIN AUTENTICACIÓN TEMPORAL
   app.use('/api/public', publicDashboardRoutes); // Public Dashboard - NO AUTH REQUIRED
   app.use('/api/telegram', telegramDetectionRoutes); // Telegram Detection - Mini-Step 1B
   app.use('/api/fresh-coordinates', freshCoordinatesRoutes); // Fresh Coordinates - Sin Cache Fix

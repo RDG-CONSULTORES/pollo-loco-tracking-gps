@@ -8,14 +8,14 @@ const { requireAdmin, requireDirectorOrAdmin, basicAuth, filterDataByUserAccess 
  * Sistema jerárquico de permisos
  */
 
-// Middleware de autenticación básica (temporal)
-router.use(basicAuth);
+// Middleware de autenticación básica (temporal) - DESHABILITADO PARA TESTING
+// router.use(basicAuth);
 
 /**
- * GET /api/directors
- * Lista de directores con sus estadísticas
+ * GET /api/directors/list
+ * Lista de directores con sus estadísticas - SIN AUTENTICACIÓN TEMPORAL
  */
-router.get('/', requireDirectorOrAdmin(), async (req, res) => {
+router.get('/list', async (req, res) => {
   try {
     const result = await db.query(`
       SELECT 

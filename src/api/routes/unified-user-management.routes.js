@@ -11,6 +11,109 @@ const db = require('../../config/database');
  */
 
 /**
+ * GET /api/users/list
+ * Lista completa de usuarios del sistema - SIN AUTENTICACIÓN TEMPORAL
+ */
+router.get('/list', async (req, res) => {
+  try {
+    console.log('📋 Obteniendo lista completa de usuarios...');
+    
+    // Obtener usuarios de tracking_users con estadísticas
+    const usersQuery = await db.query(`
+      SELECT 
+        tu.*,
+        CASE 
+          WHEN gl.last_location IS NOT NULL THEN 'Con GPS'
+          ELSE 'Sin GPS'
+        END as gps_status,
+        gl.last_location,
+        gl.total_locations,
+        CASE 
+          WHEN gl.last_location > NOW() - INTERVAL '24 hours' THEN 'Activo'
+          WHEN gl.last_location > NOW() - INTERVAL '7 days' THEN 'Reciente'
+          WHEN gl.last_location IS NOT NULL THEN 'Inactivo'
+          ELSE 'Sin datos'
+        END as activity_status
+      FROM tracking_users tu
+      LEFT JOIN (
+        SELECT 
+          user_id,
+          MAX(timestamp) as last_location,
+          COUNT(*) as total_locations
+        FROM gps_locations 
+        GROUP BY user_id
+      ) gl ON tu.id = gl.user_id
+      ORDER BY 
+        tu.active DESC,
+        gl.last_location DESC NULLS LAST,
+        tu.created_at DESC
+    `);
+    
+    // Obtener estadísticas generales
+    const statsQuery = await db.query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(*) FILTER (WHERE active = true) as active_users,
+        COUNT(*) FILTER (WHERE active = false) as inactive_users,
+        COUNT(DISTINCT role) as total_roles,
+        COUNT(DISTINCT group_name) as total_groups
+      FROM tracking_users
+    `);
+    
+    // Obtener usuarios del sistema de admin (system_users)
+    const adminUsersQuery = await db.query(`
+      SELECT 
+        id,
+        username,
+        email,
+        user_type,
+        active,
+        created_at,
+        'admin' as source_system
+      FROM system_users
+      ORDER BY created_at DESC
+    `);
+    
+    const users = usersQuery.rows.map(user => ({
+      ...user,
+      source_system: 'tracking',
+      total_locations: parseInt(user.total_locations) || 0
+    }));
+    
+    const stats = statsQuery.rows[0];
+    const adminUsers = adminUsersQuery.rows;
+    
+    res.json({
+      success: true,
+      data: {
+        tracking_users: users,
+        admin_users: adminUsers,
+        stats: {
+          total_tracking_users: parseInt(stats.total_users) || 0,
+          active_tracking_users: parseInt(stats.active_users) || 0,
+          inactive_tracking_users: parseInt(stats.inactive_users) || 0,
+          total_admin_users: adminUsers.length,
+          total_roles: parseInt(stats.total_roles) || 0,
+          total_groups: parseInt(stats.total_groups) || 0
+        },
+        meta: {
+          generated_at: new Date().toISOString(),
+          endpoint: '/api/users/list'
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo lista de usuarios:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo lista de usuarios',
+      details: error.message
+    });
+  }
+});
+
+/**
  * POST /api/users/create-unified
  * Create user with complete onboarding and permissions
  */

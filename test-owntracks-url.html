@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración OwnTracks - Pollo Loco</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .logo { font-size: 24px; margin-bottom: 20px; color: #ff6b35; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #ff6b35;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .btn:hover { background: #e55a2e; }
+        .info { 
+            background: #e3f2fd; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🐔 POLLO LOCO GPS</div>
+        <h2>Configuración Automática</h2>
+        <p>Empleado: <strong>Roberto Davila (RD01)</strong></p>
+        
+        <!-- Método 1: URL Scheme OwnTracks -->
+        <a href="owntracks://config?url=https%3A//pollo-loco-tracking-gps-production.up.railway.app/api/owntracks/config/RD01" class="btn">
+            📱 Configurar OwnTracks
+        </a>
+        
+        <!-- Método 2: URL directa con parámetros -->
+        <a href="owntracks://config?host=pollo-loco-tracking-gps-production.up.railway.app&port=443&tls=1&path=/api/owntracks/location&userid=RD01&deviceid=RD01" class="btn">
+            ⚙️ Configuración Directa
+        </a>
+        
+        <!-- Método 3: Shortcut para iOS -->
+        <a href="https://pollo-loco-tracking-gps-production.up.railway.app/api/owntracks/config/RD01" class="btn">
+            🔗 Ver Configuración JSON
+        </a>
+        
+        <div class="info">
+            <strong>Instrucciones:</strong><br>
+            1. Toca "Configurar OwnTracks"<br>
+            2. Si no funciona, instala OwnTracks primero<br>
+            3. La configuración se aplicará automáticamente
+        </div>
+        
+        <div class="info">
+            <strong>Configuración Manual:</strong><br>
+            Host: pollo-loco-tracking-gps-production.up.railway.app<br>
+            Puerto: 443 | TLS: Sí<br>
+            Ruta: /api/owntracks/location<br>
+            Usuario: RD01
+        </div>
+    </div>
+
+    <script>
+        // Detectar si OwnTracks está instalado
+        function checkOwnTracks() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                // Intentar abrir OwnTracks
+                const ownTracksURL = "owntracks://config?url=" + encodeURIComponent("https://pollo-loco-tracking-gps-production.up.railway.app/api/owntracks/config/RD01");
+                window.location.href = ownTracksURL;
+                
+                // Fallback a App Store después de 3 segundos
+                setTimeout(() => {
+                    window.location.href = "https://apps.apple.com/app/owntracks/id692424691";
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>

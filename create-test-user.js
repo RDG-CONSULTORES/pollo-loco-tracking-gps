@@ -12,8 +12,8 @@ async function createTestUser() {
     
     // Datos del usuario de testing
     const testUser = {
-      tracker_id: 'TEST01',
-      display_name: 'Roberto Testing',
+      tracker_id: 'RD01',
+      display_name: 'Roberto Davila',
       role: 'admin',
       active: true
     };

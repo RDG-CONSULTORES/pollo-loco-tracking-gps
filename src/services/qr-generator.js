@@ -96,8 +96,20 @@ class QRGeneratorService {
     try {
       const config = await this.generateOwnTracksConfig(userId);
       
-      // Crear URL de configuración
-      const configUrl = `${this.baseUrl}/api/owntracks/config/${userId}`;
+      // Obtener tracker_id del usuario
+      const user = await this.pool.query(
+        'SELECT tracker_id FROM tracking_users WHERE id = $1',
+        [userId]
+      );
+      
+      if (user.rows.length === 0) {
+        throw new Error('Usuario no encontrado');
+      }
+      
+      const trackerId = user.rows[0].tracker_id;
+      
+      // Crear URL de configuración usando tracker_id
+      const configUrl = `${this.baseUrl}/api/owntracks/config/${trackerId}`;
       
       // Para OwnTracks, necesitamos una URL especial
       const ownTracksUrl = `owntracks:///config?url=${encodeURIComponent(configUrl)}`;

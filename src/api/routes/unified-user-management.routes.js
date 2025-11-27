@@ -154,16 +154,16 @@ router.post('/create-unified', async (req, res) => {
     
     const newUser = userResult.rows[0];
     
-    // Asignar grupos operativos (si es director) - TODO: Create table
-    // if (operational_groups.length > 0) {
-    //   for (const groupId of operational_groups) {
-    //     await db.query(`
-    //       INSERT INTO user_group_permissions (user_id, operational_group_id, granted_at)
-    //       VALUES ($1, $2, NOW())
-    //       ON CONFLICT (user_id, operational_group_id) DO NOTHING
-    //     `, [newUser.id, groupId]);
-    //   }
-    // }
+    // Asignar grupos operativos (si es director) - TABLA CREADA ✅
+    if (operational_groups && operational_groups.length > 0) {
+      for (const groupId of operational_groups) {
+        await db.query(`
+          INSERT INTO user_group_permissions (user_id, operational_group_id, operational_group_name, granted_at)
+          VALUES ($1, $2, $3, NOW())
+          ON CONFLICT (user_id, operational_group_name) DO NOTHING
+        `, [newUser.id, groupId, groupId]); // Usando groupId como name también por ahora
+      }
+    }
     
     // Crear entrada en system_users para login web
     await db.query(`

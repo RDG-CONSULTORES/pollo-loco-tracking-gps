@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Traccar - TRACCAR01</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #2196F3, #21CBF3);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .qr-code {
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 25px;
+            margin: 10px;
+            background: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .instructions {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐔 Pollo Loco GPS</h1>
+        <h2>Configuración Traccar</h2>
+        
+        <div class="user-info">
+            <strong>👤 Usuario:</strong> TRACCAR01<br>
+            <strong>📱 App:</strong> Traccar Client
+        </div>
+        
+        <div class="qr-code">
+            <img src="data:image/png;base64,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" alt="QR Code Traccar" style="max-width: 250px;">
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ol>
+                <li><strong>Instala Traccar Client</strong>
+                    <ul>
+                        <li>Android: <a href="https://play.google.com/store/apps/details?id=org.traccar.client">Google Play</a></li>
+                        <li>iOS: <a href="https://apps.apple.com/app/traccar-client/id843156974">App Store</a></li>
+                    </ul>
+                </li>
+                <li><strong>Escanea este QR</strong> con el teléfono</li>
+                <li><strong>Se abrirá automáticamente</strong> la configuración</li>
+                <li><strong>Presiona "Configurar Traccar Client"</strong></li>
+                <li><strong>¡Listo!</strong> Ya estás enviando GPS</li>
+            </ol>
+        </div>
+        
+        <a href="https://pollo-loco-tracking-gps-production.up.railway.app/api/traccar-config/setup/TRACCAR01" class="btn">
+            🔧 Abrir Configuración Manual
+        </a>
+    </div>
+</body>
+</html>
+    

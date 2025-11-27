@@ -69,21 +69,17 @@ router.post('/', async (req, res) => {
     
     const insertResult = await db.query(`
       INSERT INTO gps_locations (
-        user_id, tracker_id, latitude, longitude, accuracy, 
-        battery_level, velocity, altitude, heading, gps_timestamp, protocol, created_at
+        user_id, latitude, longitude, accuracy, 
+        battery_level, timestamp, protocol, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       RETURNING id
     `, [
       locationData.user_id,
-      locationData.tracker_id,
       locationData.latitude,
       locationData.longitude,
       locationData.accuracy,
       locationData.battery_level,
-      locationData.velocity,
-      locationData.altitude,
-      locationData.heading,
       locationData.gps_timestamp,
       locationData.protocol
     ]);

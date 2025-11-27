@@ -1,0 +1,21 @@
+🐔 *Pollo Loco GPS - Configuración*
+
+👤 *Empleado:* María González
+📱 *ID:* EMP002
+
+*OPCIÓN 1 - Automática:*
+Abre este enlace en tu teléfono:
+https://pollo-loco-tracking-gps-production.up.railway.app/api/traccar-config/setup/EMP002
+
+*OPCIÓN 2 - Manual:*
+1. Instala "Traccar Client" desde:
+   📱 Android: Play Store
+   🍎 iPhone: App Store
+
+2. Configura manualmente:
+   • Servidor: pollo-loco-tracking-gps-production.up.railway.app
+   • Puerto: 443 (SSL activado)
+   • Identificador: EMP002
+   • Intervalo: 30 segundos
+
+¡Tu ubicación será enviada automáticamente cada 30 segundos!

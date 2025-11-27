@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const db = require('../../config/database');
 
 // Configuración optimizada que se enviará a los dispositivos
 const OPTIMAL_CONFIG = {
@@ -57,7 +58,7 @@ router.get('/config/:userId', async (req, res) => {
     const userConfig = { ...OPTIMAL_CONFIG };
     
     // Si es admin o usuario VIP, configuración más agresiva
-    const user = await req.db.query(
+    const user = await db.query(
       'SELECT role, display_name FROM tracking_users WHERE id = $1',
       [userId]
     );
@@ -83,7 +84,11 @@ router.get('/config/:userId', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error configuración usuario:', error.message);
-    res.status(500).json({ error: 'Error generating config' });
+    res.status(404).json({ 
+      error: 'User not found', 
+      trackerId: userId,
+      message: 'The specified tracker ID does not exist or is inactive'
+    });
   }
 });
 

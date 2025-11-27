@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo GPS Dual - Traccar + OwnTracks</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #FF6B35, #F7931E);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .demo-section {
+            padding: 40px;
+        }
+        
+        .system-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .system-card {
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .system-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .traccar-card {
+            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+            color: white;
+        }
+        
+        .owntracks-card {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+        }
+        
+        .system-card h3 {
+            margin: 0 0 20px 0;
+            font-size: 1.5em;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .demo-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .demo-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .status-panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2196F3;
+            display: block;
+        }
+        
+        .status-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .test-section {
+            background: #e3f2fd;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .test-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .test-btn {
+            background: #2196F3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .test-btn:hover {
+            background: #1976D2;
+        }
+        
+        .footer-actions {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .main-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: #FF6B35;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .main-btn:hover {
+            background: #e55a2e;
+        }
+        
+        .secondary-btn {
+            background: #6c757d;
+        }
+        
+        .secondary-btn:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐔 Sistema GPS Dual</h1>
+            <p>Traccar Client + OwnTracks | Pollo Loco 85 Sucursales</p>
+        </div>
+        
+        <div class="demo-section">
+            <h2>🎯 Comparación de Sistemas</h2>
+            
+            <div class="system-comparison">
+                <div class="system-card traccar-card">
+                    <h3>📱 Traccar Client</h3>
+                    <ul class="feature-list">
+                        <li>✅ Más preciso (±5m)</li>
+                        <li>✅ Menor consumo batería</li>
+                        <li>✅ Mejor para empresas</li>
+                        <li>✅ Configuración automática</li>
+                        <li>✅ Soporte 24/7</li>
+                    </ul>
+                    <a href="/api/traccar-config/setup/1" class="demo-btn">
+                        🎯 Demo Traccar Client
+                    </a>
+                </div>
+                
+                <div class="system-card owntracks-card">
+                    <h3>📍 OwnTracks</h3>
+                    <ul class="feature-list">
+                        <li>✅ Muy fácil uso</li>
+                        <li>✅ Más conocido</li>
+                        <li>✅ Setup rápido</li>
+                        <li>⚠️ Consume más batería</li>
+                        <li>⚠️ Menos empresarial</li>
+                    </ul>
+                    <a href="/api/owntracks-remote/setup/1" class="demo-btn">
+                        📍 Demo OwnTracks
+                    </a>
+                </div>
+            </div>
+            
+            <div class="status-panel">
+                <h3>📊 Estado del Sistema en Tiempo Real</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-value" id="traccar-users">0</span>
+                        <div class="status-label">Usuarios Traccar</div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-value" id="owntracks-users">0</span>
+                        <div class="status-label">Usuarios OwnTracks</div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-value" id="total-locations">0</span>
+                        <div class="status-label">Ubicaciones Hoy</div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-value" id="active-geofences">85</span>
+                        <div class="status-label">Geofences Activos</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h3>🧪 Panel de Pruebas</h3>
+                <div class="test-grid">
+                    <div class="test-card">
+                        <h4>📡 Test Traccar</h4>
+                        <p>Simular envío GPS con Traccar Client</p>
+                        <button class="test-btn" onclick="testTraccarEndpoint()">
+                            Probar Endpoint Traccar
+                        </button>
+                    </div>
+                    
+                    <div class="test-card">
+                        <h4>📍 Test OwnTracks</h4>
+                        <p>Simular envío GPS con OwnTracks</p>
+                        <button class="test-btn" onclick="testOwnTracksEndpoint()">
+                            Probar Endpoint OwnTracks
+                        </button>
+                    </div>
+                    
+                    <div class="test-card">
+                        <h4>⚡ Test Real-time</h4>
+                        <p>Verificar procesamiento tiempo real</p>
+                        <button class="test-btn" onclick="testRealtimeProcessing()">
+                            Probar Tiempo Real
+                        </button>
+                    </div>
+                    
+                    <div class="test-card">
+                        <h4>🎯 Test Geofences</h4>
+                        <p>Simular entrada/salida sucursal</p>
+                        <button class="test-btn" onclick="testGeofenceDetection()">
+                            Probar Geofences
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-actions">
+            <a href="/webapp/unified-user-panel.html" class="main-btn">
+                👥 Panel de Usuarios
+            </a>
+            <a href="/webapp/admin-mobile.html" class="main-btn">
+                🔧 Panel Admin
+            </a>
+            <a href="/webapp/dashboard.html" class="main-btn secondary-btn">
+                📊 Dashboard Principal
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Cargar estadísticas al inicio
+        window.onload = function() {
+            loadSystemStats();
+            // Actualizar cada 30 segundos
+            setInterval(loadSystemStats, 30000);
+        };
+        
+        async function loadSystemStats() {
+            try {
+                // Obtener estadísticas de ubicaciones por protocolo
+                const response = await fetch('/api/tracking/stats/protocols');
+                if (response.ok) {
+                    const stats = await response.json();
+                    
+                    document.getElementById('traccar-users').textContent = stats.traccar_users || 0;
+                    document.getElementById('owntracks-users').textContent = stats.owntracks_users || 0;
+                    document.getElementById('total-locations').textContent = stats.total_today || 0;
+                }
+            } catch (error) {
+                console.error('Error cargando estadísticas:', error);
+            }
+        }
+        
+        async function testTraccarEndpoint() {
+            const btn = event.target;
+            btn.textContent = 'Probando...';
+            btn.disabled = true;
+            
+            try {
+                const testData = {
+                    lat: 19.432608,
+                    lon: -99.133209,
+                    timestamp: Math.floor(Date.now() / 1000),
+                    speed: 0,
+                    bearing: 0,
+                    accuracy: 5,
+                    battery: 85
+                };
+                
+                const response = await fetch('/api/traccar?id=DEMO01', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+                
+                if (response.ok) {
+                    btn.textContent = '✅ Test Exitoso';
+                    btn.style.background = '#4CAF50';
+                } else {
+                    btn.textContent = '❌ Test Falló';
+                    btn.style.background = '#f44336';
+                }
+            } catch (error) {
+                btn.textContent = '❌ Error de Red';
+                btn.style.background = '#f44336';
+            }
+            
+            setTimeout(() => {
+                btn.textContent = 'Probar Endpoint Traccar';
+                btn.style.background = '#2196F3';
+                btn.disabled = false;
+            }, 3000);
+        }
+        
+        async function testOwnTracksEndpoint() {
+            const btn = event.target;
+            btn.textContent = 'Probando...';
+            btn.disabled = true;
+            
+            try {
+                const testData = {
+                    _type: "location",
+                    lat: 19.432608,
+                    lon: -99.133209,
+                    tst: Math.floor(Date.now() / 1000),
+                    acc: 5,
+                    batt: 85,
+                    vel: 0
+                };
+                
+                const response = await fetch('/api/owntracks/location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+                
+                if (response.ok) {
+                    btn.textContent = '✅ Test Exitoso';
+                    btn.style.background = '#4CAF50';
+                } else {
+                    btn.textContent = '❌ Test Falló';
+                    btn.style.background = '#f44336';
+                }
+            } catch (error) {
+                btn.textContent = '❌ Error de Red';
+                btn.style.background = '#f44336';
+            }
+            
+            setTimeout(() => {
+                btn.textContent = 'Probar Endpoint OwnTracks';
+                btn.style.background = '#2196F3';
+                btn.disabled = false;
+            }, 3000);
+        }
+        
+        async function testRealtimeProcessing() {
+            const btn = event.target;
+            btn.textContent = 'Verificando...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/detection/detection-status');
+                if (response.ok) {
+                    const status = await response.json();
+                    if (status.success) {
+                        btn.textContent = '✅ Sistema Activo';
+                        btn.style.background = '#4CAF50';
+                    } else {
+                        btn.textContent = '⚠️ Sistema Inactivo';
+                        btn.style.background = '#FF9800';
+                    }
+                } else {
+                    btn.textContent = '❌ No Disponible';
+                    btn.style.background = '#f44336';
+                }
+            } catch (error) {
+                btn.textContent = '❌ Error de Red';
+                btn.style.background = '#f44336';
+            }
+            
+            setTimeout(() => {
+                btn.textContent = 'Probar Tiempo Real';
+                btn.style.background = '#2196F3';
+                btn.disabled = false;
+            }, 3000);
+        }
+        
+        async function testGeofenceDetection() {
+            const btn = event.target;
+            btn.textContent = 'Simulando...';
+            btn.disabled = true;
+            
+            try {
+                // Simular ubicación en una sucursal específica (ejemplo: Ciudad de México)
+                const testLocation = {
+                    lat: 19.432608,  // Centro CDMX
+                    lon: -99.133209,
+                    timestamp: Math.floor(Date.now() / 1000),
+                    accuracy: 5,
+                    battery: 85
+                };
+                
+                // Enviar a ambos endpoints para probar sistema dual
+                const traccarTest = fetch('/api/traccar?id=DEMO01', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testLocation)
+                });
+                
+                const ownTracksTest = fetch('/api/owntracks/location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _type: "location",
+                        lat: testLocation.lat,
+                        lon: testLocation.lon,
+                        tst: testLocation.timestamp,
+                        acc: testLocation.accuracy,
+                        batt: testLocation.battery
+                    })
+                });
+                
+                const [traccarResult, ownTracksResult] = await Promise.all([traccarTest, ownTracksTest]);
+                
+                if (traccarResult.ok || ownTracksResult.ok) {
+                    btn.textContent = '✅ Geofences OK';
+                    btn.style.background = '#4CAF50';
+                } else {
+                    btn.textContent = '❌ Error Geofences';
+                    btn.style.background = '#f44336';
+                }
+            } catch (error) {
+                btn.textContent = '❌ Error de Red';
+                btn.style.background = '#f44336';
+            }
+            
+            setTimeout(() => {
+                btn.textContent = 'Probar Geofences';
+                btn.style.background = '#2196F3';
+                btn.disabled = false;
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

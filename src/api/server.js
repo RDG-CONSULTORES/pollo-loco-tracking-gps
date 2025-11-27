@@ -58,6 +58,10 @@ const branchValidationRoutes = require('./routes/branch-validation.routes');
 // NEW: Fresh Coordinates Routes (Sin Cache - Fix Coordenadas)
 const freshCoordinatesRoutes = require('./routes/fresh-coordinates.routes');
 
+// NEW: Traccar Integration Routes (Sistema Dual GPS)
+const traccarRoutes = require('./routes/traccar.routes');
+const traccarConfigRoutes = require('./routes/traccar-config.routes');
+
 // NEW: Real-time processing middleware (RE-HABILITADO)
 const { processLocationMiddleware } = require('../middleware/realtime-processor');
 
@@ -154,6 +158,11 @@ function createServer() {
     res.sendFile(path.join(__dirname, '../webapp/unified-user-panel.html'));
   });
   
+  // Dual GPS Demo - Sistema Traccar + OwnTracks
+  app.get('/webapp/dual-gps-demo.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../webapp/dual-gps-demo.html'));
+  });
+  
   // Setup Instructions redirect
   app.get('/setup-instructions', (req, res) => {
     res.redirect('/api/qr/instructions');
@@ -228,6 +237,11 @@ function createServer() {
   app.use('/api/qr', qrRoutes); // QR system for automatic OwnTracks setup - RE-HABILITADO
   app.use('/api/detection', detectionManagementRoutes); // Detection management endpoints - RE-HABILITADO
   app.use('/api/setup', setupGeneratorRoutes); // Setup generator for employees - NUEVO
+  
+  // NEW: Traccar Integration Routes (Sistema Dual GPS)
+  app.use('/api/traccar', processLocationMiddleware); // Real-time processing for Traccar - NUEVO
+  app.use('/api/traccar', traccarRoutes); // Traccar Client protocol support - NUEVO
+  app.use('/api/traccar-config', traccarConfigRoutes); // Traccar configuration generator - NUEVO
   app.use('/api/debug', debugRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/routes', routesRoutes);

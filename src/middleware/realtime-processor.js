@@ -1,6 +1,6 @@
 /**
  * Middleware para procesamiento en tiempo real
- * Se ejecuta automáticamente cuando llegan ubicaciones via OwnTracks
+ * Se ejecuta automáticamente cuando llegan ubicaciones via OwnTracks y Traccar
  */
 
 const geofenceEngine = require('../services/geofence-engine');

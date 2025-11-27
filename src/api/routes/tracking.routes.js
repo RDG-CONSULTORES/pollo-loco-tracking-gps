@@ -29,6 +29,62 @@ router.get('/locations/current', async (req, res) => {
 });
 
 /**
+ * GET /api/tracking/stats/protocols
+ * Estadísticas por protocolo (Traccar vs OwnTracks)
+ */
+router.get('/stats/protocols', async (req, res) => {
+  try {
+    // Contar usuarios activos por protocolo
+    const protocolStats = await db.query(`
+      SELECT 
+        protocol,
+        COUNT(DISTINCT user_id) as users,
+        COUNT(*) as total_locations,
+        MAX(created_at) as last_update
+      FROM gps_locations 
+      WHERE created_at >= CURRENT_DATE
+      GROUP BY protocol
+    `);
+    
+    // Estadísticas del día
+    const todayStats = await db.query(`
+      SELECT COUNT(*) as total_today
+      FROM gps_locations 
+      WHERE created_at >= CURRENT_DATE
+    `);
+    
+    // Organizar resultados
+    const stats = {
+      traccar_users: 0,
+      owntracks_users: 0,
+      traccar_locations: 0,
+      owntracks_locations: 0,
+      total_today: parseInt(todayStats.rows[0]?.total_today || 0),
+      last_updated: new Date().toISOString()
+    };
+    
+    protocolStats.rows.forEach(row => {
+      if (row.protocol === 'traccar') {
+        stats.traccar_users = parseInt(row.users);
+        stats.traccar_locations = parseInt(row.total_locations);
+      } else if (row.protocol === 'owntracks') {
+        stats.owntracks_users = parseInt(row.users);
+        stats.owntracks_locations = parseInt(row.total_locations);
+      }
+    });
+    
+    res.json(stats);
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de protocolos:', error.message);
+    res.status(500).json({ 
+      status: 'error', 
+      error: error.message 
+    });
+  }
+});
+
+/**
  * GET /api/tracking/visits/today
  * Visitas del día actual
  */
